@@ -78,6 +78,7 @@ export function container(): Container {
     awsKeyId: config.AWS_KMS_KEY_ID,
     awsRegion: config.AWS_REGION,
     isProduction: isProduction(),
+    allowInsecureLocalKeyInProduction: config.NEXUS_ALLOW_INSECURE_LOCAL_KMS,
   });
 
   const llm = createLlmProvider({

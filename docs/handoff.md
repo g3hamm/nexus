@@ -48,9 +48,11 @@ These are things that look done and are not:
    repository all exist and are wired. There is no UI. Admin transcript reads
    are supposed to write `conversation.viewed` to the audit log — that call
    site does not exist yet because the screen does not.
-3. **No volunteer provisioning UI.** `VolunteerRepository.create` exists and
-   sets `approvedAt: null`. There is no way to call it and no approval screen.
-   You will need a seed script to get a volunteer into the database at all.
+3. **No volunteer provisioning UI.** `pnpm seed:volunteer` creates and
+   _immediately approves_ an account, which is what makes the app usable at
+   all today — but it bypasses the vetting step that is the actual safety
+   model. A real signup path plus an admin approval screen is wave-two work,
+   and until it exists the seed script is the only door in.
 4. **No rate limiting anywhere.** `/api/seeker/start` will create a conversation
    for anybody who asks, as often as they ask.
 5. **No password reset, no MFA.** An admin account is a key to every transcript.
@@ -64,8 +66,9 @@ These are things that look done and are not:
 **Before anything else**
 
 1. The retention purge job. See gap 1.
-2. A volunteer seed/provisioning script, so the app can actually be used.
-3. Rate limiting on the seeker entry point.
+2. Rate limiting on the seeker entry point.
+3. A real volunteer signup and admin approval flow, replacing the seed script
+   (see gap 3).
 
 **Wave two, roughly in dependency order**
 

@@ -29,9 +29,14 @@ lookup. Each lives in its own package with the design decisions written down.
 ```bash
 pnpm install
 cp .env.example .env.local     # then fill it in
-pnpm db:generate && pnpm db:migrate
+pnpm db:migrate
+pnpm seed:volunteer --email you@example.org --name "Your Name" --languages en
 pnpm dev
 ```
+
+To put it on Vercel and actually talk to yourself on it, follow
+[docs/deploying.md](docs/deploying.md) — about 30 minutes, most of it waiting
+on signup forms.
 
 You can run the whole app without any third-party credentials:
 
@@ -86,6 +91,7 @@ vendor SDK.
 
 ## Further reading
 
+- [Deploying](docs/deploying.md) — getting it hosted and trying it out
 - [Architecture](docs/architecture.md) — how a message actually flows
 - [Handoff guide](docs/handoff.md) — for the team taking this on
 - [Decision records](docs/adr/) — why things are the way they are

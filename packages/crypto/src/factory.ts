@@ -10,6 +10,16 @@ export interface CryptoConfig {
   readonly awsKeyId?: string | undefined;
   readonly awsRegion?: string | undefined;
   readonly isProduction: boolean;
+  /**
+   * Deliberate opt-out of the production guard below, for trial and staging
+   * deployments where standing up a KMS is not yet worth it.
+   *
+   * Named so it cannot be set by accident or mistaken for something benign,
+   * and it warns on every boot. The guard exists so nobody ships to
+   * production on an environment-variable key *without noticing* — not to
+   * make evaluating Nexus require an AWS account.
+   */
+  readonly allowInsecureLocalKeyInProduction?: boolean;
 }
 
 /**
@@ -32,11 +42,29 @@ export function createKeyManagement(config: CryptoConfig): KeyManagement {
   }
 
   if (config.isProduction) {
-    throw new NexusError(
-      "crypto_failure",
-      "Refusing to start: NEXUS_KMS_PROVIDER is 'local' in production. " +
-        "A master key in an environment variable is readable by anything that can " +
-        "read the environment. Set NEXUS_KMS_PROVIDER='aws' and AWS_KMS_KEY_ID.",
+    if (!config.allowInsecureLocalKeyInProduction) {
+      throw new NexusError(
+        "crypto_failure",
+        "Refusing to start: NEXUS_KMS_PROVIDER is 'local' in production. " +
+          "A master key in an environment variable is readable by anything that " +
+          "can read the environment. Set NEXUS_KMS_PROVIDER='aws' and " +
+          "AWS_KMS_KEY_ID. To run a trial deployment anyway, set " +
+          "NEXUS_ALLOW_INSECURE_LOCAL_KMS='true' — do not do this with real " +
+          "conversations in the database.",
+      );
+    }
+    console.warn(
+      "\n" +
+        "  ┌──────────────────────────────────────────────────────────────┐\n" +
+        "  │  NEXUS IS RUNNING WITH AN INSECURE MASTER KEY                 │\n" +
+        "  │                                                              │\n" +
+        "  │  Conversation keys are wrapped by a key held in an            │\n" +
+        "  │  environment variable. Anything that can read the             │\n" +
+        "  │  environment can read every transcript.                       │\n" +
+        "  │                                                              │\n" +
+        "  │  Acceptable for a trial. Not acceptable once real people      │\n" +
+        "  │  are talking. Move to NEXUS_KMS_PROVIDER='aws' first.         │\n" +
+        "  └──────────────────────────────────────────────────────────────┘\n",
     );
   }
 

@@ -14,6 +14,11 @@ const envSchema = z.object({
 
   NEXUS_KMS_PROVIDER: z.enum(["local", "aws"]).default("local"),
   NEXUS_MASTER_KEY: z.string().optional(),
+  /** Trial deployments only. See docs/deploying.md. */
+  NEXUS_ALLOW_INSECURE_LOCAL_KMS: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
   AWS_KMS_KEY_ID: z.string().optional(),
   AWS_REGION: z.string().default("us-east-1"),
 

@@ -23,13 +23,15 @@
     "lint": "eslint src --max-warnings 0",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "seed:volunteer": "tsx src/seed-volunteer.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@nexus/auth": "workspace:*",
     "@nexus/core": "workspace:*",
     "@nexus/crypto": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "@neondatabase/serverless": "^1.1.0"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

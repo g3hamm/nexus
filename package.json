@@ -17,7 +17,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
     "db:generate": "pnpm --filter @nexus/db db:generate",
     "db:migrate": "pnpm --filter @nexus/db db:migrate",
-    "verify": "turbo run typecheck lint test build"
+    "verify": "turbo run typecheck lint test build",
+    "seed:volunteer": "pnpm --filter @nexus/db seed:volunteer"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
