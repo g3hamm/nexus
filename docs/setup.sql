@@ -270,5 +270,47 @@ WHERE NOT EXISTS (
   SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = 'faf11bcf6142e05d4349029f694bc0302d74b6ea688b9e536fbbd68b36b9c4d5'
 );
 
+-- ── Migration 0003_shiny_cerise ───────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS "bible_translations" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"language" text NOT NULL,
+	"public_domain" boolean DEFAULT false NOT NULL,
+	"copyright" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "bible_verses" (
+	"translation_id" text NOT NULL,
+	"book" text NOT NULL,
+	"chapter" integer NOT NULL,
+	"verse" integer NOT NULL,
+	"text" text NOT NULL,
+	CONSTRAINT "bible_verses_translation_id_book_chapter_verse_pk" PRIMARY KEY("translation_id","book","chapter","verse")
+);
+
+DO $$ BEGIN
+  ALTER TABLE "bible_verses" ADD CONSTRAINT "bible_verses_translation_id_bible_translations_id_fk" FOREIGN KEY ("translation_id") REFERENCES "public"."bible_translations"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "bible_verses_passage_idx" ON "bible_verses" USING btree ("translation_id","book","chapter");
+
+-- Record this migration as applied, so a later `pnpm db:migrate` skips
+-- it rather than failing on tables that already exist.
+CREATE SCHEMA IF NOT EXISTS drizzle;
+CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+  id SERIAL PRIMARY KEY,
+  hash text NOT NULL,
+  created_at bigint
+);
+
+INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+SELECT '716d8ee4f720d181124ad6d73c4252bcc36bb4cb4aea964f3593ac1ebb307ed4', 1787874717747
+WHERE NOT EXISTS (
+  SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = '716d8ee4f720d181124ad6d73c4252bcc36bb4cb4aea964f3593ac1ebb307ed4'
+);
+
 -- ── Done ───────────────────────────────────────────────────────────────
 -- You should see eight tables under 'public' in the Neon Tables view.

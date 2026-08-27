@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@nexus/ui";
+import { ScriptureText } from "./ScriptureText";
 import type { TranscriptEntry } from "./useConversation";
 
 function direction(language: string): "ltr" | "rtl" {
@@ -76,7 +77,10 @@ function Bubble({
               : "bg-seeker-bubble text-seeker-ink",
           )}
         >
-          {showOriginal ? message.originalText : message.text}
+          <ScriptureText
+            text={showOriginal ? message.originalText : message.text}
+            language={showOriginal ? message.originalLanguage : message.language}
+          />
         </div>
 
         {message.translationUnavailable ? (

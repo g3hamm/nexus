@@ -165,6 +165,28 @@ The documents in `content/knowledge/` are **starter material** so the feature
 works on day one. Replace them with your own vetted content — see the README in
 that directory for the file format.
 
+## 6c. Load a Bible (optional but wanted)
+
+Scripture references in messages become hoverable. Without any text loaded the
+hover card says so honestly rather than breaking, but the feature is worth
+having:
+
+```bash
+curl -o kjv.json https://raw.githubusercontent.com/thiagobodruk/bible/master/json/en_kjv.json
+pnpm bible:load --file ./kjv.json --id kjv --name "King James Version" \
+  --language en --public-domain
+```
+
+The KJV is unambiguously public domain worldwide. **Check before loading
+anything else** — several translations circulating as free JSON are still
+licensed, and `bible:load` refuses to run without `--public-domain` precisely
+so that asserting it is deliberate. See
+[ADR 6](adr/0006-bible-text-sources.md).
+
+For languages with no public-domain text, set `API_BIBLE_KEY` from
+[scripture.api.bible](https://scripture.api.bible) — it covers thousands of
+versions and is tried first, with your own copy as the floor beneath it.
+
 ## 7. Try it
 
 You need two browser sessions, because you are playing both parts. Use a

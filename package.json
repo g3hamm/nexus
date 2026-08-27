@@ -8,6 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "bible:load": "pnpm --filter @nexus/bible bible:load",
     "build": "turbo run build",
     "db:check": "pnpm --filter @nexus/db db:check",
     "db:generate": "pnpm --filter @nexus/db db:generate",

@@ -87,7 +87,7 @@ packages/ui           Design tokens and shared primitives.
 packages/knowledge    Apologetics knowledge base: chunking, embeddings, pgvector retrieval.
 packages/enablement   The volunteer sidebar: verses, discussion points, seeker understanding.
 packages/moderation   The judge: watches both parties, raises structured flags.
-packages/bible        SCAFFOLD — scripture lookup and reference detection.
+packages/bible        Scripture lookup and in-message reference detection.
 content/knowledge     Starter knowledge-base documents. Replace with your own.
 ```
 

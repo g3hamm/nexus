@@ -96,7 +96,10 @@ true })` flag was accepted by the signature and silently dropped by the
 6. ~~`@nexus/enablement` — the sidebar.~~ **Built.** Refreshes only when the
    volunteer asks, to control both cost and the panel changing under someone
    mid-thought.
-7. `@nexus/bible` — lookup and detection, then the hover interaction.
+7. ~~`@nexus/bible` — lookup and detection, then the hover interaction.~~
+   **Built.** Detection covers English, Spanish, Portuguese and French; adding
+   a language means a native speaker supplying the book names and the
+   abbreviations people actually write.
 8. ~~Admin surfaces.~~ **Built.**
 
 **Later**

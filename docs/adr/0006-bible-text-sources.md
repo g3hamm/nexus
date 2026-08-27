@@ -16,9 +16,16 @@ legal question before it is a technical one.
 
 A layered `BibleProvider`:
 
-1. **`BundledBibleProvider`** — public-domain text shipped with the app: the
-   World English Bible, the KJV, and public-domain translations in other
-   languages. No key, no network, no licensing exposure.
+1. **`DatabaseBibleProvider`** — public-domain text we host ourselves, loaded
+   with `pnpm bible:load`. No key, no outbound request, no licensing exposure.
+
+   Originally this said "shipped with the app". It is in the database instead:
+   a full translation is several megabytes, and bundling that into a
+   serverless function to serve one verse is the wrong shape. What the
+   guarantee below actually needs is that lookup never depends on a third
+   party at request time, and self-hosting satisfies that — the text simply
+   arrives by a loader rather than by `git clone`.
+
 2. **`ApiBibleProvider`** — scripture.api.bible for the long tail: 2,500+
    versions across 1,600+ languages. Requires `API_BIBLE_KEY`. Each version
    carries its own attribution and usage restrictions.
@@ -38,9 +45,13 @@ A layered `BibleProvider`:
 
 ## Constraints for whoever implements this
 
-- **Do not add copyrighted translations to the bundled set.** They are licensed
-  individually. `TranslationInfo.copyright` exists to carry required
-  attribution to the UI, and it must actually be rendered.
+- **Do not self-host copyrighted translations.** They are licensed
+  individually, and several files circulating as free downloads are not
+  actually public domain — NVI, RVR 1960 and ARA among them. `bible:load`
+  refuses to run without an explicit `--public-domain` flag, so asserting it
+  is a deliberate act by whoever loads the file rather than a default.
+  `TranslationInfo.copyright` carries required attribution to the UI, and it
+  must actually be rendered.
 - Reference detection runs against the **original** text of a message, not a
   translation, so "Juan 3:16" is caught in the language it was typed in.
 - `book` is an OSIS-style identifier so "Juan 3:16" and "John 3:16" normalise to

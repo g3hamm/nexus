@@ -5,6 +5,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   real,
   smallint,
   text,
@@ -221,6 +222,54 @@ export const moderationFlags = pgTable(
   ],
 );
 
+// ── Scripture ───────────────────────────────────────────────────────────────
+
+/**
+ * Bible text, self-hosted.
+ *
+ * In the database rather than a file in the repository, for the same reason
+ * the knowledge base is: a full translation is several megabytes, and bundling
+ * that into a serverless function to serve one verse is the wrong shape. What
+ * matters for the guarantee in ADR 6 is that scripture lookup never depends on
+ * a third party being up at request time — self-hosted satisfies that; the
+ * text simply arrives by a loader instead of by `git clone`.
+ *
+ * Only public-domain translations belong here. NIV, ESV, NASB and their
+ * equivalents in other languages are licensed individually, and several
+ * translations circulating as "free" JSON files are not actually public
+ * domain. `publicDomain` is recorded per translation so the loader can refuse
+ * anything not explicitly marked.
+ */
+export const bibleTranslations = pgTable("bible_translations", {
+  /** Short code used in references and the UI, e.g. "kjv". */
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  language: text("language").notNull(),
+  publicDomain: boolean("public_domain").notNull().default(false),
+  /** Attribution to display. Null for text with no attribution requirement. */
+  copyright: text("copyright"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const bibleVerses = pgTable(
+  "bible_verses",
+  {
+    translationId: text("translation_id")
+      .notNull()
+      .references(() => bibleTranslations.id, { onDelete: "cascade" }),
+    /** OSIS identifier, so every language resolves to the same row. */
+    book: text("book").notNull(),
+    chapter: integer("chapter").notNull(),
+    verse: integer("verse").notNull(),
+    text: text("text").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.translationId, t.book, t.chapter, t.verse] }),
+    // The lookup this table exists for: one passage, one translation.
+    index("bible_verses_passage_idx").on(t.translationId, t.book, t.chapter),
+  ],
+);
+
 // ── Rate limiting ───────────────────────────────────────────────────────────
 
 /**
@@ -326,6 +375,8 @@ export const knowledgeChunks = pgTable(
 export const schema = {
   volunteers,
   rateLimits,
+  bibleTranslations,
+  bibleVerses,
   admins,
   conversations,
   messages,

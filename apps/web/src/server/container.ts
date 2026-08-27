@@ -38,7 +38,11 @@ import { LlmTranslator } from "@nexus/translation";
 import { LlmEnablementEngine } from "@nexus/enablement";
 import { PgVectorKnowledgeBase, createEmbeddingProvider } from "@nexus/knowledge";
 import { CadenceModerationScheduler, LlmJudge } from "@nexus/moderation";
-import { BundledBibleProvider } from "@nexus/bible";
+import {
+  ApiBibleProvider,
+  CompositeBibleProvider,
+  DatabaseBibleProvider,
+} from "@nexus/bible";
 import { env, isProduction } from "./env";
 
 /**
@@ -107,6 +111,13 @@ export function container(): Container {
 
   const knowledge = new PgVectorKnowledgeBase(db, embeddings);
 
+  // Widest coverage first, our own copy last. API.Bible reaches languages no
+  // public-domain text covers; the database is the floor that cannot go down.
+  const bible = new CompositeBibleProvider([
+    ...(config.API_BIBLE_KEY ? [new ApiBibleProvider(config.API_BIBLE_KEY)] : []),
+    new DatabaseBibleProvider(db),
+  ]);
+
   const realtime = createRealtimeTransport({
     provider: config.NEXUS_REALTIME_PROVIDER,
     url: config.LIVEKIT_URL,
@@ -137,7 +148,7 @@ export function container(): Container {
     moderationScheduler: new CadenceModerationScheduler(),
     enablement: new LlmEnablementEngine(llm, knowledge),
     knowledge,
-    bible: new BundledBibleProvider(),
+    bible,
   };
 
   return instance;
