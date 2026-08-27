@@ -20,15 +20,18 @@
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
-    "lint": "eslint src --max-warnings 0"
+    "lint": "eslint src --max-warnings 0",
+    "knowledge:load": "tsx src/load.ts"
   },
   "dependencies": {
     "@nexus/core": "workspace:*",
     "@nexus/db": "workspace:*",
-    "@nexus/llm": "workspace:*"
+    "@nexus/llm": "workspace:*",
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "tsx": "^4.20.6"
   }
 }

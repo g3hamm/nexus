@@ -32,6 +32,7 @@ cp .env.example .env.local     # then fill it in
 pnpm db:migrate
 pnpm db:check                  # confirms what actually landed
 pnpm seed:volunteer --email you@example.org --name "Your Name" --languages en
+pnpm knowledge:load ./content/knowledge
 pnpm dev
 ```
 
@@ -82,10 +83,11 @@ packages/translation  Translation that keeps Christian vocabulary intact.
 packages/realtime     LiveKit transport. Text now, voice and video later.
 packages/auth         Volunteer/admin auth and anonymous seeker sessions.
 packages/ui           Design tokens and shared primitives.
+packages/knowledge    Apologetics knowledge base: chunking, embeddings, pgvector retrieval.
+packages/enablement   The volunteer sidebar: verses, discussion points, seeker understanding.
+packages/moderation   The judge: watches both parties, raises structured flags.
 packages/bible        SCAFFOLD — scripture lookup and reference detection.
-packages/knowledge    SCAFFOLD — apologetics knowledge base over pgvector.
-packages/enablement   SCAFFOLD — the volunteer sidebar.
-packages/moderation   SCAFFOLD — the judge.
+content/knowledge     Starter knowledge-base documents. Replace with your own.
 ```
 
 The one rule that keeps this modular: **`packages/core` defines the interface,

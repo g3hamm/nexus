@@ -31,8 +31,8 @@ import { createLlmProvider } from "@nexus/llm";
 import { createRealtimeTransport } from "@nexus/realtime";
 import { LlmTranslator } from "@nexus/translation";
 import { LlmEnablementEngine } from "@nexus/enablement";
+import { PgVectorKnowledgeBase, createEmbeddingProvider } from "@nexus/knowledge";
 import { CadenceModerationScheduler, LlmJudge } from "@nexus/moderation";
-import { PgVectorKnowledgeBase } from "@nexus/knowledge";
 import { BundledBibleProvider } from "@nexus/bible";
 import { env, isProduction } from "./env";
 
@@ -92,6 +92,14 @@ export function container(): Container {
     isProduction: isProduction(),
   });
 
+  const embeddings = createEmbeddingProvider({
+    provider: config.NEXUS_EMBEDDING_PROVIDER,
+    voyageApiKey: config.VOYAGE_API_KEY,
+    isProduction: isProduction(),
+  });
+
+  const knowledge = new PgVectorKnowledgeBase(db, embeddings);
+
   const realtime = createRealtimeTransport({
     provider: config.NEXUS_REALTIME_PROVIDER,
     url: config.LIVEKIT_URL,
@@ -114,8 +122,8 @@ export function container(): Container {
     sessions: new SessionSigner(config.NEXUS_SESSION_SECRET),
     judge: new LlmJudge(llm),
     moderationScheduler: new CadenceModerationScheduler(),
-    enablement: new LlmEnablementEngine(),
-    knowledge: new PgVectorKnowledgeBase(),
+    enablement: new LlmEnablementEngine(llm, knowledge),
+    knowledge,
     bible: new BundledBibleProvider(),
   };
 

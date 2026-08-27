@@ -9,6 +9,11 @@ database tables, and creating your volunteer account.
 
 ---
 
+> **Updating an existing install?** Nexus has gained new database columns
+> since you first set up. Re-run Part 1 below — the file is safe to run again
+> and applies only what is new. Do this _before_ redeploying, or the app will
+> error on every message.
+
 # Part 1 — Create the database tables
 
 ## Step 1. Copy the setup file

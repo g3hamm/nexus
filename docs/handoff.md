@@ -88,8 +88,9 @@ true })` flag was accepted by the signature and silently dropped by the
    citations is a sidebar that improvises theology.
 5. `@nexus/moderation` — the judge. Ship it before the sidebar: the platform
    needs to be watching conversations before it starts shaping them.
-6. `@nexus/enablement` — the sidebar. `EnablementSidebar.tsx` already renders
-   the layout; fill in the panels.
+6. ~~`@nexus/enablement` — the sidebar.~~ **Built.** Refreshes only when the
+   volunteer asks, to control both cost and the panel changing under someone
+   mid-thought.
 7. `@nexus/bible` — lookup and detection, then the hover interaction.
 8. Admin surfaces — flag queue, transcript review, volunteer approval. Every
    transcript read must write to the audit log.

@@ -120,7 +120,15 @@ LIVEKIT_URL                      wss://….livekit.cloud
 LIVEKIT_API_KEY                  API…
 LIVEKIT_API_SECRET               your secret
 CRON_SECRET                      a third `openssl rand -base64 32`
+NEXUS_EMBEDDING_PROVIDER         voyage   (or `hashing` to run without a key)
+VOYAGE_API_KEY                   pa-...   (only when using voyage)
 ```
+
+The Claude API has no embeddings endpoint, so the knowledge base uses Voyage AI
+(https://voyageai.com), which is what Anthropic points at. To try Nexus without
+another signup, set `NEXUS_EMBEDDING_PROVIDER=hashing` — retrieval then matches
+on wording rather than meaning, which is noticeably worse but not useless. It
+is refused in production.
 
 `CRON_SECRET` secures the daily retention purge. Vercel Cron sends it as a
 bearer token automatically; the endpoint refuses to run without it, and if it
@@ -137,6 +145,19 @@ Setting it to `true` is fine for a trial and prints a warning on every boot.
 Before real people use this, move to `NEXUS_KMS_PROVIDER=aws` with
 `AWS_KMS_KEY_ID` — the adapter is already written, it is a configuration
 change, not a code change. See [ADR 3](adr/0003-application-layer-encryption.md).
+
+## 6b. Load the knowledge base
+
+The sidebar cites what it retrieves, so an empty knowledge base means a
+tentative sidebar. From your machine:
+
+```bash
+pnpm knowledge:load ./content/knowledge
+```
+
+The documents in `content/knowledge/` are **starter material** so the feature
+works on day one. Replace them with your own vetted content — see the README in
+that directory for the file format.
 
 ## 7. Try it
 

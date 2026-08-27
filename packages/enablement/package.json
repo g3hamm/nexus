@@ -23,10 +23,10 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
-    "@nexus/core": "workspace:*",
-    "@nexus/llm": "workspace:*",
-    "@nexus/knowledge": "workspace:*",
     "@nexus/bible": "workspace:*",
+    "@nexus/core": "workspace:*",
+    "@nexus/knowledge": "workspace:*",
+    "@nexus/llm": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {

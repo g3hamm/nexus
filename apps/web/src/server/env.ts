@@ -25,6 +25,9 @@ const envSchema = z.object({
   NEXUS_LLM_PROVIDER: z.string().default("anthropic"),
   ANTHROPIC_API_KEY: z.string().optional(),
 
+  NEXUS_EMBEDDING_PROVIDER: z.string().default("hashing"),
+  VOYAGE_API_KEY: z.string().optional(),
+
   NEXUS_REALTIME_PROVIDER: z.string().default("livekit"),
   LIVEKIT_URL: z.string().optional(),
   LIVEKIT_API_KEY: z.string().optional(),
