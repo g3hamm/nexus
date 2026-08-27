@@ -1,0 +1,40 @@
+{
+  "name": "nexus",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Nexus \u2014 an international chat that connects seekers with Christian volunteers, in any language.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
+    "db:generate": "pnpm --filter @nexus/db db:generate",
+    "db:migrate": "pnpm --filter @nexus/db db:migrate",
+    "verify": "turbo run typecheck lint test build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.15.3",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.3",
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "turbo": "^2.10.12",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.68.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "unrs-resolver",
+      "sharp"
+    ]
+  }
+}

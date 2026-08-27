@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.next/
+.turbo/
+out/
+coverage/
+*.tsbuildinfo
+
+# Env — never commit real credentials. See .env.example.
+.env
+.env.*
+!.env.example
+
+.DS_Store
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Local key material for dev envelope encryption
+.keys/

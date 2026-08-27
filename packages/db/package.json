@@ -1,0 +1,40 @@
+{
+  "name": "@nexus/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Neon Postgres schema and repositories. Encrypts and decrypts at the database boundary.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src --max-warnings 0",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/migrate.ts",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@nexus/core": "workspace:*",
+    "@nexus/crypto": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "@neondatabase/serverless": "^1.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.20.6"
+  }
+}

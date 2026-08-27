@@ -1,0 +1,38 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "NEXUS_MASTER_KEY",
+    "NEXUS_KMS_PROVIDER",
+    "AWS_KMS_KEY_ID",
+    "AWS_REGION",
+    "ANTHROPIC_API_KEY",
+    "NEXUS_LLM_PROVIDER",
+    "OPENAI_API_KEY",
+    "LIVEKIT_URL",
+    "LIVEKIT_API_KEY",
+    "LIVEKIT_API_SECRET",
+    "NEXT_PUBLIC_LIVEKIT_URL",
+    "NEXUS_SESSION_SECRET",
+    "API_BIBLE_KEY"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {},
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "@nexus/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nexus web app: the seeker chat, the volunteer console, and the admin surfaces.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@nexus/auth": "workspace:*",
+    "@nexus/bible": "workspace:*",
+    "@nexus/core": "workspace:*",
+    "@nexus/crypto": "workspace:*",
+    "@nexus/db": "workspace:*",
+    "@nexus/enablement": "workspace:*",
+    "@nexus/knowledge": "workspace:*",
+    "@nexus/llm": "workspace:*",
+    "@nexus/moderation": "workspace:*",
+    "@nexus/realtime": "workspace:*",
+    "@nexus/translation": "workspace:*",
+    "@nexus/ui": "workspace:*",
+    "livekit-client": "^2.22.1",
+    "next": "^16.3.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}
