@@ -52,6 +52,26 @@ export interface ConversationRepository {
   ): Promise<Conversation | null>;
   end(id: ConversationId, reason: "ended" | "terminated"): Promise<void>;
   markUnderReview(id: ConversationId): Promise<void>;
+
+  /**
+   * Conversations whose retention window has closed and which are safe to
+   * destroy: ended, past `retainUntil`, not under review, and carrying no
+   * unresolved moderation flag.
+   *
+   * Returns a bounded batch rather than everything, so a purge that has been
+   * missed for a month does not try to delete a year of history in one
+   * statement.
+   */
+  findPurgeable(now: Date, limit: number): Promise<readonly ConversationId[]>;
+
+  /**
+   * Destroys conversations and everything belonging to them. Returns the
+   * number removed.
+   *
+   * A hard delete, deliberately. See the implementation for why nothing
+   * softer would actually protect anyone.
+   */
+  purge(ids: readonly ConversationId[]): Promise<number>;
 }
 
 export interface MessageRepository {
@@ -126,6 +146,7 @@ export type AuditAction =
   | "conversation.ended"
   | "conversation.viewed"
   | "conversation.exported"
+  | "conversation.purged"
   | "flag.raised"
   | "flag.resolved"
   | "volunteer.approved"

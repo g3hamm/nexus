@@ -110,6 +110,31 @@ export class FakeConversationRepository implements ConversationRepository {
       this.rows.set(id, { ...existing, status: "under_review", retainUntil: null });
     }
   }
+
+  async findPurgeable(now: Date, limit: number): Promise<readonly ConversationId[]> {
+    return [...this.rows.values()]
+      .filter(
+        (c) =>
+          (c.status === "ended" || c.status === "terminated") &&
+          c.retainUntil !== null &&
+          c.retainUntil < now &&
+          !this.openFlagFor.has(c.id),
+      )
+      .sort((a, b) => (a.retainUntil?.getTime() ?? 0) - (b.retainUntil?.getTime() ?? 0))
+      .slice(0, limit)
+      .map((c) => c.id);
+  }
+
+  async purge(ids: readonly ConversationId[]): Promise<number> {
+    let removed = 0;
+    for (const id of ids) {
+      if (this.rows.delete(id)) removed += 1;
+    }
+    return removed;
+  }
+
+  /** Test hook: stands in for the "has an unresolved flag" exclusion. */
+  readonly openFlagFor = new Set<string>();
 }
 
 export class FakeMessageRepository implements MessageRepository {

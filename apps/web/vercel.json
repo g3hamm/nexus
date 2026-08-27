@@ -3,6 +3,11 @@
   "framework": "nextjs",
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@nexus/web",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-
-  "regions": ["cle1"]
+  "regions": ["cle1"],
+  "crons": [
+    {
+      "path": "/api/cron/purge",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }

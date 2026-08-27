@@ -188,6 +188,11 @@ UPDATE volunteers SET approved_at = now() WHERE email = 'you@example.org';
 Then sign in again. Redeploying your Vercel project first will also stop it
 happening to any future account.
 
+**Conversations are never deleted.**
+`CRON_SECRET` is not set in Vercel, so the nightly cleanup refuses to run.
+Add it (any long random string) under Settings → Environment Variables and
+redeploy. Without it, every conversation is kept forever.
+
 **You forgot the volunteer password.**
 There is no password reset yet. In Neon's SQL Editor, run
 `DELETE FROM volunteers;` then repeat Part 2 — the setup page reopens once no

@@ -119,7 +119,12 @@ NEXUS_REALTIME_PROVIDER          livekit
 LIVEKIT_URL                      wss://….livekit.cloud
 LIVEKIT_API_KEY                  API…
 LIVEKIT_API_SECRET               your secret
+CRON_SECRET                      a third `openssl rand -base64 32`
 ```
+
+`CRON_SECRET` secures the daily retention purge. Vercel Cron sends it as a
+bearer token automatically; the endpoint refuses to run without it, and if it
+never runs, transcripts are kept forever. Not optional in practice.
 
 ### About `NEXUS_ALLOW_INSECURE_LOCAL_KMS`
 

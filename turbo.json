@@ -18,7 +18,8 @@
     "API_BIBLE_KEY",
     "NEXUS_ALLOW_INSECURE_LOCAL_KMS",
     "NEXUS_REALTIME_PROVIDER",
-    "NEXUS_SETUP_TOKEN"
+    "NEXUS_SETUP_TOKEN",
+    "CRON_SECRET"
   ],
   "tasks": {
     "build": {

@@ -39,11 +39,13 @@ They are already constructed in `container.ts`, so the wiring points exist.
 
 These are things that look done and are not:
 
-1. **The retention purge job does not exist.** `Conversation.retainUntil` is
-   set, defaulted to 90 days, and cleared when a flag is raised. Nothing acts
-   on it. Until something does, that column is a statement of intent, not a
-   control. Given who uses this product, **this is the highest-priority gap in
-   the repository.**
+1. ~~The retention purge job does not exist.~~ **Built.** A daily Vercel Cron
+   hits `/api/cron/purge`, which hard-deletes conversations past
+   `retainUntil` — never anything live, under review, or carrying an
+   unresolved flag. Deleting the conversation row destroys the only copy of
+   its wrapped data key, so any ciphertext that outlives the delete in a
+   replica or backup is undecryptable rather than merely unlinked. Requires
+   `CRON_SECRET`; the endpoint fails closed without it.
 2. **No admin surfaces.** The `admins` table, the audit log, and the flag
    repository all exist and are wired. There is no UI. Admin transcript reads
    are supposed to write `conversation.viewed` to the audit log — that call
@@ -75,9 +77,8 @@ true })` flag was accepted by the signature and silently dropped by the
 
 **Before anything else**
 
-1. The retention purge job. See gap 1.
-2. Rate limiting on the seeker entry point.
-3. A real volunteer signup and admin approval flow, replacing the seed script
+1. Rate limiting on the seeker entry point.
+2. A real volunteer signup and admin approval flow, replacing the seed script
    (see gap 3).
 
 **Wave two, roughly in dependency order**
