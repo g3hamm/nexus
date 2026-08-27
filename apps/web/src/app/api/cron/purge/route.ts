@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { NexusError } from "@nexus/core";
+import { PostgresRateLimiter } from "@nexus/db";
 import { container } from "@/server/container";
 import { errorResponse, ok } from "@/server/http";
 import { RetentionService } from "@/server/retention-service";
@@ -21,8 +22,19 @@ export async function GET(request: NextRequest) {
   try {
     authorize(request);
 
-    const service = new RetentionService(container());
-    const result = await service.purgeExpired();
+    const c = container();
+    const result = await new RetentionService(c).purgeExpired();
+
+    // Rate-limit counters are transient. Sweeping them here keeps the table
+    // from growing without bound and means no stale hash outlives its purpose.
+    const limiter = c.rateLimiter;
+    if (limiter instanceof PostgresRateLimiter) {
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const pruned = await limiter.prune(cutoff);
+      if (pruned > 0) {
+        console.log(`[nexus] pruned ${pruned} expired rate-limit counters`);
+      }
+    }
 
     if (result.reachedLimit) {
       // Worth saying out loud: the backlog was larger than one run handles, so

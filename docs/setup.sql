@@ -240,5 +240,35 @@ WHERE NOT EXISTS (
   SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = '437b5c18485060722880e70b11502e1383858b5633bd957cb7ec59e0eca5ecde'
 );
 
+-- ── Migration 0002_quick_the_order ───────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS "rate_limits" (
+	"key" text PRIMARY KEY NOT NULL,
+	"window_start" timestamp with time zone NOT NULL,
+	"count" integer DEFAULT 0 NOT NULL
+);
+
+DO $$ BEGIN
+  ALTER TABLE "volunteers" ADD COLUMN "application_note" text;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "rate_limits_window_idx" ON "rate_limits" USING btree ("window_start");
+
+-- Record this migration as applied, so a later `pnpm db:migrate` skips
+-- it rather than failing on tables that already exist.
+CREATE SCHEMA IF NOT EXISTS drizzle;
+CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+  id SERIAL PRIMARY KEY,
+  hash text NOT NULL,
+  created_at bigint
+);
+
+INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+SELECT 'faf11bcf6142e05d4349029f694bc0302d74b6ea688b9e536fbbd68b36b9c4d5', 1787874063030
+WHERE NOT EXISTS (
+  SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = 'faf11bcf6142e05d4349029f694bc0302d74b6ea688b9e536fbbd68b36b9c4d5'
+);
+
 -- ── Done ───────────────────────────────────────────────────────────────
 -- You should see eight tables under 'public' in the Neon Tables view.

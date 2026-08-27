@@ -58,8 +58,10 @@ These are things that look done and are not:
    all today — but it bypasses the vetting step that is the actual safety
    model. A real signup path plus an admin approval screen is wave-two work,
    and until it exists the seed script is the only door in.
-4. **No rate limiting anywhere.** `/api/seeker/start` will create a conversation
-   for anybody who asks, as often as they ask.
+4. ~~No rate limiting anywhere.~~ **Built.** Postgres-backed fixed windows on
+   seeker start, message send, both sign-ins, and volunteer applications.
+   Counters are keyed on an HMAC of the caller's address, never the address
+   itself, and swept nightly by the purge.
 5. **No password reset, no MFA.** An admin account is a key to every transcript.
    MFA for admins should not wait long.
 6. **The Drizzle repositories have no test coverage at all.** Everything else
@@ -80,7 +82,7 @@ true })` flag was accepted by the signature and silently dropped by the
 
 **Before anything else**
 
-1. Rate limiting on the seeker entry point.
+1. ~~Rate limiting.~~ **Built.**
 2. A real volunteer signup and admin approval flow, replacing the seed script
    (see gap 3).
 

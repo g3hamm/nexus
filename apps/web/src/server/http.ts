@@ -10,9 +10,17 @@ import { httpStatusFor, isNexusError } from "@nexus/core";
  */
 export function errorResponse(error: unknown): NextResponse {
   if (isNexusError(error)) {
+    const headers: Record<string, string> = {};
+    // Tell a well-behaved client exactly how long to wait rather than making
+    // it guess and retry into the same wall.
+    const retryAfter = error.detail.retryAfterSeconds;
+    if (typeof retryAfter === "number") {
+      headers["retry-after"] = String(retryAfter);
+    }
+
     return NextResponse.json(
       { error: { code: error.code, message: error.message } },
-      { status: httpStatusFor(error.code) },
+      { status: httpStatusFor(error.code), headers },
     );
   }
 

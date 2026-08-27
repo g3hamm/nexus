@@ -104,6 +104,7 @@ export class DrizzleVolunteerRepository implements VolunteerRepository {
     passwordHash: string;
     languages: readonly LanguageCode[];
     approved?: boolean;
+    applicationNote?: string;
   }): Promise<Volunteer> {
     const rows = await this.#db
       .insert(volunteers)
@@ -116,6 +117,7 @@ export class DrizzleVolunteerRepository implements VolunteerRepository {
         // Vetting who speaks to seekers is the whole safety model. First-run
         // setup is the one exception, and it can only ever run once.
         approvedAt: input.approved ? new Date() : null,
+        applicationNote: input.applicationNote ?? null,
       })
       .returning();
 

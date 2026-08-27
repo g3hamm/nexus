@@ -30,6 +30,7 @@ export * from "./ports/crypto.js";
 export * from "./ports/repositories.js";
 export * from "./ports/matching.js";
 export * from "./ports/clock.js";
+export * from "./ports/rate-limit.js";
 
 // ── Errors ──────────────────────────────────────────────────────────────────
 export * from "./errors.js";

@@ -50,6 +50,8 @@ export interface Volunteer {
   readonly maxConcurrentConversations: number;
   readonly approvedAt: Date | null;
   readonly suspendedAt: Date | null;
+  /** What they said when applying. Shown to whoever decides on them. */
+  readonly applicationNote: string | null;
   readonly createdAt: Date;
 }
 

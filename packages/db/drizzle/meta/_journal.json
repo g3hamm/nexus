@@ -15,6 +15,13 @@
       "when": 1787856206487,
       "tag": "0001_good_hairball",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787874063030,
+      "tag": "0002_quick_the_order",
+      "breakpoints": true
     }
   ]
 }

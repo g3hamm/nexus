@@ -204,6 +204,19 @@ That is deliberate — admins can read everything, so admins are audited too.
 
 ---
 
+# Adding more volunteers
+
+You do not need a terminal for this either, and you should not use the seed
+script for it — that one approves accounts automatically, which skips the
+vetting that is the whole point.
+
+Send people to `/volunteer/apply` on your site. They fill in a short form,
+including a few sentences about themselves, and an account is created that
+**can do nothing at all** until you approve it.
+
+Then sign in at `/admin/login`, open **Volunteers**, and you will see them at
+the top of the list with what they wrote. Approve, or leave them.
+
 # If something goes wrong
 
 **The `/setup` page says "Setup is switched off."**

@@ -21,6 +21,7 @@ export async function GET() {
         status: v.status,
         approved: v.approvedAt !== null,
         suspended: v.suspendedAt !== null,
+        applicationNote: v.applicationNote,
         createdAt: v.createdAt.toISOString(),
       })),
     });

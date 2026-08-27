@@ -1,10 +1,11 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { SEEKER_SESSION_TTL_SECONDS, issueSeekerSession } from "@nexus/auth";
-import { languageCodeSchema } from "@nexus/core";
+import { languageCodeSchema, RATE_LIMITS } from "@nexus/core";
 import { container } from "@/server/container";
 import { ConversationService } from "@/server/conversation-service";
 import { errorResponse, ok } from "@/server/http";
+import { enforceRateLimit } from "@/server/rate-limit";
 import { setSeekerCookie } from "@/server/session";
 
 export const runtime = "nodejs";
@@ -25,6 +26,8 @@ const bodySchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
+    await enforceRateLimit(request, RATE_LIMITS.seekerStart);
+
     const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
     if (!parsed.success) {
       return ok({ error: { code: "validation_failed", message: "Bad request" } }, 422);

@@ -41,6 +41,7 @@ export function toVolunteer(row: VolunteerRow): Volunteer {
     maxConcurrentConversations: row.maxConcurrentConversations,
     approvedAt: row.approvedAt,
     suspendedAt: row.suspendedAt,
+    applicationNote: row.applicationNote,
     createdAt: row.createdAt,
   };
 }

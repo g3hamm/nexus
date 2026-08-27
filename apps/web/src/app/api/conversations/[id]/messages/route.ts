@@ -1,10 +1,16 @@
 import { after, type NextRequest } from "next/server";
 import { z } from "zod";
-import { NexusError, asConversationId, languageCodeSchema } from "@nexus/core";
+import {
+  NexusError,
+  asConversationId,
+  languageCodeSchema,
+  RATE_LIMITS,
+} from "@nexus/core";
 import { container } from "@/server/container";
 import { ConversationService } from "@/server/conversation-service";
 import { ModerationService } from "@/server/moderation-service";
 import { errorResponse, ok } from "@/server/http";
+import { enforceRateLimit } from "@/server/rate-limit";
 import { seekerSession, staffSession } from "@/server/session";
 
 export const runtime = "nodejs";
@@ -89,6 +95,14 @@ export async function POST(
   try {
     const { id } = await context.params;
     const participant = await participantFor(id);
+
+    // Keyed on the participant, not the address: two people on one office
+    // network must not throttle each other mid-conversation.
+    await enforceRateLimit(
+      request,
+      RATE_LIMITS.sendMessage,
+      participant.id ?? participant.conversation.seekerId,
+    );
 
     const parsed = sendSchema.safeParse(await request.json().catch(() => ({})));
     if (!parsed.success) {

@@ -14,3 +14,8 @@ export { DrizzleVolunteerRepository } from "./repositories/volunteers.js";
 export { DrizzleFlagRepository } from "./repositories/flags.js";
 export { DrizzleAuditLog } from "./repositories/audit.js";
 export { DrizzleAdminRepository } from "./repositories/admins.js";
+export {
+  PostgresRateLimiter,
+  InMemoryRateLimiter,
+  rateLimitKey,
+} from "./repositories/rate-limits.js";

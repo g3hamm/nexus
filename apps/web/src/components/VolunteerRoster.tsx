@@ -11,6 +11,7 @@ interface VolunteerRow {
   readonly status: string;
   readonly approved: boolean;
   readonly suspended: boolean;
+  readonly applicationNote: string | null;
   readonly createdAt: string;
 }
 
@@ -82,6 +83,15 @@ export function VolunteerRoster() {
                 <p className="text-ink-muted mt-1 text-sm">
                   {volunteer.languageNames.join(", ")}
                 </p>
+                {/* The applicant's own words. This is what approval is a
+                    decision about, so it belongs on the card, not behind a
+                    click. */}
+                {!volunteer.approved && volunteer.applicationNote ? (
+                  <p className="bg-surface-sunken text-ink-muted mt-3 rounded-md p-3 text-sm">
+                    {volunteer.applicationNote}
+                  </p>
+                ) : null}
+
                 <div className="mt-2">
                   {volunteer.suspended ? (
                     <StatusDot status="offline" label="Suspended" />

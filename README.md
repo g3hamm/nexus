@@ -8,9 +8,9 @@ Three kinds of people use it:
 - **Seekers** need no account. They arrive, write something in whatever
   language they think in, and are connected to a person. Nothing else is asked
   of them.
-- **Volunteers** have accounts, are approved by an admin before they can be
-  matched, and are supported by an AI sidebar that offers scripture,
-  discussion points, and a read on who they are talking to.
+- **Volunteers** apply at `/volunteer/apply`, are approved by an admin before
+  they can be matched, and are supported by an AI sidebar that offers
+  scripture, discussion points, and a read on who they are talking to.
 - **Admins** review flagged conversations and audit transcripts at `/admin`.
   Every transcript read is itself recorded against the admin who opened it.
 

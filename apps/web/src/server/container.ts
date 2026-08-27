@@ -13,6 +13,7 @@ import type {
   LlmProvider,
   MessageRepository,
   ModerationScheduler,
+  RateLimiter,
   RealtimeTransport,
   Translator,
   VolunteerRepository,
@@ -27,6 +28,8 @@ import {
   DrizzleFlagRepository,
   DrizzleMessageRepository,
   DrizzleVolunteerRepository,
+  InMemoryRateLimiter,
+  PostgresRateLimiter,
   type NexusDatabase,
 } from "@nexus/db";
 import { createLlmProvider } from "@nexus/llm";
@@ -63,6 +66,7 @@ export interface Container {
   readonly translator: Translator;
   readonly realtime: RealtimeTransport;
   readonly sessions: SessionSigner;
+  readonly rateLimiter: RateLimiter;
   readonly judge: Judge;
   readonly moderationScheduler: ModerationScheduler;
   /** Wave two. Constructed here so the wiring point is already obvious. */
@@ -124,6 +128,11 @@ export function container(): Container {
     translator: new LlmTranslator(llm),
     realtime,
     sessions: new SessionSigner(config.NEXUS_SESSION_SECRET),
+    // Keyed on an HMAC of the caller's address under the session secret, so
+    // the counter table never holds a recoverable IP. See PostgresRateLimiter.
+    rateLimiter: isProduction()
+      ? new PostgresRateLimiter(db, config.NEXUS_SESSION_SECRET)
+      : new InMemoryRateLimiter(),
     judge: new LlmJudge(llm),
     moderationScheduler: new CadenceModerationScheduler(),
     enablement: new LlmEnablementEngine(llm, knowledge),

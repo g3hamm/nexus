@@ -81,6 +81,8 @@ export const volunteers = pgTable(
     /** Null until an admin approves. Unapproved volunteers cannot be matched. */
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+    /** What the applicant said about themselves. Read by whoever approves them. */
+    applicationNote: text("application_note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -219,6 +221,32 @@ export const moderationFlags = pgTable(
   ],
 );
 
+// ── Rate limiting ───────────────────────────────────────────────────────────
+
+/**
+ * Fixed-window request counters.
+ *
+ * Lives in Postgres rather than Redis so there is no extra vendor for a
+ * feature this small, and the whole check is one atomic upsert.
+ *
+ * `key` is never a raw IP address. It is an HMAC of the address under the
+ * server secret, because storing the IPs of people asking about Jesus from
+ * Iran would recreate, in a side table, exactly the record the rest of this
+ * system goes out of its way not to keep. The hash is enough to count against
+ * and useless to anyone who steals the table.
+ *
+ * Rows are transient and swept by the nightly purge.
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    key: text("key").primaryKey(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (t) => [index("rate_limits_window_idx").on(t.windowStart)],
+);
+
 // ── Audit ───────────────────────────────────────────────────────────────────
 
 /**
@@ -297,6 +325,7 @@ export const knowledgeChunks = pgTable(
 
 export const schema = {
   volunteers,
+  rateLimits,
   admins,
   conversations,
   messages,

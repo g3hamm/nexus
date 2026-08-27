@@ -416,6 +416,7 @@ export function fakeVolunteer(overrides: Partial<Volunteer> = {}): Volunteer {
     maxConcurrentConversations: 1,
     approvedAt: new Date(),
     suspendedAt: null,
+    applicationNote: null,
     createdAt: new Date(),
     ...overrides,
   };

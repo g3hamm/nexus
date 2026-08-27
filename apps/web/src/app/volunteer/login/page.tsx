@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { VolunteerLoginForm } from "@/components/VolunteerLoginForm";
 import { staffSession } from "@/server/session";
@@ -14,6 +15,14 @@ export default async function VolunteerLoginPage() {
       <div className="mt-8">
         <VolunteerLoginForm />
       </div>
+
+      <p className="text-ink-subtle mt-6 text-sm">
+        Not a volunteer yet?{" "}
+        <Link href="/volunteer/apply" className="underline underline-offset-2">
+          Apply to help
+        </Link>
+        .
+      </p>
     </main>
   );
 }

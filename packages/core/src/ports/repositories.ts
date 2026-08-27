@@ -130,6 +130,8 @@ export interface VolunteerRepository {
      * which is the actual safety model.
      */
     readonly approved?: boolean;
+    /** What the applicant wrote about themselves, for whoever vets them. */
+    readonly applicationNote?: string;
   }): Promise<Volunteer>;
   /** Returns the stored hash, or null if there is no such volunteer. */
   passwordHashFor(email: string): Promise<string | null>;
@@ -185,6 +187,7 @@ export type AuditAction =
   | "conversation.purged"
   | "flag.raised"
   | "flag.resolved"
+  | "volunteer.applied"
   | "volunteer.approved"
   | "volunteer.suspended"
   | "knowledge.updated"

@@ -1,9 +1,10 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { VOLUNTEER_SESSION_TTL_SECONDS, verifyPassword } from "@nexus/auth";
-import { NexusError, isActiveVolunteer } from "@nexus/core";
+import { NexusError, isActiveVolunteer, RATE_LIMITS } from "@nexus/core";
 import { container } from "@/server/container";
 import { errorResponse, ok } from "@/server/http";
+import { enforceRateLimit } from "@/server/rate-limit";
 import { setStaffCookie } from "@/server/session";
 
 export const runtime = "nodejs";
@@ -15,6 +16,8 @@ const bodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    await enforceRateLimit(request, RATE_LIMITS.login);
+
     const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
     if (!parsed.success) throw NexusError.validation("Email and password are required");
 
