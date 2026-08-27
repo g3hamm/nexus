@@ -19,9 +19,19 @@ from the Anthropic Console under API Keys.
 
 ## 1. Database
 
-In the Neon console: create a project, then **Connection Details → Pooled
-connection**. Take the **pooled** string — it has `-pooler` in the host — and
-make sure it ends with `?sslmode=require`.
+In the Neon console: create a project with **Postgres only** — leave Object
+storage, Functions, AI gateway, and Neon Auth off. Nexus stores no files, runs
+its compute on Vercel, reaches models through its own `LlmProvider` port, and
+deliberately gives seekers no accounts at all.
+
+**Region: AWS US East 2 (Ohio)**, which is the only choice on the free tier.
+`apps/web/vercel.json` already pins Vercel Functions to `cle1` (Cleveland) to
+match it — the two must be in the same AWS region or every database call
+crosses a region boundary. If you move one, move the other; see
+[apps/web/REGIONS.md](../apps/web/REGIONS.md).
+
+Then **Connection Details → Pooled connection**. Take the **pooled** string —
+it has `-pooler` in the host — and make sure it ends with `?sslmode=require`.
 
 ## 2. Realtime
 
@@ -75,8 +85,12 @@ Import the repo, then in **Settings → General**:
 - Leave "Include source files outside of the Root Directory" **on** — the
   workspace packages live above it.
 
-`apps/web/vercel.json` already sets the build and install commands, so you
-should not need to override anything else.
+`apps/web/vercel.json` already sets the build command, the install command,
+and the function region (`cle1`, to sit alongside Neon's Ohio), so you should
+not need to override anything else.
+
+If your plan ignores the `regions` key, set it under **Settings → Functions →
+Function Region** instead. Hobby and Pro can each pick one region.
 
 Set these environment variables (**Settings → Environment Variables**):
 
@@ -154,6 +168,11 @@ redeploy.
 **Build fails resolving `@nexus/core`**
 Root Directory is not `apps/web`, or "Include source files outside of the Root
 Directory" is off.
+
+**Everything works but feels sluggish**
+Check that the Vercel function region and the Neon region are the same AWS
+region. Ohio/`cle1` is the free-tier pairing. A mismatch puts every database
+round trip across regions, and one message makes several.
 
 **Seeker sees their own message but the volunteer queue stays empty**
 Migrations did not run against the database Vercel is pointed at. Easy to do
