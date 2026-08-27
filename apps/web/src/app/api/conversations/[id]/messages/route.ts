@@ -1,8 +1,9 @@
-import type { NextRequest } from "next/server";
+import { after, type NextRequest } from "next/server";
 import { z } from "zod";
 import { NexusError, asConversationId, languageCodeSchema } from "@nexus/core";
 import { container } from "@/server/container";
 import { ConversationService } from "@/server/conversation-service";
+import { ModerationService } from "@/server/moderation-service";
 import { errorResponse, ok } from "@/server/http";
 import { seekerSession, staffSession } from "@/server/session";
 
@@ -94,13 +95,22 @@ export async function POST(
       throw NexusError.validation("A message must be between 1 and 4000 characters");
     }
 
-    const service = new ConversationService(container());
+    const c = container();
+    const service = new ConversationService(c);
     const result = await service.send({
       conversationId: participant.conversation.id,
       authorRole: participant.role,
       authorId: participant.id,
       text: parsed.data.text,
       language: parsed.data.language ?? participant.language,
+    });
+
+    // The judge runs after the response is sent, never in front of it.
+    // Moderation is important, but nobody should watch a spinner while a
+    // second model decides whether their message was acceptable — and the
+    // scheduler means most sends do no work here at all.
+    after(async () => {
+      await new ModerationService(c).reviewIfDue(participant.conversation.id);
     });
 
     return ok(

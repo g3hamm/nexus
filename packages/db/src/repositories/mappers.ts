@@ -25,6 +25,7 @@ export function toConversation(row: ConversationRow): Conversation {
     translationRequired: row.translationRequired,
     startedAt: row.startedAt,
     matchedAt: row.matchedAt,
+    lastModeratedAt: row.lastModeratedAt,
     endedAt: row.endedAt,
     retainUntil: row.retainUntil,
   };

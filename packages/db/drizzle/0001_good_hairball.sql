@@ -1,0 +1,1 @@
+ALTER TABLE "conversations" ADD COLUMN "last_moderated_at" timestamp with time zone;

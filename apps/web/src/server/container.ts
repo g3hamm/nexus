@@ -2,17 +2,19 @@ import "server-only";
 
 import type {
   AuditLog,
+  BibleProvider,
   ConversationCrypto,
   ConversationRepository,
   EnablementEngine,
+  FlagRepository,
   Judge,
   KnowledgeBase,
   LlmProvider,
   MessageRepository,
+  ModerationScheduler,
   RealtimeTransport,
   Translator,
   VolunteerRepository,
-  BibleProvider,
 } from "@nexus/core";
 import { SessionSigner } from "@nexus/auth";
 import { createConversationCrypto } from "@nexus/crypto";
@@ -20,6 +22,7 @@ import {
   createDatabase,
   DrizzleAuditLog,
   DrizzleConversationRepository,
+  DrizzleFlagRepository,
   DrizzleMessageRepository,
   DrizzleVolunteerRepository,
   type NexusDatabase,
@@ -28,7 +31,7 @@ import { createLlmProvider } from "@nexus/llm";
 import { createRealtimeTransport } from "@nexus/realtime";
 import { LlmTranslator } from "@nexus/translation";
 import { LlmEnablementEngine } from "@nexus/enablement";
-import { LlmJudge } from "@nexus/moderation";
+import { CadenceModerationScheduler, LlmJudge } from "@nexus/moderation";
 import { PgVectorKnowledgeBase } from "@nexus/knowledge";
 import { BundledBibleProvider } from "@nexus/bible";
 import { env, isProduction } from "./env";
@@ -51,14 +54,16 @@ export interface Container {
   readonly conversations: ConversationRepository;
   readonly messages: MessageRepository;
   readonly volunteers: VolunteerRepository;
+  readonly flags: FlagRepository;
   readonly audit: AuditLog;
   readonly llm: LlmProvider;
   readonly translator: Translator;
   readonly realtime: RealtimeTransport;
   readonly sessions: SessionSigner;
+  readonly judge: Judge;
+  readonly moderationScheduler: ModerationScheduler;
   /** Wave two. Constructed here so the wiring point is already obvious. */
   readonly enablement: EnablementEngine;
-  readonly judge: Judge;
   readonly knowledge: KnowledgeBase;
   readonly bible: BibleProvider;
 }
@@ -101,13 +106,15 @@ export function container(): Container {
     conversations: new DrizzleConversationRepository(db, crypto),
     messages: new DrizzleMessageRepository(db, crypto),
     volunteers: new DrizzleVolunteerRepository(db),
+    flags: new DrizzleFlagRepository(db, crypto),
     audit: new DrizzleAuditLog(db),
     llm,
     translator: new LlmTranslator(llm),
     realtime,
     sessions: new SessionSigner(config.NEXUS_SESSION_SECRET),
+    judge: new LlmJudge(llm),
+    moderationScheduler: new CadenceModerationScheduler(),
     enablement: new LlmEnablementEngine(),
-    judge: new LlmJudge(),
     knowledge: new PgVectorKnowledgeBase(),
     bible: new BundledBibleProvider(),
   };

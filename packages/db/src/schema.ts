@@ -129,6 +129,8 @@ export const conversations = pgTable(
 
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     matchedAt: timestamp("matched_at", { withTimezone: true }),
+    /** When the judge last looked. Drives the review cadence. */
+    lastModeratedAt: timestamp("last_moderated_at", { withTimezone: true }),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     /** Null means "retain indefinitely", which is what a flag sets. */
     retainUntil: timestamp("retain_until", { withTimezone: true }),

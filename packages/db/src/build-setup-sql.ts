@@ -54,13 +54,20 @@ function makeIdempotent(statement: string): string {
   }
 
   // Postgres has no IF NOT EXISTS for CREATE TYPE or ADD CONSTRAINT, so these
-  // catch the duplicate instead. Scoped to duplicate_object specifically —
-  // a blanket handler would swallow real errors and report success.
+  // catch the duplicate instead.
+  //
+  // Both conditions are needed and they are not interchangeable: a repeated
+  // CREATE TYPE or ADD CONSTRAINT raises duplicate_object (42710), while a
+  // repeated ADD COLUMN raises duplicate_column (42701). Catching only the
+  // first lets a second run of an ALTER TABLE ... ADD COLUMN migration fail.
+  //
+  // Still deliberately narrow. A blanket handler would swallow genuine errors
+  // and report success, which is far worse than a visible failure.
   if (statement.startsWith("CREATE TYPE ") || statement.startsWith("ALTER TABLE ")) {
     return [
       "DO $$ BEGIN",
       `  ${statement}`,
-      "EXCEPTION WHEN duplicate_object THEN NULL;",
+      "EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;",
       "END $$;",
     ].join("\n");
   }

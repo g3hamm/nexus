@@ -2,6 +2,13 @@ import type {
   AppendMessageInput,
   AuditEntry,
   AuditLog,
+  ConversationWindow,
+  FlagId,
+  FlagRepository,
+  Judge,
+  ModerationFlag,
+  ModerationScheduler,
+  ModerationVerdict,
   Conversation,
   ConversationId,
   ConversationRepository,
@@ -17,6 +24,7 @@ import type {
 import {
   NexusError,
   asConversationId,
+  asFlagId,
   asMessageId,
   asRoomId,
   asVolunteerId,
@@ -48,6 +56,7 @@ export class FakeConversationRepository implements ConversationRepository {
       translationRequired: true,
       startedAt: new Date(),
       matchedAt: null,
+      lastModeratedAt: null,
       endedAt: null,
       retainUntil: input.retainUntil,
     };
@@ -109,6 +118,11 @@ export class FakeConversationRepository implements ConversationRepository {
     if (existing) {
       this.rows.set(id, { ...existing, status: "under_review", retainUntil: null });
     }
+  }
+
+  async markModerated(id: ConversationId, at: Date): Promise<void> {
+    const existing = this.rows.get(id);
+    if (existing) this.rows.set(id, { ...existing, lastModeratedAt: at });
   }
 
   async findPurgeable(now: Date, limit: number): Promise<readonly ConversationId[]> {
@@ -207,6 +221,74 @@ export class FakeAuditLog implements AuditLog {
 
   async list(): Promise<readonly AuditEntry[]> {
     return this.entries;
+  }
+}
+
+export class FakeFlagRepository implements FlagRepository {
+  readonly raised: ModerationFlag[] = [];
+  #seq = 0;
+
+  async raise(
+    conversationId: ConversationId,
+    verdict: ModerationVerdict,
+  ): Promise<ModerationFlag> {
+    const flag: ModerationFlag = {
+      id: asFlagId(`flag-${++this.#seq}`),
+      conversationId,
+      verdict,
+      status: "open",
+      raisedAt: new Date(),
+      reviewedBy: null,
+      reviewedAt: null,
+      reviewNote: null,
+    };
+    this.raised.push(flag);
+    return flag;
+  }
+
+  async findById(id: FlagId): Promise<ModerationFlag | null> {
+    return this.raised.find((f) => f.id === id) ?? null;
+  }
+
+  async listOpen(limit: number): Promise<readonly ModerationFlag[]> {
+    return this.raised.filter((f) => f.status === "open").slice(0, limit);
+  }
+
+  async resolve(): Promise<void> {
+    // Not exercised by the current tests.
+  }
+}
+
+/** A judge that returns whatever the test tells it to. */
+export class StubJudge implements Judge {
+  readonly name = "stub";
+  readonly reviews: ConversationWindow[] = [];
+  #verdict: ModerationVerdict = {
+    category: null,
+    severity: "none",
+    subject: "unclear",
+    rationale: "Nothing of concern.",
+    action: "none",
+    evidenceMessageIds: [],
+    confidence: 0.99,
+  };
+
+  willReturn(verdict: Partial<ModerationVerdict>): this {
+    this.#verdict = { ...this.#verdict, ...verdict };
+    return this;
+  }
+
+  async review(window: ConversationWindow): Promise<ModerationVerdict> {
+    this.reviews.push(window);
+    return this.#verdict;
+  }
+}
+
+/** A scheduler the test drives directly. */
+export class StubScheduler implements ModerationScheduler {
+  constructor(private readonly answer: boolean) {}
+  shouldReview(): boolean {
+    return this.answer;
   }
 }
 

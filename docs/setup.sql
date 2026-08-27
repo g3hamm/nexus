@@ -16,27 +16,27 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 DO $$ BEGIN
   CREATE TYPE "public"."conversation_status" AS ENUM('waiting', 'active', 'ended', 'under_review', 'terminated');
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 DO $$ BEGIN
   CREATE TYPE "public"."flag_status" AS ENUM('open', 'reviewing', 'upheld', 'dismissed');
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 DO $$ BEGIN
   CREATE TYPE "public"."modality" AS ENUM('text', 'audio', 'video');
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 DO $$ BEGIN
   CREATE TYPE "public"."participant_role" AS ENUM('seeker', 'volunteer', 'admin', 'system');
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 DO $$ BEGIN
   CREATE TYPE "public"."volunteer_status" AS ENUM('available', 'in_conversation', 'away', 'offline');
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 CREATE TABLE IF NOT EXISTS "admins" (
@@ -148,27 +148,27 @@ CREATE TABLE IF NOT EXISTS "volunteers" (
 
 DO $$ BEGIN
   ALTER TABLE "conversations" ADD CONSTRAINT "conversations_volunteer_id_volunteers_id_fk" FOREIGN KEY ("volunteer_id") REFERENCES "public"."volunteers"("id") ON DELETE set null ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "knowledge_chunks" ADD CONSTRAINT "knowledge_chunks_document_id_knowledge_documents_id_fk" FOREIGN KEY ("document_id") REFERENCES "public"."knowledge_documents"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "messages" ADD CONSTRAINT "messages_conversation_id_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "moderation_flags" ADD CONSTRAINT "moderation_flags_conversation_id_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "moderation_flags" ADD CONSTRAINT "moderation_flags_reviewed_by_admins_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."admins"("id") ON DELETE set null ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
 END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS "admins_email_idx" ON "admins" USING btree ("email");
@@ -216,6 +216,28 @@ INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
 SELECT 'eed9800664087e75ca814d33356c971391dc317c47e0ae092781f389c02273ed', 1787793438615
 WHERE NOT EXISTS (
   SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = 'eed9800664087e75ca814d33356c971391dc317c47e0ae092781f389c02273ed'
+);
+
+-- ── Migration 0001_good_hairball ───────────────────────────────────────
+
+DO $$ BEGIN
+  ALTER TABLE "conversations" ADD COLUMN "last_moderated_at" timestamp with time zone;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+-- Record this migration as applied, so a later `pnpm db:migrate` skips
+-- it rather than failing on tables that already exist.
+CREATE SCHEMA IF NOT EXISTS drizzle;
+CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+  id SERIAL PRIMARY KEY,
+  hash text NOT NULL,
+  created_at bigint
+);
+
+INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+SELECT '437b5c18485060722880e70b11502e1383858b5633bd957cb7ec59e0eca5ecde', 1787856206487
+WHERE NOT EXISTS (
+  SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = '437b5c18485060722880e70b11502e1383858b5633bd957cb7ec59e0eca5ecde'
 );
 
 -- ── Done ───────────────────────────────────────────────────────────────

@@ -52,6 +52,8 @@ export interface ConversationRepository {
   ): Promise<Conversation | null>;
   end(id: ConversationId, reason: "ended" | "terminated"): Promise<void>;
   markUnderReview(id: ConversationId): Promise<void>;
+  /** Stamps when the judge last looked, so the cadence can be computed. */
+  markModerated(id: ConversationId, at: Date): Promise<void>;
 
   /**
    * Conversations whose retention window has closed and which are safe to

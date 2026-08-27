@@ -143,6 +143,13 @@ export class DrizzleConversationRepository implements ConversationRepository {
       .where(eq(conversations.id, id));
   }
 
+  async markModerated(id: ConversationId, at: Date): Promise<void> {
+    await this.#db
+      .update(conversations)
+      .set({ lastModeratedAt: at })
+      .where(eq(conversations.id, id));
+  }
+
   /**
    * Conversations that have aged out and can be destroyed.
    *

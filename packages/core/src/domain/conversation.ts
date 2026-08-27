@@ -47,6 +47,8 @@ export interface Conversation {
   readonly translationRequired: boolean;
   readonly startedAt: Date;
   readonly matchedAt: Date | null;
+  /** When the judge last reviewed this conversation. Null means never. */
+  readonly lastModeratedAt: Date | null;
   readonly endedAt: Date | null;
   /**
    * When the transcript becomes eligible for purge. Null means "keep",
