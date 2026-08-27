@@ -35,6 +35,12 @@ const envSchema = z.object({
     .min(32, "NEXUS_SESSION_SECRET must be at least 32 characters"),
 
   API_BIBLE_KEY: z.string().optional(),
+
+  /**
+   * Unlocks /setup, which creates the first volunteer without a terminal.
+   * Unset it once you have an account — the route is inert without it.
+   */
+  NEXUS_SETUP_TOKEN: z.string().min(8).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

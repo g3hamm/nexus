@@ -12,6 +12,7 @@
     "db:check": "pnpm --filter @nexus/db db:check",
     "db:generate": "pnpm --filter @nexus/db db:generate",
     "db:migrate": "pnpm --filter @nexus/db db:migrate",
+    "db:sql": "pnpm --filter @nexus/db db:sql",
     "dev": "turbo run dev",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",

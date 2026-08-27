@@ -17,19 +17,30 @@
     "NEXUS_SESSION_SECRET",
     "API_BIBLE_KEY",
     "NEXUS_ALLOW_INSECURE_LOCAL_KMS",
-    "NEXUS_REALTIME_PROVIDER"
+    "NEXUS_REALTIME_PROVIDER",
+    "NEXUS_SETUP_TOKEN"
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
     },
     "lint": {},
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
     },
     "dev": {
       "cache": false,

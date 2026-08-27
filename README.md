@@ -39,6 +39,9 @@ To put it on Vercel and actually talk to yourself on it, follow
 [docs/deploying.md](docs/deploying.md) — about 30 minutes, most of it waiting
 on signup forms.
 
+**Not comfortable with a terminal?** [docs/setup-no-terminal.md](docs/setup-no-terminal.md)
+does the whole setup in a browser — no command line, no `.env` file.
+
 You can run the whole app without any third-party credentials:
 
 ```bash
@@ -93,6 +96,7 @@ vendor SDK.
 ## Further reading
 
 - [Deploying](docs/deploying.md) — getting it hosted and trying it out
+- [Setup without a terminal](docs/setup-no-terminal.md) — the same thing, entirely in a browser
 - [Architecture](docs/architecture.md) — how a message actually flows
 - [Handoff guide](docs/handoff.md) — for the team taking this on
 - [Decision records](docs/adr/) — why things are the way they are

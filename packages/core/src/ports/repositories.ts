@@ -85,9 +85,17 @@ export interface VolunteerRepository {
     readonly email: string;
     readonly passwordHash: string;
     readonly languages: readonly LanguageCode[];
+    /**
+     * Approve on creation. Only first-run setup and the seed script do this —
+     * the normal path leaves a volunteer unapproved until an admin vets them,
+     * which is the actual safety model.
+     */
+    readonly approved?: boolean;
   }): Promise<Volunteer>;
   /** Returns the stored hash, or null if there is no such volunteer. */
   passwordHashFor(email: string): Promise<string | null>;
+  /** Total volunteers, approved or not. Used to gate first-run setup. */
+  count(): Promise<number>;
 }
 
 export interface FlagRepository {

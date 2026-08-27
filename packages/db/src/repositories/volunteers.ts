@@ -75,6 +75,7 @@ export class DrizzleVolunteerRepository implements VolunteerRepository {
     email: string;
     passwordHash: string;
     languages: readonly LanguageCode[];
+    approved?: boolean;
   }): Promise<Volunteer> {
     const rows = await this.#db
       .insert(volunteers)
@@ -92,6 +93,13 @@ export class DrizzleVolunteerRepository implements VolunteerRepository {
     const row = rows[0];
     if (!row) throw new Error("Insert returned no volunteer row");
     return toVolunteer(row);
+  }
+
+  async count(): Promise<number> {
+    const rows = await this.#db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(volunteers);
+    return rows[0]?.total ?? 0;
   }
 
   async passwordHashFor(email: string): Promise<string | null> {

@@ -3,6 +3,10 @@
 Getting a working deployment you can actually talk to yourself on. Budget
 about 30 minutes, most of it waiting on other people's signup forms.
 
+> Prefer not to use a terminal? [setup-no-terminal.md](setup-no-terminal.md)
+> covers the database and account steps entirely in a browser, using Neon's
+> SQL Editor and a one-time `/setup` page.
+
 ## What you need to sign up for
 
 | Service                                            | What for    | Cost to try                      |
