@@ -64,7 +64,16 @@ cp .env.example .env.local        # fill in DATABASE_URL and the two secrets
 pnpm db:migrate
 ```
 
-That enables pgvector and creates all eight tables.
+That enables pgvector and creates all eight tables. To confirm it worked —
+now or any time you are unsure which database you are pointed at:
+
+```bash
+pnpm db:check
+```
+
+It prints the host it connected to, whether pgvector is on, every expected
+table, how many migrations have been applied, and whether an approved
+volunteer exists. It never reads message content.
 
 ## 5. Create a volunteer
 
@@ -174,10 +183,17 @@ Check that the Vercel function region and the Neon region are the same AWS
 region. Ohio/`cle1` is the free-tier pairing. A mismatch puts every database
 round trip across regions, and one message makes several.
 
+**Not sure whether the migrations ran**
+`pnpm db:check`. It answers the question directly rather than by inference.
+
+**500 as soon as a seeker presses Enter**
+Almost always missing tables. Run `pnpm db:check`, then `pnpm db:migrate`.
+
 **Seeker sees their own message but the volunteer queue stays empty**
-Migrations did not run against the database Vercel is pointed at. Easy to do
-with two Neon branches — check that `DATABASE_URL` matches the one from
-step 4.
+Either no approved volunteer exists (`pnpm db:check` will say so), or
+migrations ran against a different database than Vercel is pointed at. Easy to
+do with two Neon branches — compare the host `db:check` prints against
+`DATABASE_URL` in the Vercel dashboard.
 
 **Messages arrive but never translate**
 Either `NEXUS_LLM_PROVIDER=fake`, or `ANTHROPIC_API_KEY` is missing or out of

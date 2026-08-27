@@ -9,16 +9,17 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
-    "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
+    "db:check": "pnpm --filter @nexus/db db:check",
     "db:generate": "pnpm --filter @nexus/db db:generate",
     "db:migrate": "pnpm --filter @nexus/db db:migrate",
-    "verify": "turbo run typecheck lint test build",
-    "seed:volunteer": "pnpm --filter @nexus/db seed:volunteer"
+    "dev": "turbo run dev",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
+    "lint": "turbo run lint",
+    "seed:volunteer": "pnpm --filter @nexus/db seed:volunteer",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "verify": "turbo run typecheck lint test build"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

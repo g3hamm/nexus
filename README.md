@@ -30,6 +30,7 @@ lookup. Each lives in its own package with the design decisions written down.
 pnpm install
 cp .env.example .env.local     # then fill it in
 pnpm db:migrate
+pnpm db:check                  # confirms what actually landed
 pnpm seed:volunteer --email you@example.org --name "Your Name" --languages en
 pnpm dev
 ```
