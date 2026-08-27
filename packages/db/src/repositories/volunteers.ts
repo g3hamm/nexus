@@ -85,8 +85,9 @@ export class DrizzleVolunteerRepository implements VolunteerRepository {
         passwordHash: input.passwordHash,
         languages: [...input.languages],
         // New volunteers cannot be matched until an admin approves them.
-        // Vetting who speaks to seekers is the whole safety model.
-        approvedAt: null,
+        // Vetting who speaks to seekers is the whole safety model. First-run
+        // setup is the one exception, and it can only ever run once.
+        approvedAt: input.approved ? new Date() : null,
       })
       .returning();
 

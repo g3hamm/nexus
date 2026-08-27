@@ -176,6 +176,18 @@ Check it in Vercel's environment variables. Nexus never drops a message when
 translation fails — it shows the original and says translation is
 unavailable, which can look like "it works but nothing translates".
 
+**Sign-in says "This account is awaiting approval by an administrator."**
+This was a bug in an earlier build: setup created the account but did not
+mark it approved. Fix it in one line rather than starting over. In Neon's
+**SQL Editor**, paste this and click **Run**, using your own email:
+
+```sql
+UPDATE volunteers SET approved_at = now() WHERE email = 'you@example.org';
+```
+
+Then sign in again. Redeploying your Vercel project first will also stop it
+happening to any future account.
+
 **You forgot the volunteer password.**
 There is no password reset yet. In Neon's SQL Editor, run
 `DELETE FROM volunteers;` then repeat Part 2 — the setup page reopens once no

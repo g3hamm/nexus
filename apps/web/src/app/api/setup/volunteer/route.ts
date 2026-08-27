@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { hashPassword } from "@nexus/auth";
-import { NexusError, languageCodeSchema } from "@nexus/core";
+import { NexusError, isActiveVolunteer, languageCodeSchema } from "@nexus/core";
 import { container } from "@/server/container";
 import { env } from "@/server/env";
 import { errorResponse, ok } from "@/server/http";
@@ -71,6 +71,22 @@ export async function POST(request: NextRequest) {
       languages: parsed.data.languages,
       approved: true,
     });
+
+    // Verify the account this route exists to produce is actually usable.
+    //
+    // Not paranoia: an earlier version passed `approved: true` into a
+    // repository that silently ignored it, so setup reported success and the
+    // sign-in page then said the account was awaiting approval. The whole job
+    // of this route is "make a working account", so it checks that it did.
+    if (!isActiveVolunteer(volunteer)) {
+      throw new NexusError(
+        "conflict",
+        "The account was created but is not approved, so it cannot sign in. " +
+          "This is a bug in Nexus, not something you did wrong. An admin can " +
+          "approve it directly, or delete it and run setup again.",
+        { volunteerId: volunteer.id },
+      );
+    }
 
     await c.audit.record({
       action: "volunteer.approved",
