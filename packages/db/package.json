@@ -26,7 +26,8 @@
     "db:studio": "drizzle-kit studio",
     "seed:volunteer": "tsx src/seed-volunteer.ts",
     "db:check": "tsx src/check.ts",
-    "db:sql": "tsx src/build-setup-sql.ts"
+    "db:sql": "tsx src/build-setup-sql.ts",
+    "seed:admin": "tsx src/seed-admin.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

@@ -11,8 +11,8 @@ Three kinds of people use it:
 - **Volunteers** have accounts, are approved by an admin before they can be
   matched, and are supported by an AI sidebar that offers scripture,
   discussion points, and a read on who they are talking to.
-- **Admins** review flagged conversations and audit transcripts. Every audit
-  read is itself recorded.
+- **Admins** review flagged conversations and audit transcripts at `/admin`.
+  Every transcript read is itself recorded against the admin who opened it.
 
 ## Status
 
@@ -32,6 +32,7 @@ cp .env.example .env.local     # then fill it in
 pnpm db:migrate
 pnpm db:check                  # confirms what actually landed
 pnpm seed:volunteer --email you@example.org --name "Your Name" --languages en
+pnpm seed:admin --email you@example.org --name "Your Name"
 pnpm knowledge:load ./content/knowledge
 pnpm dev
 ```

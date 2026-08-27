@@ -1,6 +1,7 @@
 import "server-only";
 
 import type {
+  AdminRepository,
   AuditLog,
   BibleProvider,
   ConversationCrypto,
@@ -20,6 +21,7 @@ import { SessionSigner } from "@nexus/auth";
 import { createConversationCrypto } from "@nexus/crypto";
 import {
   createDatabase,
+  DrizzleAdminRepository,
   DrizzleAuditLog,
   DrizzleConversationRepository,
   DrizzleFlagRepository,
@@ -54,6 +56,7 @@ export interface Container {
   readonly conversations: ConversationRepository;
   readonly messages: MessageRepository;
   readonly volunteers: VolunteerRepository;
+  readonly admins: AdminRepository;
   readonly flags: FlagRepository;
   readonly audit: AuditLog;
   readonly llm: LlmProvider;
@@ -114,6 +117,7 @@ export function container(): Container {
     conversations: new DrizzleConversationRepository(db, crypto),
     messages: new DrizzleMessageRepository(db, crypto),
     volunteers: new DrizzleVolunteerRepository(db),
+    admins: new DrizzleAdminRepository(db),
     flags: new DrizzleFlagRepository(db, crypto),
     audit: new DrizzleAuditLog(db),
     llm,

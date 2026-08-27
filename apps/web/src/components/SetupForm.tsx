@@ -8,7 +8,7 @@ const FIELD =
   "h-11 rounded-md border border-line bg-surface px-3 text-ink outline-none " +
   "transition-colors focus:border-accent";
 
-export function SetupForm() {
+export function SetupForm({ adminOnly = false }: { readonly adminOnly?: boolean }) {
   const router = useRouter();
   const [token, setToken] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -59,16 +59,49 @@ export function SetupForm() {
   if (done) {
     return (
       <Card>
-        <p className="text-ink font-medium">Your account is ready.</p>
+        <p className="text-ink font-medium">
+          {adminOnly
+            ? "Your administrator account is ready."
+            : "Your accounts are ready."}
+        </p>
         <p className="text-ink-muted mt-2 text-sm">
-          Two things left. Sign in below, and then remove{" "}
+          {adminOnly ? (
+            <>
+              Sign in at{" "}
+              <code className="bg-surface-sunken rounded px-1">/admin/login</code> to
+              review what the judge flags and to approve new volunteers. Your existing
+              volunteer sign-in is unchanged.
+            </>
+          ) : (
+            <>
+              You have two, with the same email and password. Sign in at{" "}
+              <code className="bg-surface-sunken rounded px-1">/volunteer/login</code> to
+              talk with seekers, and at{" "}
+              <code className="bg-surface-sunken rounded px-1">/admin/login</code> to
+              review what the judge flags and to approve new volunteers.
+            </>
+          )}
+        </p>
+        <p className="text-ink-muted mt-2 text-sm">
+          Then remove{" "}
           <code className="bg-surface-sunken rounded px-1">NEXUS_SETUP_TOKEN</code> from
           your Vercel environment variables — this page has already closed itself, but
           there is no reason to leave the token lying around.
         </p>
-        <Button className="mt-5 w-full" onClick={() => router.push("/volunteer/login")}>
-          Go to sign in
-        </Button>
+        <div className="mt-5 flex gap-3">
+          {!adminOnly ? (
+            <Button className="flex-1" onClick={() => router.push("/volunteer/login")}>
+              Volunteer sign in
+            </Button>
+          ) : null}
+          <Button
+            variant={adminOnly ? "primary" : "quiet"}
+            className="flex-1"
+            onClick={() => router.push("/admin/login")}
+          >
+            Administrator sign in
+          </Button>
+        </div>
       </Card>
     );
   }
@@ -88,7 +121,11 @@ export function SetupForm() {
         <Field
           id="displayName"
           label="Your name"
-          hint="What a seeker sees when you are talking with them."
+          hint={
+            adminOnly
+              ? "Shown in the audit log against everything you do."
+              : "What a seeker sees when you are talking with them."
+          }
           value={displayName}
           onChange={setDisplayName}
           autoComplete="name"
@@ -110,13 +147,15 @@ export function SetupForm() {
           type="password"
           autoComplete="new-password"
         />
-        <Field
-          id="languages"
-          label="Languages you can talk in"
-          hint="Comma separated, e.g. en, es. Seekers who speak other languages are still matched to you — everything is translated."
-          value={languages}
-          onChange={setLanguages}
-        />
+        {!adminOnly ? (
+          <Field
+            id="languages"
+            label="Languages you can talk in"
+            hint="Comma separated, e.g. en, es. Seekers who speak other languages are still matched to you — everything is translated."
+            value={languages}
+            onChange={setLanguages}
+          />
+        ) : null}
 
         {error ? (
           <p role="alert" className="text-danger text-sm">
@@ -125,7 +164,7 @@ export function SetupForm() {
         ) : null}
 
         <Button type="submit" busy={busy} className="mt-2">
-          Create my account
+          {adminOnly ? "Create my administrator account" : "Create my accounts"}
         </Button>
       </form>
     </Card>

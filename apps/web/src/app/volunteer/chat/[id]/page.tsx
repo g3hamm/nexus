@@ -15,7 +15,8 @@ export default async function VolunteerChatPage({
   const { id } = await params;
 
   const session = await staffSession();
-  if (!session) redirect("/volunteer/login");
+  // An admin session is not a volunteer session; see requireVolunteer.
+  if (session?.role !== "volunteer") redirect("/volunteer/login");
 
   const conversation = await container().conversations.findById(asConversationId(id));
   if (!conversation) notFound();

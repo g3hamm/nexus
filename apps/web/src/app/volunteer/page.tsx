@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 
 export default async function VolunteerConsolePage() {
   const session = await staffSession();
-  if (!session) redirect("/volunteer/login");
+  // An admin session is not a volunteer session; see requireVolunteer.
+  if (session?.role !== "volunteer") redirect("/volunteer/login");
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-12">

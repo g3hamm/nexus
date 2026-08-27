@@ -19,7 +19,14 @@ export const metadata: Metadata = {
  */
 export default async function SetupPage() {
   const enabled = Boolean(env().NEXUS_SETUP_TOKEN);
-  const existing = enabled ? await container().volunteers.count() : 0;
+  const c = enabled ? container() : null;
+  const [volunteers, admins] = c
+    ? await Promise.all([c.volunteers.count(), c.admins.count()])
+    : [0, 0];
+
+  // A volunteer with no administrator is an install that predates the admin
+  // area. It still needs a way in, so setup stays open to create just that.
+  const adminOnly = volunteers > 0 && admins === 0;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-6 py-16">
@@ -30,18 +37,20 @@ export default async function SetupPage() {
           heading="Setup is switched off."
           body="Add a NEXUS_SETUP_TOKEN environment variable in Vercel and redeploy to turn it on."
         />
-      ) : existing > 0 ? (
+      ) : admins > 0 ? (
         <Closed
           heading="Setup is already done."
-          body="A volunteer account exists, so this page has closed itself. You can sign in at /volunteer/login. Remove NEXUS_SETUP_TOKEN from your environment variables — it does nothing now."
+          body="An administrator account exists, so this page has closed itself. Sign in at /volunteer/login or /admin/login. Remove NEXUS_SETUP_TOKEN from your environment variables — it does nothing now."
         />
       ) : (
         <>
           <p className="text-ink-muted mt-2">
-            This creates your first volunteer account. It works once, then closes itself.
+            {adminOnly
+              ? "This install has a volunteer but no administrator, so nobody can open the moderation queue. This creates the administrator account."
+              : "This creates your volunteer and administrator accounts. It works once, then closes itself."}
           </p>
           <div className="mt-8">
-            <SetupForm />
+            <SetupForm adminOnly={adminOnly} />
           </div>
         </>
       )}

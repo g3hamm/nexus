@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import type {
   LanguageCode,
   Volunteer,
@@ -64,6 +64,34 @@ export class DrizzleVolunteerRepository implements VolunteerRepository {
       );
 
     return rows.map(toVolunteer);
+  }
+
+  async listAll(limit: number): Promise<readonly Volunteer[]> {
+    const rows = await this.#db
+      .select()
+      .from(volunteers)
+      .orderBy(desc(volunteers.createdAt))
+      .limit(limit);
+    return rows.map(toVolunteer);
+  }
+
+  async setApproved(id: VolunteerId, approved: boolean): Promise<void> {
+    await this.#db
+      .update(volunteers)
+      .set({ approvedAt: approved ? new Date() : null })
+      .where(eq(volunteers.id, id));
+  }
+
+  async setSuspended(id: VolunteerId, suspended: boolean): Promise<void> {
+    await this.#db
+      .update(volunteers)
+      .set({
+        suspendedAt: suspended ? new Date() : null,
+        // A suspended volunteer must not keep appearing available to the
+        // matcher, so take them offline in the same statement.
+        ...(suspended ? { status: "offline" as const } : {}),
+      })
+      .where(eq(volunteers.id, id));
   }
 
   async setStatus(id: VolunteerId, status: Volunteer["status"]): Promise<void> {

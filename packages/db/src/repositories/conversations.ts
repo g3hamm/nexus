@@ -143,6 +143,28 @@ export class DrizzleConversationRepository implements ConversationRepository {
       .where(eq(conversations.id, id));
   }
 
+  /**
+   * Returns a reviewed conversation to a normal status and a retention clock.
+   *
+   * Status is derived rather than remembered: a conversation that has an
+   * `ended_at` goes back to "ended", one that does not is still live and goes
+   * back to "active". Storing the pre-review status would be one more field to
+   * keep correct for no gain.
+   *
+   * `terminated` is deliberately untouched — a conversation Nexus ended stays
+   * ended, whatever an admin decides about the flag.
+   */
+  async restoreRetention(id: ConversationId, retainUntil: Date): Promise<void> {
+    await this.#db
+      .update(conversations)
+      .set({
+        retainUntil,
+        status: sql`case when ${conversations.endedAt} is null then 'active'::conversation_status
+                        else 'ended'::conversation_status end`,
+      })
+      .where(and(eq(conversations.id, id), eq(conversations.status, "under_review")));
+  }
+
   async markModerated(id: ConversationId, at: Date): Promise<void> {
     await this.#db
       .update(conversations)

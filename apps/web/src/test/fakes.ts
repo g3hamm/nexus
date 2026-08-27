@@ -3,12 +3,14 @@ import type {
   AuditEntry,
   AuditLog,
   ConversationWindow,
+  AdminId,
   FlagId,
   FlagRepository,
   Judge,
   ModerationFlag,
   ModerationScheduler,
   ModerationVerdict,
+  VolunteerRepository,
   Conversation,
   ConversationId,
   ConversationRepository,
@@ -118,6 +120,16 @@ export class FakeConversationRepository implements ConversationRepository {
     if (existing) {
       this.rows.set(id, { ...existing, status: "under_review", retainUntil: null });
     }
+  }
+
+  async restoreRetention(id: ConversationId, retainUntil: Date): Promise<void> {
+    const existing = this.rows.get(id);
+    if (!existing || existing.status !== "under_review") return;
+    this.rows.set(id, {
+      ...existing,
+      retainUntil,
+      status: existing.endedAt === null ? "active" : "ended",
+    });
   }
 
   async markModerated(id: ConversationId, at: Date): Promise<void> {
@@ -254,8 +266,110 @@ export class FakeFlagRepository implements FlagRepository {
     return this.raised.filter((f) => f.status === "open").slice(0, limit);
   }
 
-  async resolve(): Promise<void> {
-    // Not exercised by the current tests.
+  async listResolved(limit: number): Promise<readonly ModerationFlag[]> {
+    return this.raised
+      .filter((f) => f.status === "upheld" || f.status === "dismissed")
+      .slice(0, limit);
+  }
+
+  async listForConversation(
+    conversationId: ConversationId,
+  ): Promise<readonly ModerationFlag[]> {
+    return this.raised.filter((f) => f.conversationId === conversationId);
+  }
+
+  async resolve(
+    id: FlagId,
+    adminId: AdminId,
+    status: "upheld" | "dismissed",
+    note: string,
+  ): Promise<void> {
+    const index = this.raised.findIndex((f) => f.id === id);
+    const existing = this.raised[index];
+    if (!existing) return;
+    this.raised[index] = {
+      ...existing,
+      status,
+      reviewedBy: adminId,
+      reviewedAt: new Date(),
+      reviewNote: note,
+    };
+  }
+}
+
+export class FakeVolunteerRepository implements VolunteerRepository {
+  readonly rows = new Map<string, Volunteer>();
+
+  add(volunteer: Volunteer): Volunteer {
+    this.rows.set(volunteer.id, volunteer);
+    return volunteer;
+  }
+
+  async findById(id: VolunteerId): Promise<Volunteer | null> {
+    return this.rows.get(id) ?? null;
+  }
+
+  async findByEmail(email: string): Promise<Volunteer | null> {
+    return [...this.rows.values()].find((v) => v.email === email.toLowerCase()) ?? null;
+  }
+
+  async findAvailable(): Promise<readonly Volunteer[]> {
+    return [...this.rows.values()].filter(
+      (v) => v.status === "available" && v.approvedAt !== null && v.suspendedAt === null,
+    );
+  }
+
+  async listAll(limit: number): Promise<readonly Volunteer[]> {
+    return [...this.rows.values()].slice(0, limit);
+  }
+
+  async setApproved(id: VolunteerId, approved: boolean): Promise<void> {
+    const existing = this.rows.get(id);
+    if (existing) {
+      this.rows.set(id, { ...existing, approvedAt: approved ? new Date() : null });
+    }
+  }
+
+  async setSuspended(id: VolunteerId, suspended: boolean): Promise<void> {
+    const existing = this.rows.get(id);
+    if (existing) {
+      this.rows.set(id, {
+        ...existing,
+        suspendedAt: suspended ? new Date() : null,
+        ...(suspended ? { status: "offline" as const } : {}),
+      });
+    }
+  }
+
+  async setStatus(id: VolunteerId, status: Volunteer["status"]): Promise<void> {
+    const existing = this.rows.get(id);
+    if (existing) this.rows.set(id, { ...existing, status });
+  }
+
+  async create(input: {
+    displayName: string;
+    email: string;
+    passwordHash: string;
+    languages: readonly LanguageCode[];
+    approved?: boolean;
+  }): Promise<Volunteer> {
+    return this.add(
+      fakeVolunteer({
+        id: asVolunteerId(`vol-${this.rows.size + 1}`),
+        displayName: input.displayName,
+        email: input.email.toLowerCase(),
+        languages: input.languages,
+        approvedAt: input.approved ? new Date() : null,
+      }),
+    );
+  }
+
+  async passwordHashFor(): Promise<string | null> {
+    return null;
+  }
+
+  async count(): Promise<number> {
+    return this.rows.size;
   }
 }
 

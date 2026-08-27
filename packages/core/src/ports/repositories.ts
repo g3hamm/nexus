@@ -10,7 +10,7 @@ import type { LanguageCode } from "../domain/language.js";
 import type { Conversation, Modality } from "../domain/conversation.js";
 import type { Message, Rendering } from "../domain/message.js";
 import type { ModerationFlag, ModerationVerdict } from "../domain/moderation.js";
-import type { ParticipantRole, Volunteer } from "../domain/participants.js";
+import type { Admin, ParticipantRole, Volunteer } from "../domain/participants.js";
 
 /**
  * Persistence contracts.
@@ -54,6 +54,17 @@ export interface ConversationRepository {
   markUnderReview(id: ConversationId): Promise<void>;
   /** Stamps when the judge last looked, so the cadence can be computed. */
   markModerated(id: ConversationId, at: Date): Promise<void>;
+
+  /**
+   * Puts a conversation back on a retention clock after review, and returns
+   * it to a normal status.
+   *
+   * `markUnderReview` nulls `retainUntil`, which exempts the conversation from
+   * the purge. Without this counterpart, every flag the judge raises would
+   * keep a transcript forever — quietly undoing the retention policy one
+   * flag at a time.
+   */
+  restoreRetention(id: ConversationId, retainUntil: Date): Promise<void>;
 
   /**
    * Conversations whose retention window has closed and which are safe to
@@ -101,6 +112,12 @@ export interface VolunteerRepository {
   findByEmail(email: string): Promise<Volunteer | null>;
   /** Approved, unsuspended, available, and under their concurrency cap. */
   findAvailable(language?: LanguageCode): Promise<readonly Volunteer[]>;
+  /** Everyone, for the admin roster. Newest first. */
+  listAll(limit: number): Promise<readonly Volunteer[]>;
+  /** Approve or un-approve. Approval is what lets a volunteer be matched. */
+  setApproved(id: VolunteerId, approved: boolean): Promise<void>;
+  /** Suspend or reinstate. Suspension survives re-approval. */
+  setSuspended(id: VolunteerId, suspended: boolean): Promise<void>;
   setStatus(id: VolunteerId, status: Volunteer["status"]): Promise<void>;
   create(input: {
     readonly displayName: string;
@@ -120,6 +137,19 @@ export interface VolunteerRepository {
   count(): Promise<number>;
 }
 
+export interface AdminRepository {
+  findById(id: AdminId): Promise<Admin | null>;
+  findByEmail(email: string): Promise<Admin | null>;
+  create(input: {
+    readonly displayName: string;
+    readonly email: string;
+    readonly passwordHash: string;
+  }): Promise<Admin>;
+  /** Returns the stored hash, or null if there is no such admin. */
+  passwordHashFor(email: string): Promise<string | null>;
+  count(): Promise<number>;
+}
+
 export interface FlagRepository {
   raise(
     conversationId: ConversationId,
@@ -127,6 +157,10 @@ export interface FlagRepository {
   ): Promise<ModerationFlag>;
   findById(id: FlagId): Promise<ModerationFlag | null>;
   listOpen(limit: number): Promise<readonly ModerationFlag[]>;
+  /** Recently resolved flags, newest first, so decisions can be reviewed. */
+  listResolved(limit: number): Promise<readonly ModerationFlag[]>;
+  /** Every flag on one conversation, for the review screen. */
+  listForConversation(conversationId: ConversationId): Promise<readonly ModerationFlag[]>;
   resolve(
     id: FlagId,
     adminId: AdminId,

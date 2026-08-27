@@ -86,9 +86,15 @@ script:
 
 ```bash
 pnpm seed:volunteer --email you@example.org --name "Your Name" --languages en
+pnpm seed:admin --email you@example.org --name "Your Name"
 ```
 
-It prints a generated password once. Save it.
+Each prints a generated password once. Save them.
+
+Two accounts, because they are two jobs. The volunteer account talks with
+seekers at `/volunteer/login`; the admin account reviews what the judge flags
+and approves new volunteers at `/admin/login`. One browser holds one role at a
+time — sign in again to switch.
 
 ## 6. Deploy to Vercel
 

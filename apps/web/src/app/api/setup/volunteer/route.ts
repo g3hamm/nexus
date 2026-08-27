@@ -55,21 +55,53 @@ export async function POST(request: NextRequest) {
 
     const c = container();
 
-    // The one-time guard. Once a volunteer exists this route is closed for
-    // good, whether or not the token is still set.
-    if ((await c.volunteers.count()) > 0) {
+    // The one-time guard, in two parts.
+    //
+    // An administrator existing closes this route for good. A volunteer
+    // existing does not — an install set up before the admin area was built
+    // has a volunteer and no administrator, and with no administrator the
+    // moderation queue is a room nobody can enter: flagged conversations are
+    // held out of the retention purge waiting for a review that cannot happen.
+    // Those installs need a way in that does not require a terminal, so setup
+    // stays open just long enough to create the missing administrator.
+    const [volunteerCount, adminCount] = await Promise.all([
+      c.volunteers.count(),
+      c.admins.count(),
+    ]);
+
+    if (adminCount > 0) {
       throw NexusError.conflict(
         "Setup has already been used. Remove NEXUS_SETUP_TOKEN — further " +
-          "volunteers are added by an administrator.",
+          "accounts are created by an administrator.",
       );
     }
 
-    const volunteer = await c.volunteers.create({
+    const adminOnly = volunteerCount > 0;
+
+    // One password hash, two accounts.
+    //
+    // The person running setup is the operator: they need to answer seekers
+    // *and* review what the judge flags, and those are separate roles with
+    // separate sign-ins. Creating only the volunteer — which is what this did
+    // originally — left the moderation queue with nobody able to open it, so
+    // flagged conversations piled up unreviewable and, because review exempts
+    // them from the purge, unpurgeable too.
+    const passwordHash = await hashPassword(parsed.data.password);
+
+    const volunteer = adminOnly
+      ? null
+      : await c.volunteers.create({
+          displayName: parsed.data.displayName,
+          email: parsed.data.email,
+          passwordHash,
+          languages: parsed.data.languages,
+          approved: true,
+        });
+
+    const admin = await c.admins.create({
       displayName: parsed.data.displayName,
       email: parsed.data.email,
-      passwordHash: await hashPassword(parsed.data.password),
-      languages: parsed.data.languages,
-      approved: true,
+      passwordHash,
     });
 
     // Verify the account this route exists to produce is actually usable.
@@ -78,13 +110,13 @@ export async function POST(request: NextRequest) {
     // repository that silently ignored it, so setup reported success and the
     // sign-in page then said the account was awaiting approval. The whole job
     // of this route is "make a working account", so it checks that it did.
-    if (!isActiveVolunteer(volunteer)) {
+    if (volunteer && !isActiveVolunteer(volunteer)) {
       throw new NexusError(
         "conflict",
         "The account was created but is not approved, so it cannot sign in. " +
           "This is a bug in Nexus, not something you did wrong. An admin can " +
           "approve it directly, or delete it and run setup again.",
-        { volunteerId: volunteer.id },
+        { volunteerId: volunteer?.id },
       );
     }
 
@@ -93,10 +125,22 @@ export async function POST(request: NextRequest) {
       actorRole: "system",
       actorId: null,
       conversationId: null,
-      detail: { via: "first-run setup", volunteerId: volunteer.id },
+      detail: {
+        via: adminOnly ? "administrator added to an existing install" : "first-run setup",
+        volunteerId: volunteer?.id ?? null,
+        adminId: admin.id,
+      },
     });
 
-    return ok({ id: volunteer.id, email: volunteer.email }, 201);
+    return ok(
+      {
+        id: volunteer?.id ?? admin.id,
+        adminId: admin.id,
+        email: admin.email,
+        adminOnly,
+      },
+      201,
+    );
   } catch (error) {
     return errorResponse(error);
   }

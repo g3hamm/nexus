@@ -18,6 +18,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
     "knowledge:load": "pnpm --filter @nexus/knowledge knowledge:load",
     "lint": "turbo run lint",
+    "seed:admin": "pnpm --filter @nexus/db seed:admin",
     "seed:volunteer": "pnpm --filter @nexus/db seed:volunteer",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",

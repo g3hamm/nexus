@@ -39,17 +39,20 @@ They are already constructed in `container.ts`, so the wiring points exist.
 
 These are things that look done and are not:
 
-1. ~~The retention purge job does not exist.~~ **Built.** A daily Vercel Cron
+1. ~~The retention purge job does not exist.~~ **Built**, and now closed-loop:
+   reviewing a flag restores `retainUntil` (90 days if dismissed, a year if
+   upheld), so a flagged conversation is exempt from the purge only until a
+   human has actually looked at it. A daily Vercel Cron
    hits `/api/cron/purge`, which hard-deletes conversations past
    `retainUntil` — never anything live, under review, or carrying an
    unresolved flag. Deleting the conversation row destroys the only copy of
    its wrapped data key, so any ciphertext that outlives the delete in a
    replica or backup is undecryptable rather than merely unlinked. Requires
    `CRON_SECRET`; the endpoint fails closed without it.
-2. **No admin surfaces.** The `admins` table, the audit log, and the flag
-   repository all exist and are wired. There is no UI. Admin transcript reads
-   are supposed to write `conversation.viewed` to the audit log — that call
-   site does not exist yet because the screen does not.
+2. ~~No admin surfaces.~~ **Built.** `/admin` is the review queue, with
+   audited transcript review, flag resolution, and volunteer approval.
+   `AdminService.transcriptFor` is the only way to read a conversation as an
+   admin and writes `conversation.viewed` before returning a single message.
 3. **No volunteer provisioning UI.** `pnpm seed:volunteer` creates and
    _immediately approves_ an account, which is what makes the app usable at
    all today — but it bypasses the vetting step that is the actual safety
@@ -92,8 +95,7 @@ true })` flag was accepted by the signature and silently dropped by the
    volunteer asks, to control both cost and the panel changing under someone
    mid-thought.
 7. `@nexus/bible` — lookup and detection, then the hover interaction.
-8. Admin surfaces — flag queue, transcript review, volunteer approval. Every
-   transcript read must write to the audit log.
+8. ~~Admin surfaces.~~ **Built.**
 
 **Later**
 

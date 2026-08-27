@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import type {
   AdminId,
   ConversationCrypto,
@@ -84,6 +84,33 @@ export class DrizzleFlagRepository implements FlagRepository {
       // Oldest first: a flag that has waited longest is reviewed first.
       .orderBy(asc(moderationFlags.raisedAt))
       .limit(limit);
+
+    return Promise.all(
+      rows.map(async (row) => this.#toFlag(row, await this.#openRationale(row))),
+    );
+  }
+
+  async listResolved(limit: number): Promise<readonly ModerationFlag[]> {
+    const rows = await this.#db
+      .select()
+      .from(moderationFlags)
+      .where(inArray(moderationFlags.status, ["upheld", "dismissed"]))
+      .orderBy(desc(moderationFlags.reviewedAt))
+      .limit(limit);
+
+    return Promise.all(
+      rows.map(async (row) => this.#toFlag(row, await this.#openRationale(row))),
+    );
+  }
+
+  async listForConversation(
+    conversationId: ConversationId,
+  ): Promise<readonly ModerationFlag[]> {
+    const rows = await this.#db
+      .select()
+      .from(moderationFlags)
+      .where(eq(moderationFlags.conversationId, conversationId))
+      .orderBy(desc(moderationFlags.raisedAt));
 
     return Promise.all(
       rows.map(async (row) => this.#toFlag(row, await this.#openRationale(row))),
