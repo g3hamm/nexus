@@ -302,6 +302,16 @@ when you turned it on.
 
 Two things to do whenever you deploy a newer version of the code.
 
+## If a page says the deployment is newer than its database
+
+You will see: *"This deployment is newer than its database. Re-run
+docs/setup.sql in the Neon SQL Editor, then reload."*
+
+That is exactly what to do, and nothing has been lost. It means a new version
+of the code was deployed without the setup file being run afterwards, so it is
+looking for a column the database has not been given yet. Re-run the file (see
+below) and reload the page.
+
 ## If every sign-in page shows "This page couldn't load"
 
 The home page works but `/volunteer`, `/volunteer/login` and `/admin` all show
