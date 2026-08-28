@@ -22,8 +22,8 @@ export function ChatWindow({
   readonly conversationId: string;
   readonly viewerRole: "seeker" | "volunteer";
 }) {
-  const { messages, matched, status, loading, crisis, coverage, send } =
-    useConversation(conversationId);
+  const { messages, matched, status, loading, crisis, coverage, peerTyping, notifyTyping, send } =
+    useConversation(conversationId, viewerRole);
   const sentPending = useRef(false);
 
   // Deliver the message typed on the landing page, now that a conversation
@@ -59,7 +59,10 @@ export function ChatWindow({
             <Spinner className="text-ink-subtle" />
           </div>
         ) : (
-          <MessageList messages={messages} viewerRole={viewerRole} />
+          <>
+            <MessageList messages={messages} viewerRole={viewerRole} />
+            {peerTyping ? <TypingIndicator /> : null}
+          </>
         )}
       </div>
 
@@ -75,8 +78,41 @@ export function ChatWindow({
             This conversation has ended.
           </p>
         ) : (
-          <Composer onSend={send} disabled={ended} />
+          <Composer onSend={send} onTyping={notifyTyping} disabled={ended} />
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Three dots, on the other person's side of the conversation.
+ *
+ * It matters more here than in an ordinary chat app. Every message crosses a
+ * translation round-trip, so the gap between someone finishing their sentence
+ * and it appearing is seconds rather than milliseconds — long enough that
+ * silence reads as a broken app rather than as a person thinking. This is the
+ * difference between "they are still there" and "this has stopped working".
+ *
+ * It pulses rather than bounces. The rest of this interface is deliberately
+ * still, and a jaunty animation is the wrong register for a conversation
+ * someone may be having on the worst day of their life.
+ */
+function TypingIndicator() {
+  return (
+    <div className="mt-4 flex justify-start" aria-live="polite">
+      <span className="sr-only">The other person is writing</span>
+      <div
+        aria-hidden="true"
+        className="bg-seeker-bubble flex items-center gap-1.5 rounded-2xl px-4 py-3.5"
+      >
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="bg-ink-subtle size-1.5 animate-pulse rounded-full"
+            style={{ animationDelay: `${i * 200}ms`, animationDuration: "1.4s" }}
+          />
+        ))}
       </div>
     </div>
   );

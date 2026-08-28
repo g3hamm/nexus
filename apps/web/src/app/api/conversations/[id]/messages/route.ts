@@ -19,6 +19,19 @@ import { seekerSession, staffSession } from "@/server/session";
 
 export const runtime = "nodejs";
 
+/**
+ * Long enough for the work that happens after the reply is sent.
+ *
+ * Without this the route ran on the platform default of a few seconds, and
+ * everything in `after()` was killed mid-flight: the judge never finished, and
+ * a practice partner never answered. Both of those swallow their own errors by
+ * design — moderation must not surface to the people talking — so the failure
+ * was completely silent. A message send can carry a translation in the request
+ * path plus a judge pass or a partner reply behind it, and each of those is a
+ * model call.
+ */
+export const maxDuration = 60;
+
 const sendSchema = z.object({
   text: z.string().min(1).max(4000),
   language: languageCodeSchema.optional(),

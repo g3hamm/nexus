@@ -9,6 +9,8 @@ import { enforceRateLimit } from "@/server/rate-limit";
 import { requireVolunteer } from "@/server/session";
 
 export const runtime = "nodejs";
+/** Opening a session waits on the partner's first message, which is a model call. */
+export const maxDuration = 60;
 
 const bodySchema = z.object({ scenarioId: z.string().min(1).max(64) });
 

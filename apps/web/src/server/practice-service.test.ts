@@ -149,6 +149,38 @@ describe("PracticeService", () => {
       expect(notice.event.text).toMatch(/nobody has been alerted/i);
     });
 
+    // Generating a reply and translating it takes seconds. Without this the
+    // volunteer stares at a screen that has stopped, which reads as a broken
+    // app long before it reads as someone thinking.
+    it("puts the typing dots up before it starts composing", async () => {
+      const conversation = await h.service.start(volunteer, "grief-mother");
+
+      const typing = h.realtime.published.filter((p) => p.event.type === "typing");
+      expect(typing.length).toBeGreaterThan(0);
+      if (typing[0]?.event.type !== "typing") throw new Error("wrong event");
+      expect(typing[0].event.active).toBe(true);
+      expect(typing[0].event.role).toBe("seeker");
+
+      // Announced before the message it precedes, or it is pointless.
+      const firstTyping = h.realtime.published.findIndex((p) => p.event.type === "typing");
+      const firstMessage = h.realtime.published.findIndex((p) => p.event.type === "message");
+      if (firstMessage !== -1) expect(firstTyping).toBeLessThan(firstMessage);
+      expect(conversation.practiceScenario).toBe("grief-mother");
+    });
+
+    it("takes the dots down when the partner fails", async () => {
+      const conversation = await h.service.start(volunteer, "grief-mother");
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      h.practice.willFail();
+
+      await h.service.respond(conversation.id);
+
+      const typing = h.realtime.published.filter((p) => p.event.type === "typing");
+      const last = typing.at(-1);
+      if (last?.event.type !== "typing") throw new Error("wrong event");
+      expect(last.event.active).toBe(false);
+    });
+
     it("ends the session when the person has said what they came to say", async () => {
       h.practice.willSay({ text: "hola" }, { text: "me voy", ends: true });
       const conversation = await h.service.start(volunteer, "grief-mother");

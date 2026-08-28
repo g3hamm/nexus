@@ -103,6 +103,9 @@ export class PracticeService {
       await this.#speak(conversationId, scenario, exchanges);
     } catch (error) {
       console.error("[nexus] practice partner failed", { conversationId, error });
+      // Take the dots down rather than leaving the volunteer waiting on a
+      // reply that is not coming.
+      await this.#setTyping(conversationId, false);
     }
   }
 
@@ -165,6 +168,13 @@ export class PracticeService {
     scenario: PracticeScenario,
     exchanges: readonly PracticeExchange[],
   ): Promise<void> {
+    // Announced before the model call, not after. Generating a reply and then
+    // translating it takes several seconds, and without this the volunteer is
+    // looking at a screen that has stopped — which reads as a broken app long
+    // before it reads as someone thinking. The indicator expires on its own
+    // client-side, so a call that dies here does not leave it hanging.
+    await this.#setTyping(conversationId, true);
+
     const turn = await this.#c.practice.reply(scenario, exchanges);
 
     await new ConversationService(this.#c).send({
@@ -186,6 +196,27 @@ export class PracticeService {
 
     if (turn.ends) {
       await this.#c.conversations.end(conversationId, "ended");
+    }
+  }
+
+  /**
+   * Puts the other side's typing dots up, or takes them down.
+   *
+   * Best effort in both directions. A practice session where the dots never
+   * appeared is mildly worse; one that fails to send because of them would be
+   * absurd.
+   */
+  async #setTyping(conversationId: ConversationId, active: boolean): Promise<void> {
+    try {
+      const conversation = await this.#c.conversations.findById(conversationId);
+      if (!conversation) return;
+      await this.#c.realtime.publishEvent(conversation.roomId, {
+        type: "typing",
+        role: "seeker",
+        active,
+      });
+    } catch {
+      // The message itself is what matters, and it clears the dots on arrival.
     }
   }
 

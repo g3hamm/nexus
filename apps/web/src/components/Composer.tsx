@@ -5,10 +5,13 @@ import { Button } from "@nexus/ui";
 
 export function Composer({
   onSend,
+  onTyping,
   placeholder = "Write here…",
   disabled = false,
 }: {
   readonly onSend: (text: string) => Promise<void>;
+  /** Fire-and-forget. Throttled by the caller; safe to call on every keystroke. */
+  readonly onTyping?: (() => void) | undefined;
   readonly placeholder?: string;
   readonly disabled?: boolean;
 }) {
@@ -48,7 +51,13 @@ export function Composer({
       <textarea
         id="composer"
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value);
+          // Only while there is something to say. Announcing on the keystroke
+          // that empties the box would tell the other person you are writing
+          // at the moment you gave up.
+          if (e.target.value.trim().length > 0) onTyping?.();
+        }}
         onKeyDown={onKeyDown}
         rows={1}
         maxLength={4000}
