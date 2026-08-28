@@ -5,6 +5,7 @@
 | File | Where it appears |
 |---|---|
 | `olivechat-mark.webp` | Landing page, sign-in pages, application form |
+| — | **Still the flat wordmark with no pimento.** Regenerate this lockup from the textured wordmark so it matches the header. |
 | `olivechat-wordmark.webp` | Chat header (seeker's side), volunteer dashboard |
 | `olive-upperleft.webp`, `olive-bottomright.webp` | Corner frame, desktop only |
 | `nexus-logo.webp` | Attribution footer |
