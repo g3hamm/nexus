@@ -64,16 +64,14 @@ These are things that look done and are not:
    itself, and swept nightly by the purge.
 5. **No password reset, no MFA.** An admin account is a key to every transcript.
    MFA for admins should not wait long.
-6. **The Drizzle repositories have no test coverage at all.** Everything else
-   in the suite runs against fakes, and the fakes are tested — but no test
-   ever executes the real SQL. This is not theoretical: a `create({ approved:
-true })` flag was accepted by the signature and silently dropped by the
-   INSERT, and nothing caught it until a human could not sign in. The obstacle
-   is that `NexusDatabase` is bound to Neon's HTTP driver, so the repositories
-   cannot be pointed at a local Postgres. Worth fixing by parameterising the
-   driver so the same repository code can run against `node-postgres` in
-   tests, then adding a contract test that both the fakes and the real
-   repositories must pass.
+6. ~~The Drizzle repositories have no test coverage at all.~~ **Built.**
+   `NexusDatabase` is now the shared `PgDatabase` base class, so the same
+   repositories run against Neon in production and a local Postgres under
+   test. See [testing.md](testing.md) — the suite found a second real bug on
+   its first run: conversation data keys were wrapped under one encryption
+   context and unwrapped under the caller's, so every moderation flag was
+   silently failing to persist.
+
 7. **`InMemoryTransport` and `FakeLlmProvider` are development-only.** Both
    factories refuse them when `NODE_ENV=production`, as does local key
    management. If you add a provider, add the same guard.

@@ -30,10 +30,9 @@ export class EnvelopeCrypto implements ConversationCrypto {
   }
 
   async createDataKey(conversationId: ConversationId): Promise<WrappedDataKey> {
-    const { wrapped } = await this.#kms.generateDataKey({
-      conversationId,
-      purpose: "message",
-    });
+    const { wrapped } = await this.#kms.generateDataKey(
+      keyWrappingContext(conversationId),
+    );
     return wrapped;
   }
 
@@ -83,15 +82,42 @@ export class EnvelopeCrypto implements ConversationCrypto {
     );
   }
 
+  /**
+   * Unwraps the conversation's data key.
+   *
+   * Always under the *key-wrapping* context, never the caller's — those are
+   * two different bindings and conflating them was a real bug. `purpose`
+   * exists to bind a ciphertext to what it is (a message, a flag rationale)
+   * so one cannot be substituted for another; it says nothing about the key.
+   * Unwrapping under the caller's purpose meant a DEK wrapped for "message"
+   * could not be unwrapped to encrypt a flag rationale, so every flag the
+   * judge raised failed to persist — silently, because moderation failures
+   * are deliberately swallowed rather than shown to the people talking.
+   *
+   * The payload binding is unaffected: `seal` and `open` still use the
+   * caller's full context as additional authenticated data, which is where
+   * that property actually lives.
+   */
   async #unwrap(key: WrappedDataKey, context: EncryptionContext): Promise<Uint8Array> {
-    // The context is part of the cache key: the same wrapped DEK under a
-    // different purpose must not be served from one cache entry.
-    const cacheKey = `${key.keyId}:${context.purpose}:${key.wrapped}`;
+    const wrappingContext = keyWrappingContext(context.conversationId);
+    const cacheKey = `${key.keyId}:${key.wrapped}`;
     const cached = this.#cache.get(cacheKey);
     if (cached) return cached;
 
-    const dek = await this.#kms.unwrapDataKey(key, context);
+    const dek = await this.#kms.unwrapDataKey(key, wrappingContext);
     this.#cache.set(cacheKey, dek);
     return dek;
   }
+}
+
+/**
+ * The context a conversation's data key is wrapped under.
+ *
+ * `purpose: "message"` is not describing the payload here — it is the value
+ * this has always been wrapped with, and changing it would make every data
+ * key already in a database unopenable. Deliberately fixed, and deliberately
+ * separate from the payload context.
+ */
+function keyWrappingContext(conversationId: ConversationId): EncryptionContext {
+  return { conversationId, purpose: "message" };
 }

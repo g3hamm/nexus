@@ -1,0 +1,445 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { sql } from "drizzle-orm";
+import { asSeekerId, type ModerationVerdict } from "@nexus/core";
+import { EnvelopeCrypto, LocalKeyManagement } from "@nexus/crypto";
+import type { NexusDatabase } from "../client.js";
+import { createTestDatabase, testDatabaseUrl, type TestDatabase } from "../testing.js";
+import { DrizzleAdminRepository } from "./admins.js";
+import { DrizzleConversationRepository } from "./conversations.js";
+import { DrizzleFlagRepository } from "./flags.js";
+import { DrizzleMessageRepository } from "./messages.js";
+import { DrizzleVolunteerRepository } from "./volunteers.js";
+import { PostgresRateLimiter } from "./rate-limits.js";
+
+/**
+ * The repositories, against a real Postgres.
+ *
+ * Every other suite in this repo runs against fakes, which is fast and proves
+ * nothing about the SQL. That gap is not theoretical: a `create({ approved:
+ * true })` flag was accepted by the signature and silently dropped by the
+ * INSERT, and 179 passing tests said nothing because none of them ever
+ * executed a statement.
+ *
+ * Set TEST_DATABASE_URL to run these. See docs/testing.md.
+ */
+const url = testDatabaseUrl();
+const describeIfDb = url ? describe : describe.skip;
+
+if (!url) {
+  // Say so loudly. A silently empty suite is how the gap persisted.
+  console.warn(
+    "\n  [skipped] Repository integration tests need TEST_DATABASE_URL.\n" +
+      "            See docs/testing.md to run them locally.\n",
+  );
+}
+
+describeIfDb("repositories against real Postgres", () => {
+  let handle: TestDatabase;
+  let db: NexusDatabase;
+  let crypto: EnvelopeCrypto;
+
+  beforeAll(async () => {
+    handle = createTestDatabase(url!);
+    db = handle.db;
+    // The same file operators paste into Neon, so the tests exercise the
+    // schema that actually ships rather than a parallel definition.
+    const setup = readFileSync(
+      new URL("../../../../docs/setup.sql", import.meta.url),
+      "utf8",
+    );
+    await db.execute(sql.raw(setup));
+    crypto = new EnvelopeCrypto(new LocalKeyManagement(randomBytes(32)));
+  }, 60_000);
+
+  afterAll(async () => {
+    await handle?.close();
+  });
+
+  beforeEach(async () => {
+    await db.execute(
+      sql.raw(
+        `truncate conversations, volunteers, admins, audit_log, rate_limits
+         restart identity cascade`,
+      ),
+    );
+  });
+
+  const conversations = () => new DrizzleConversationRepository(db, crypto);
+  const messages = () => new DrizzleMessageRepository(db, crypto);
+  const volunteers = () => new DrizzleVolunteerRepository(db);
+
+  async function newConversation(retainUntil: Date | null = null) {
+    return conversations().create({
+      seekerId: asSeekerId("skr_test"),
+      seekerLanguage: "fa",
+      modality: "text",
+      retainUntil,
+    });
+  }
+
+  async function newVolunteer(overrides: { approved?: boolean } = {}) {
+    return volunteers().create({
+      displayName: "Ana",
+      email: `ana-${randomBytes(4).toString("hex")}@example.org`,
+      passwordHash: "scrypt$1$1$1$aaaa$bbbb",
+      languages: ["en"],
+      ...overrides,
+    });
+  }
+
+  describe("volunteers", () => {
+    it("honours the approved flag on create", async () => {
+      // THE regression. The signature accepted this and the INSERT ignored it,
+      // so setup reported success and nobody could sign in.
+      const approved = await newVolunteer({ approved: true });
+      expect(approved.approvedAt).not.toBeNull();
+
+      const pending = await newVolunteer({ approved: false });
+      expect(pending.approvedAt).toBeNull();
+    });
+
+    it("defaults to unapproved when the flag is absent", async () => {
+      expect((await newVolunteer()).approvedAt).toBeNull();
+    });
+
+    it("stores the application note for the approver to read", async () => {
+      const applied = await volunteers().create({
+        displayName: "Ben",
+        email: "ben@example.org",
+        passwordHash: "x",
+        languages: ["en", "es"],
+        applicationNote: "I have led a small group for six years.",
+      });
+      const found = await volunteers().findById(applied.id);
+      expect(found?.applicationNote).toContain("six years");
+      expect(found?.languages).toEqual(["en", "es"]);
+    });
+
+    it("lowercases the email so sign-in matches whatever they type", async () => {
+      await volunteers().create({
+        displayName: "Cara",
+        email: "Cara.Smith@Example.ORG",
+        passwordHash: "x",
+        languages: ["en"],
+      });
+      expect(await volunteers().findByEmail("cara.smith@example.org")).not.toBeNull();
+      expect(await volunteers().findByEmail("CARA.SMITH@EXAMPLE.ORG")).not.toBeNull();
+    });
+
+    it("only offers volunteers who are approved, unsuspended and available", async () => {
+      const repo = volunteers();
+      const ready = await newVolunteer({ approved: true });
+      await repo.setStatus(ready.id, "available");
+
+      const unapproved = await newVolunteer({ approved: false });
+      await repo.setStatus(unapproved.id, "available");
+
+      const suspended = await newVolunteer({ approved: true });
+      await repo.setStatus(suspended.id, "available");
+      await repo.setSuspended(suspended.id, true);
+
+      const available = await repo.findAvailable();
+      expect(available.map((v) => v.id)).toEqual([ready.id]);
+    });
+
+    it("stops offering a volunteer already at their concurrency cap", async () => {
+      const repo = volunteers();
+      const volunteer = await newVolunteer({ approved: true });
+      await repo.setStatus(volunteer.id, "available");
+      expect(await repo.findAvailable()).toHaveLength(1);
+
+      // maxConcurrentConversations defaults to 1, so one active conversation
+      // must take them out of the pool. This is a correlated subquery that no
+      // fake ever exercised.
+      const conversation = await newConversation();
+      await conversations().claim(conversation.id, volunteer.id, "en");
+
+      expect(await repo.findAvailable()).toHaveLength(0);
+    });
+
+    it("takes a suspended volunteer offline in the same statement", async () => {
+      const repo = volunteers();
+      const volunteer = await newVolunteer({ approved: true });
+      await repo.setStatus(volunteer.id, "available");
+
+      await repo.setSuspended(volunteer.id, true);
+
+      expect((await repo.findById(volunteer.id))?.status).toBe("offline");
+    });
+  });
+
+  describe("conversations", () => {
+    it("lets exactly one of two concurrent claims win", async () => {
+      const conversation = await newConversation();
+      const a = await newVolunteer({ approved: true });
+      const b = await newVolunteer({ approved: true });
+
+      // Real concurrency against a real database — the conditional UPDATE is
+      // the entire concurrency story and had never been executed.
+      const [first, second] = await Promise.all([
+        conversations().claim(conversation.id, a.id, "en"),
+        conversations().claim(conversation.id, b.id, "es"),
+      ]);
+
+      expect([first, second].filter(Boolean)).toHaveLength(1);
+    });
+
+    it("computes whether translation is needed from the two languages", async () => {
+      const shared = await conversations().create({
+        seekerId: asSeekerId("skr_en"),
+        seekerLanguage: "en",
+        modality: "text",
+        retainUntil: null,
+      });
+      const volunteer = await newVolunteer({ approved: true });
+      const claimed = await conversations().claim(shared.id, volunteer.id, "en-GB");
+
+      // Regional variants are the same language.
+      expect(claimed?.translationRequired).toBe(false);
+    });
+
+    it("returns waiting conversations oldest first", async () => {
+      const first = await newConversation();
+      await new Promise((r) => setTimeout(r, 15));
+      const second = await newConversation();
+
+      const waiting = await conversations().findWaiting(10);
+      expect(waiting.map((c) => c.id)).toEqual([first.id, second.id]);
+    });
+  });
+
+  describe("messages", () => {
+    it("round-trips renderings through real encryption and SQL", async () => {
+      const conversation = await newConversation();
+      const stored = await messages().append({
+        conversationId: conversation.id,
+        authorRole: "seeker",
+        authorId: null,
+        originalLanguage: "fa",
+        renderings: [
+          { language: "fa", text: "آیا خدا صدای من را می‌شنود؟", source: "original" },
+          { language: "en", text: "Does God hear me?", source: "machine" },
+        ],
+      });
+
+      const [read] = await messages().listForConversation(conversation.id);
+      expect(read?.renderings).toHaveLength(2);
+      expect(read?.renderings[0]?.text).toBe("آیا خدا صدای من را می‌شنود؟");
+      expect(read?.id).toBe(stored.id);
+    });
+
+    it("writes ciphertext, never readable text", async () => {
+      const conversation = await newConversation();
+      await messages().append({
+        conversationId: conversation.id,
+        authorRole: "seeker",
+        authorId: null,
+        originalLanguage: "en",
+        renderings: [
+          { language: "en", text: "a very distinctive sentence", source: "original" },
+        ],
+      });
+
+      // Read the raw column. The point of the whole crypto layer is that this
+      // is impossible to read, and only a real query can prove it.
+      const raw = await db.execute(sql.raw("select ciphertext from messages"));
+      const rows = (raw as unknown as { rows?: { ciphertext: string }[] }).rows ?? [];
+      const blob = JSON.stringify(rows);
+      expect(blob).not.toContain("distinctive");
+      expect(blob.length).toBeGreaterThan(0);
+    });
+
+    it("replaces rather than duplicates when backfilling a rendering", async () => {
+      const conversation = await newConversation();
+      const message = await messages().append({
+        conversationId: conversation.id,
+        authorRole: "seeker",
+        authorId: null,
+        originalLanguage: "fa",
+        renderings: [{ language: "fa", text: "سلام", source: "original" }],
+      });
+
+      await messages().addRendering(message.id, {
+        language: "en",
+        text: "Hello",
+        source: "machine",
+      });
+      await messages().addRendering(message.id, {
+        language: "en",
+        text: "Hi there",
+        source: "machine",
+      });
+
+      const [read] = await messages().listForConversation(conversation.id);
+      expect(read?.renderings).toHaveLength(2);
+      expect(read?.renderings.find((r) => r.language === "en")?.text).toBe("Hi there");
+    });
+  });
+
+  describe("retention", () => {
+    const past = () => new Date(Date.now() - 86_400_000);
+
+    async function endedAndExpired() {
+      const conversation = await newConversation(past());
+      await conversations().end(conversation.id, "ended");
+      return conversation;
+    }
+
+    it("finds an ended, expired conversation", async () => {
+      const doomed = await endedAndExpired();
+      const found = await conversations().findPurgeable(new Date(), 10);
+      expect(found).toContain(doomed.id);
+    });
+
+    it("never offers a live conversation, whatever the date says", async () => {
+      await newConversation(past());
+      expect(await conversations().findPurgeable(new Date(), 10)).toHaveLength(0);
+    });
+
+    it("never offers a conversation carrying an unresolved flag", async () => {
+      const conversation = await endedAndExpired();
+      const flags = new DrizzleFlagRepository(db, crypto);
+      const verdict: ModerationVerdict = {
+        category: "off_mission",
+        severity: "low",
+        subject: "unclear",
+        rationale: "Drifted.",
+        action: "flag_for_review",
+        evidenceMessageIds: [],
+        confidence: 0.5,
+      };
+      await flags.raise(conversation.id, verdict);
+
+      // The `not exists` subquery. Never executed before this test.
+      expect(await conversations().findPurgeable(new Date(), 10)).toHaveLength(0);
+    });
+
+    it("purges and cascades to the messages", async () => {
+      const conversation = await endedAndExpired();
+      await messages().append({
+        conversationId: conversation.id,
+        authorRole: "seeker",
+        authorId: null,
+        originalLanguage: "en",
+        renderings: [{ language: "en", text: "hello", source: "original" }],
+      });
+
+      expect(await conversations().purge([conversation.id])).toBe(1);
+      expect(await conversations().findById(conversation.id)).toBeNull();
+
+      const left = await db.execute(sql.raw("select count(*)::int as n from messages"));
+      const rows = (left as unknown as { rows?: { n: number }[] }).rows ?? [];
+      expect(rows[0]?.n).toBe(0);
+    });
+
+    it("restores an ended conversation to ended, not to active", async () => {
+      const conversation = await endedAndExpired();
+      await conversations().markUnderReview(conversation.id);
+
+      // A CASE expression in SQL that a fake cannot represent.
+      await conversations().restoreRetention(
+        conversation.id,
+        new Date(Date.now() + 1000),
+      );
+
+      const after = await conversations().findById(conversation.id);
+      expect(after?.status).toBe("ended");
+      expect(after?.retainUntil).not.toBeNull();
+    });
+
+    it("restores a live conversation to active", async () => {
+      const conversation = await newConversation(past());
+      await conversations().markUnderReview(conversation.id);
+
+      await conversations().restoreRetention(
+        conversation.id,
+        new Date(Date.now() + 1000),
+      );
+
+      expect((await conversations().findById(conversation.id))?.status).toBe("active");
+    });
+  });
+
+  describe("flags", () => {
+    it("encrypts the rationale and reads it back", async () => {
+      const conversation = await newConversation();
+      const flags = new DrizzleFlagRepository(db, crypto);
+      const rationale = "The volunteer pressed for a decision three times.";
+
+      const raised = await flags.raise(conversation.id, {
+        category: "spiritual_coercion",
+        severity: "high",
+        subject: "volunteer",
+        rationale,
+        action: "flag_for_review",
+        evidenceMessageIds: [],
+        confidence: 0.9,
+      });
+
+      expect((await flags.findById(raised.id))?.verdict.rationale).toBe(rationale);
+
+      // It quotes the transcript, so it is as sensitive as the transcript.
+      const raw = await db.execute(
+        sql.raw("select rationale_ciphertext from moderation_flags"),
+      );
+      expect(JSON.stringify(raw)).not.toContain("pressed for a decision");
+    });
+  });
+
+  describe("admins", () => {
+    it("creates and finds by lowercased email", async () => {
+      const repo = new DrizzleAdminRepository(db);
+      await repo.create({
+        displayName: "Root",
+        email: "Root@Example.ORG",
+        passwordHash: "x",
+      });
+      expect(await repo.findByEmail("root@example.org")).not.toBeNull();
+      expect(await repo.count()).toBe(1);
+    });
+  });
+
+  describe("rate limiter", () => {
+    it("counts within a window and blocks past the limit", async () => {
+      const limiter = new PostgresRateLimiter(db, "test-secret");
+      const rule = { scope: "test", limit: 2, windowSeconds: 60 };
+
+      expect((await limiter.check(rule, "1.2.3.4")).allowed).toBe(true);
+      expect((await limiter.check(rule, "1.2.3.4")).allowed).toBe(true);
+      expect((await limiter.check(rule, "1.2.3.4")).allowed).toBe(false);
+      // A different caller is unaffected.
+      expect((await limiter.check(rule, "5.6.7.8")).allowed).toBe(true);
+    });
+
+    it("counts correctly under concurrency", async () => {
+      const limiter = new PostgresRateLimiter(db, "test-secret");
+      const rule = { scope: "burst", limit: 100, windowSeconds: 60 };
+
+      // The upsert must not lose increments to a race, or the limit is a
+      // suggestion. Ten parallel checks must produce ten distinct counts.
+      const results = await Promise.all(
+        Array.from({ length: 10 }, () => limiter.check(rule, "same-caller")),
+      );
+      const remaining = results.map((r) => r.remaining).sort((a, b) => a - b);
+      expect(new Set(remaining).size).toBe(10);
+    });
+
+    it("stores no recoverable address", async () => {
+      const limiter = new PostgresRateLimiter(db, "test-secret");
+      await limiter.check({ scope: "s", limit: 5, windowSeconds: 60 }, "198.51.100.9");
+
+      const raw = await db.execute(sql.raw("select key from rate_limits"));
+      expect(JSON.stringify(raw)).not.toContain("198.51.100.9");
+    });
+
+    it("prunes windows that no longer matter", async () => {
+      const limiter = new PostgresRateLimiter(db, "test-secret");
+      await limiter.check({ scope: "s", limit: 5, windowSeconds: 60 }, "a");
+
+      expect(await limiter.prune(new Date(Date.now() - 86_400_000))).toBe(0);
+      expect(await limiter.prune(new Date(Date.now() + 86_400_000))).toBe(1);
+    });
+  });
+});

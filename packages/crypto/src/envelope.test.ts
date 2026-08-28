@@ -197,3 +197,57 @@ describe("createKeyManagement", () => {
     );
   });
 });
+
+describe("encrypting for more than one purpose", () => {
+  it("encrypts a flag rationale with the same conversation key", async () => {
+    // Regression. The data key is wrapped under one context and was being
+    // unwrapped under the caller's, so anything other than a message failed —
+    // which meant every moderation flag silently failed to persist.
+    const { crypto } = subject();
+    const key = await crypto.createDataKey(CONVERSATION_A);
+
+    const sealed = await crypto.encrypt("The volunteer pressed for a decision.", key, {
+      conversationId: CONVERSATION_A,
+      purpose: "flag_evidence",
+    });
+
+    await expect(
+      crypto.decrypt(sealed, key, {
+        conversationId: CONVERSATION_A,
+        purpose: "flag_evidence",
+      }),
+    ).resolves.toBe("The volunteer pressed for a decision.");
+  });
+
+  it("works for every purpose the domain defines", async () => {
+    const { crypto } = subject();
+    const key = await crypto.createDataKey(CONVERSATION_A);
+
+    for (const purpose of ["message", "seeker_metadata", "flag_evidence"] as const) {
+      const context = { conversationId: CONVERSATION_A, purpose };
+      const sealed = await crypto.encrypt(`text for ${purpose}`, key, context);
+      await expect(crypto.decrypt(sealed, key, context)).resolves.toBe(
+        `text for ${purpose}`,
+      );
+    }
+  });
+
+  it("still refuses to open one purpose's ciphertext as another", async () => {
+    // The fix must not weaken the payload binding, which is where this
+    // property actually lives.
+    const { crypto } = subject();
+    const key = await crypto.createDataKey(CONVERSATION_A);
+
+    const sealed = await crypto.encrypt("a rationale", key, {
+      conversationId: CONVERSATION_A,
+      purpose: "flag_evidence",
+    });
+
+    await expect(
+      crypto.decrypt(sealed, key, {
+        conversationId: CONVERSATION_A,
+        purpose: "message",
+      }),
+    ).rejects.toThrow(/does not match/);
+  });
+});
