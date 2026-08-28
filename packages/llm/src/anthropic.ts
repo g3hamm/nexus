@@ -11,7 +11,7 @@ import type {
   TokenUsage,
 } from "@nexus/core";
 import { NexusError } from "@nexus/core";
-import { StaticModelRouter, TASK_DEFAULTS } from "./models.js";
+import { modelCapabilities, StaticModelRouter, TASK_DEFAULTS } from "./models.js";
 
 /**
  * Server-side refusal fallback.
@@ -59,10 +59,7 @@ export class AnthropicProvider implements LlmProvider {
             role: m.role,
             content: m.content,
           })),
-          thinking: { type: "adaptive" },
-          output_config: { effort: request.effort ?? defaults.effort },
-          betas: [FALLBACK_BETA],
-          fallbacks: "default",
+          ...reasoning(model, request.effort ?? defaults.effort),
         },
         request.signal ? { signal: request.signal } : {},
       );
@@ -107,13 +104,9 @@ export class AnthropicProvider implements LlmProvider {
             max_tokens: request.maxTokens ?? defaults.maxTokens,
             ...(request.system ? { system: cacheableSystem(request.system) } : {}),
             messages,
-            thinking: { type: "adaptive" },
-            output_config: {
-              effort: request.effort ?? defaults.effort,
+            ...reasoning(model, request.effort ?? defaults.effort, {
               format: betaZodOutputFormat(request.schema),
-            },
-            betas: [FALLBACK_BETA],
-            fallbacks: "default",
+            }),
           },
           request.signal ? { signal: request.signal } : {},
         );
@@ -184,8 +177,9 @@ export class AnthropicProvider implements LlmProvider {
         max_tokens: request.maxTokens ?? defaults.maxTokens,
         ...(request.system ? { system: cacheableSystem(request.system) } : {}),
         messages: request.messages.map((m) => ({ role: m.role, content: m.content })),
-        thinking: { type: "adaptive" },
-        output_config: { effort: request.effort ?? defaults.effort },
+        ...reasoning(model, request.effort ?? defaults.effort, undefined, {
+          fallbacks: false,
+        }),
       },
       request.signal ? { signal: request.signal } : {},
     );
@@ -204,12 +198,52 @@ export class AnthropicProvider implements LlmProvider {
 }
 
 /**
+ * The request parameters a given model will actually accept.
+ *
+ * Adaptive thinking, `output_config.effort` and server-side fallbacks are all
+ * newer than the small models, and Haiku 4.5 rejects every one of them with a
+ * 400 rather than ignoring them. Since translation moved to Haiku, sending an
+ * Opus-shaped request would fail every message in the product.
+ *
+ * `format` is passed through regardless: structured output is supported
+ * everywhere, and it is the thing that stops a translation arriving as prose.
+ */
+function reasoning(
+  model: string,
+  effort: "low" | "medium" | "high",
+  outputConfig?: Record<string, unknown>,
+  options: { fallbacks?: boolean } = {},
+) {
+  const caps = modelCapabilities(model);
+  const config = {
+    ...(caps.effort ? { effort } : {}),
+    ...(outputConfig ?? {}),
+  };
+
+  return {
+    ...(caps.adaptiveThinking ? { thinking: { type: "adaptive" as const } } : {}),
+    ...(Object.keys(config).length > 0 ? { output_config: config } : {}),
+    ...(caps.serverSideFallback && options.fallbacks !== false
+      ? { betas: [FALLBACK_BETA], fallbacks: "default" as const }
+      : {}),
+  };
+}
+
+/**
  * Marks the system prompt as a cache breakpoint.
  *
  * Nexus system prompts are large and near-identical across calls — the
- * doctrine profile alone is a few hundred tokens repeated on every single
- * message. Caching the prefix is the difference between an affordable
- * translation path and an unaffordable one.
+ * doctrine profile alone is a few hundred tokens repeated on every request —
+ * so the judge and the sidebar read their prefix at a tenth of input price.
+ *
+ * Translation no longer benefits, and it is worth knowing why rather than
+ * wondering later: the minimum cacheable prefix is model-dependent, and on
+ * Haiku 4.5 it is 4096 tokens. The translation system prompt is around 2000,
+ * so it silently does not cache — no error, just `cache_creation_input_tokens`
+ * permanently zero. It is marked anyway, because the marker costs nothing and
+ * an operator who routes translation back to a larger model gets caching back
+ * without touching this file. Haiku is still four times cheaper per call with
+ * no cache than Opus was with one.
  */
 function cacheableSystem(system: string): Anthropic.Beta.BetaTextBlockParam[] {
   return [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];

@@ -3,12 +3,71 @@ import type { LlmEffort, LlmModelRouter, LlmTask } from "@nexus/core";
 /**
  * Which model serves which job.
  *
- * Every task defaults to the most capable model. Downgrading for cost is an
- * operator's decision, not a default baked into the code — so each task can
- * be overridden with an environment variable, and the override is visible in
- * one place rather than scattered through feature code.
+ * Judgement runs on the most capable model. Translation does not, and that is
+ * a decision an operator made after seeing the numbers rather than a shortcut:
+ * translating one message is a mechanical transformation, the Christian
+ * glossary already carries the part that needs care, and a reasoning model
+ * reasoning about it cost roughly four times as much and several seconds of
+ * latency in the middle of a live conversation.
+ *
+ * Everything else stays on Opus. Deciding whether someone is at risk, and
+ * deciding what to put in front of a volunteer talking to a grieving stranger,
+ * are not places to save money.
+ *
+ * Every task is still overridable by environment variable, in one place rather
+ * than scattered through feature code.
  */
 export const DEFAULT_MODEL = "claude-opus-5";
+
+/** Fast, cheap, and entirely adequate for a mechanical transformation. */
+export const TRANSLATION_MODEL = "claude-haiku-4-5";
+
+const TASK_MODELS: Record<LlmTask, string> = {
+  translation: TRANSLATION_MODEL,
+  language_detection: TRANSLATION_MODEL,
+  enablement: DEFAULT_MODEL,
+  moderation: DEFAULT_MODEL,
+  knowledge_synthesis: DEFAULT_MODEL,
+  practice: DEFAULT_MODEL,
+  practice_debrief: DEFAULT_MODEL,
+};
+
+/**
+ * What a model will accept in a request.
+ *
+ * Adaptive thinking, `output_config.effort` and server-side fallbacks are all
+ * newer than Haiku 4.5, and it rejects them outright — sending an Opus-shaped
+ * request to a small model is a 400, not a graceful degradation. Matching is a
+ * deliberate allowlist rather than a denylist: an unrecognised model gets the
+ * plain request that every model accepts, so a future override cannot break
+ * translation by being newer than this file.
+ */
+const REASONING_MODELS = [
+  /^claude-fable-/,
+  /^claude-mythos-/,
+  /^claude-opus-5/,
+  /^claude-opus-4-[678]/,
+  /^claude-sonnet-5/,
+  /^claude-sonnet-4-6/,
+];
+
+/** Where the `fallbacks: "default"` form is documented to work. */
+const FALLBACK_MODELS = [/^claude-fable-/, /^claude-mythos-/, /^claude-opus-5/];
+
+export interface ModelCapabilities {
+  readonly adaptiveThinking: boolean;
+  readonly effort: boolean;
+  readonly serverSideFallback: boolean;
+}
+
+export function modelCapabilities(model: string): ModelCapabilities {
+  const reasoning = REASONING_MODELS.some((p) => p.test(model));
+  return {
+    adaptiveThinking: reasoning,
+    effort: reasoning,
+    serverSideFallback: FALLBACK_MODELS.some((p) => p.test(model)),
+  };
+}
 
 const ENV_KEYS: Record<LlmTask, string> = {
   translation: "NEXUS_MODEL_TRANSLATION",
@@ -33,6 +92,8 @@ export const TASK_DEFAULTS: Record<
   LlmTask,
   { readonly effort: LlmEffort; readonly maxTokens: number }
 > = {
+  // Effort is not sent to a model that has none. Kept accurate so that an
+  // operator who routes translation back to Opus gets the cheap setting.
   translation: { effort: "low", maxTokens: 4000 },
   language_detection: { effort: "low", maxTokens: 256 },
   enablement: { effort: "high", maxTokens: 8000 },
@@ -46,19 +107,20 @@ export const TASK_DEFAULTS: Record<
   practice_debrief: { effort: "high", maxTokens: 8000 },
 };
 
+/** An explicit `undefined` in an override object must not erase a default. */
+function stripUndefined(
+  overrides: Partial<Record<LlmTask, string>>,
+): Partial<Record<LlmTask, string>> {
+  return Object.fromEntries(
+    Object.entries(overrides).filter(([, value]) => value !== undefined),
+  ) as Partial<Record<LlmTask, string>>;
+}
+
 export class StaticModelRouter implements LlmModelRouter {
   readonly #models: Record<LlmTask, string>;
 
   constructor(overrides: Partial<Record<LlmTask, string>> = {}) {
-    this.#models = {
-      translation: overrides.translation ?? DEFAULT_MODEL,
-      language_detection: overrides.language_detection ?? DEFAULT_MODEL,
-      enablement: overrides.enablement ?? DEFAULT_MODEL,
-      moderation: overrides.moderation ?? DEFAULT_MODEL,
-      knowledge_synthesis: overrides.knowledge_synthesis ?? DEFAULT_MODEL,
-      practice: overrides.practice ?? DEFAULT_MODEL,
-      practice_debrief: overrides.practice_debrief ?? DEFAULT_MODEL,
-    };
+    this.#models = { ...TASK_MODELS, ...stripUndefined(overrides) };
   }
 
   static fromEnv(

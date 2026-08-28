@@ -55,6 +55,40 @@ Volatile content (the text, the recent turns) goes in the messages, after the
 cache breakpoint. A test asserts the prompt is byte-identical across builds,
 because a stray timestamp in there would silently cost real money.
 
+## Which model runs which task
+
+Every task started on `claude-opus-5`, on the principle that downgrading for
+cost is an operator's decision rather than a default baked into the code. That
+decision has now been made, once, with numbers in front of it.
+
+**Translation and language detection run on Haiku 4.5. Everything else stays on
+Opus 5.** Translating one message is a mechanical transformation, the glossary
+above already carries the part that needs care, and a reasoning model reasoning
+about it cost roughly four times as much and several seconds of latency in the
+middle of a live conversation. Deciding whether someone is at risk, and deciding
+what to put in front of a volunteer talking to a grieving stranger, are not
+places to save money.
+
+Two consequences worth writing down, because both are invisible until they bite:
+
+**Small models reject the reasoning parameters.** Adaptive thinking,
+`output_config.effort` and server-side fallbacks are all newer than Haiku 4.5,
+and it answers a request carrying them with a 400 rather than ignoring them. So
+`modelCapabilities()` gates each one, as an allowlist — an unrecognised model
+gets the plain request every model accepts, so an override that is newer than
+that file cannot break translation. Getting this wrong would not have degraded
+translation quality; it would have failed every message in the product.
+
+**The translation prompt no longer caches.** The minimum cacheable prefix is
+model-dependent and it is *not* monotonic across generations: 512 tokens on
+Opus 5, but 4096 on Haiku 4.5. The translation system prompt is around 2000, so
+it silently does not cache — no error, just `cache_creation_input_tokens`
+permanently zero. The section above is still right about why the glossary is
+constant; it just buys nothing at this model size. The move is still worth it
+by a wide margin: Haiku with no cache is about a quarter the cost per call of
+Opus with one. The breakpoint stays marked, because it costs nothing and an
+operator routing translation back to a larger model gets caching back for free.
+
 ## Consequences
 
 - Adding a provider is one adapter plus one case in `createLlmProvider`. No
