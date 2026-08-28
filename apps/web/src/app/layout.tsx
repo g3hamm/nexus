@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nexus",
+  title: "olivechat",
   description: "Talk with someone about Jesus, in your own language.",
   // A seeker may be somewhere this page is best not advertised.
   robots: { index: false, follow: false },

@@ -1,5 +1,24 @@
 # Images and static files
 
+## What is in here now
+
+| File | Where it appears |
+|---|---|
+| `olivechat-mark.webp` | Landing page, sign-in pages, application form |
+| `olivechat-wordmark.webp` | Chat header (seeker's side), volunteer dashboard |
+| `olive-upperleft.webp`, `olive-bottomright.webp` | Corner frame, desktop only |
+| `nexus-logo.webp` | Attribution footer |
+
+The originals were 5.7 MB of PNG; these are 300 KB of WebP at the sizes they
+are actually displayed. If you replace one, resize it to roughly twice its
+display size and export WebP — do not commit a 2000 x 2000 PNG for a box that
+is 200 px wide.
+
+The Nexus mark was supplied pale grey on transparent, drawn for a dark
+background. It is inverted here so it reads on the warm canvas. If Nexus ever
+supplies a dark version, use that instead.
+
+
 Anything in this folder is served from the site root. `public/logo.svg` is
 reachable at `/logo.svg`, and referenced in a component as:
 

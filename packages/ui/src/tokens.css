@@ -149,13 +149,19 @@
 }
 
 html {
-  background-color: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-text-size-adjust: 100%;
 }
 
 body {
+  /* The canvas colour lives here and *only* here, deliberately.
+     A background on the root element paints as the canvas itself, above which
+     nothing can go — so anything decorative sitting behind the page (see
+     OliveFrame) is invisible. Declared on `body` alone, it propagates to the
+     canvas and `body` paints no background of its own, which leaves a layer
+     underneath for a negative z-index to occupy. Moving this line up to
+     `html` looks harmless and silently deletes the olive branches. */
   background-color: var(--color-canvas);
   color: var(--color-ink);
   font-size: var(--text-base);

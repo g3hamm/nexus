@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { INTERNATIONAL_DIRECTORY, type CoverageState } from "@nexus/core";
 import { Spinner } from "@nexus/ui";
+import { OliveFrame, Wordmark } from "./Brand";
 import { Composer } from "./Composer";
 import { CrisisCard } from "./CrisisCard";
 import { MessageList } from "./MessageList";
@@ -49,10 +50,15 @@ export function ChatWindow({
 
   return (
     <div className="mx-auto flex h-dvh w-full max-w-3xl flex-col px-4 py-4 sm:px-6">
+      <OliveFrame />
       <header className="border-line flex items-center justify-between border-b pb-4">
-        <span className="text-ink font-serif text-lg" dir="auto">
-          {viewerRole === "volunteer" ? (peerName ?? "Someone") : "Nexus"}
-        </span>
+        {viewerRole === "volunteer" ? (
+          <span className="text-ink font-serif text-lg" dir="auto">
+            {peerName ?? "Someone"}
+          </span>
+        ) : (
+          <Wordmark className="h-5" />
+        )}
         {viewerRole === "seeker" ? (
           <WaitingIndicator matched={matched} ended={ended} coverage={coverage} />
         ) : null}

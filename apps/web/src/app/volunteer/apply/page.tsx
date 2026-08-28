@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrandFooter, BrandMark } from "@/components/Brand";
 import { VolunteerApplyForm } from "@/components/VolunteerApplyForm";
 
 export const metadata: Metadata = {
-  title: "Volunteer with Nexus",
+  title: "Volunteer with olivechat",
   robots: { index: false, follow: false },
 };
 
 export default function VolunteerApplyPage() {
   return (
     <main className="mx-auto w-full max-w-lg px-6 py-16">
-      <h1 className="text-ink font-serif text-2xl">Volunteer with Nexus</h1>
+      <BrandMark className="mb-8 w-36" />
+      <h1 className="text-ink font-serif text-2xl">Volunteer with olivechat</h1>
       <p className="text-ink-muted mt-3">
         People arrive here from anywhere in the world, often at a difficult moment, and
         write in whatever language they think in. Everything is translated both ways, so
@@ -32,6 +34,7 @@ export default function VolunteerApplyPage() {
         </Link>
         .
       </p>
+      <BrandFooter />
     </main>
   );
 }

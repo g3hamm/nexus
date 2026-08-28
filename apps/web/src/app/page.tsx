@@ -1,4 +1,5 @@
 import type { CoverageState } from "@nexus/core";
+import { BrandFooter, BrandMark, OliveFrame } from "@/components/Brand";
 import { SeekerEntry } from "@/components/SeekerEntry";
 import { container } from "@/server/container";
 
@@ -32,9 +33,18 @@ export default async function HomePage() {
   const coverage = await coverageState();
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center px-6 py-16">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center px-6 py-12">
+      <OliveFrame />
+
       <div className="w-full">
-        <h1 className="text-ink text-balance text-center font-serif text-3xl leading-snug sm:text-4xl">
+        {/* The mark carries its own branch, so the corner frame and this would
+            be two olive treatments arguing on one screen. The frame is set
+            behind the whole page and stays out at this width. */}
+        <div className="flex justify-center">
+          <BrandMark className="w-44 sm:w-52" />
+        </div>
+
+        <h1 className="text-ink mt-8 text-balance text-center font-serif text-3xl leading-snug sm:text-4xl">
           Is something on your mind?
         </h1>
         <p className="text-ink-muted mt-4 text-center text-lg text-balance">
@@ -48,6 +58,8 @@ export default async function HomePage() {
         <p className="text-ink-subtle mt-8 text-center text-sm">
           No account. No name. Nothing to sign up for.
         </p>
+
+        <BrandFooter />
       </div>
     </main>
   );
