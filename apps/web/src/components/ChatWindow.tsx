@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Spinner } from "@nexus/ui";
 import { Composer } from "./Composer";
+import { CrisisCard } from "./CrisisCard";
 import { MessageList } from "./MessageList";
 import { useConversation } from "./useConversation";
 
@@ -20,7 +21,8 @@ export function ChatWindow({
   readonly conversationId: string;
   readonly viewerRole: "seeker" | "volunteer";
 }) {
-  const { messages, matched, status, loading, send } = useConversation(conversationId);
+  const { messages, matched, status, loading, crisis, send } =
+    useConversation(conversationId);
   const sentPending = useRef(false);
 
   // Deliver the message typed on the landing page, now that a conversation
@@ -61,6 +63,9 @@ export function ChatWindow({
       </div>
 
       <div className="border-line border-t pt-4">
+        {crisis.active && crisis.resources ? (
+          <CrisisCard resources={crisis.resources} conversationId={conversationId} />
+        ) : null}
         {ended ? (
           <p className="text-ink-muted py-2 text-center text-sm">
             This conversation has ended.

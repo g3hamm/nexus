@@ -15,6 +15,7 @@ export * from "./domain/participants.js";
 export * from "./domain/conversation.js";
 export * from "./domain/message.js";
 export * from "./domain/moderation.js";
+export * from "./domain/crisis.js";
 export * from "./domain/scripture.js";
 export * from "./domain/doctrine.js";
 
@@ -26,6 +27,7 @@ export * from "./ports/bible.js";
 export * from "./ports/knowledge.js";
 export * from "./ports/enablement.js";
 export * from "./ports/moderation.js";
+export * from "./ports/alerts.js";
 export * from "./ports/crypto.js";
 export * from "./ports/repositories.js";
 export * from "./ports/matching.js";

@@ -165,6 +165,20 @@ export class DrizzleConversationRepository implements ConversationRepository {
       .where(and(eq(conversations.id, id), eq(conversations.status, "under_review")));
   }
 
+  /**
+   * Records that someone in this conversation may be at risk.
+   *
+   * `is null` in the predicate makes this set-once: the first escalation wins
+   * and later ones are no-ops, so the timestamp keeps meaning "when we first
+   * knew" rather than drifting forward with every subsequent review.
+   */
+  async markCrisis(id: ConversationId, at: Date): Promise<void> {
+    await this.#db
+      .update(conversations)
+      .set({ crisisRaisedAt: at })
+      .where(and(eq(conversations.id, id), isNull(conversations.crisisRaisedAt)));
+  }
+
   async markModerated(id: ConversationId, at: Date): Promise<void> {
     await this.#db
       .update(conversations)

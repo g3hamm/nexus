@@ -4,22 +4,27 @@ import { InMemoryTransport } from "@nexus/realtime";
 import type { Container } from "./container";
 import { ModerationService } from "./moderation-service";
 import {
+  FailingAlertChannel,
   FakeAuditLog,
   FakeConversationRepository,
   FakeFlagRepository,
   FakeMessageRepository,
+  RecordingAlertChannel,
   StubJudge,
   StubScheduler,
   fakeVolunteer,
 } from "@/test/fakes";
 
-function harness(options: { due?: boolean } = {}) {
+function harness(
+  options: { due?: boolean; alertsDeliver?: boolean; alertsFail?: boolean } = {},
+) {
   const conversations = new FakeConversationRepository();
   const messages = new FakeMessageRepository();
   const flags = new FakeFlagRepository();
   const audit = new FakeAuditLog();
   const realtime = new InMemoryTransport();
   const judge = new StubJudge();
+  const alerts = new RecordingAlertChannel();
 
   const container = {
     conversations,
@@ -29,6 +34,9 @@ function harness(options: { due?: boolean } = {}) {
     realtime,
     judge,
     moderationScheduler: new StubScheduler(options.due ?? true),
+    alerts: options.alertsFail ? new FailingAlertChannel() : alerts,
+    publicUrl: "https://nexus.example",
+    alertsDeliver: options.alertsDeliver ?? true,
   } as unknown as Container;
 
   return {
@@ -38,6 +46,7 @@ function harness(options: { due?: boolean } = {}) {
     audit,
     realtime,
     judge,
+    alerts,
     service: new ModerationService(container),
   };
 }
@@ -181,6 +190,115 @@ describe("ModerationService", () => {
     expect(notice).toBeDefined();
     if (notice?.event.type !== "moderation_notice") throw new Error("wrong event");
     expect(notice.event.text).toMatch(/at risk/i);
+  });
+
+  it("marks the conversation so the seeker gets crisis resources", async () => {
+    const conversation = await activeConversation(h);
+    h.judge.willReturn(verdict({ action: "escalate_crisis", severity: "critical" }));
+
+    await h.service.reviewIfDue(conversation.id);
+
+    expect((await h.conversations.findById(conversation.id))?.crisisRaisedAt).toBeInstanceOf(
+      Date,
+    );
+  });
+
+  // Set-once. The timestamp means "when we first knew", and a second
+  // escalation must not push it forward.
+  it("keeps the first crisis timestamp when it escalates again", async () => {
+    const conversation = await activeConversation(h);
+    h.judge.willReturn(verdict({ action: "escalate_crisis", severity: "critical" }));
+
+    await h.service.reviewIfDue(conversation.id);
+    const first = (await h.conversations.findById(conversation.id))?.crisisRaisedAt;
+
+    await h.conversations.restoreRetention(conversation.id, new Date(Date.now() + 1000));
+    await h.service.reviewIfDue(conversation.id);
+
+    expect((await h.conversations.findById(conversation.id))?.crisisRaisedAt).toEqual(first);
+  });
+
+  it("pages a human, with a link and without a word of the conversation", async () => {
+    const conversation = await activeConversation(h);
+    h.judge.willReturn(
+      verdict({
+        action: "escalate_crisis",
+        severity: "critical",
+        rationale: "The seeker wrote that they have pills in front of them.",
+      }),
+    );
+
+    await h.service.reviewIfDue(conversation.id);
+
+    expect(h.alerts.sent).toHaveLength(1);
+    const alert = h.alerts.sent[0]!;
+    expect(alert.severity).toBe("urgent");
+    expect(alert.conversationId).toBe(conversation.id);
+    expect(alert.url).toBe(`https://nexus.example/admin/conversations/${conversation.id}`);
+
+    // The rationale is in the flag, where it is encrypted and behind a login.
+    // It must not reach a Teams channel.
+    const serialised = JSON.stringify(alert);
+    expect(serialised).not.toContain("pills");
+    expect(serialised).not.toContain("سلام");
+  });
+
+  it.each([
+    ["financial_solicitation", "flag_for_review"],
+    ["harassment_or_hate", "terminate"],
+  ] as const)("does not page anyone for %s", async (category, action) => {
+    const conversation = await activeConversation(h);
+    h.judge.willReturn(verdict({ category, action, severity: "high" }));
+
+    await h.service.reviewIfDue(conversation.id);
+
+    expect(h.alerts.sent).toHaveLength(0);
+  });
+
+  // The flag is already durable by the time the alert goes out. A webhook
+  // outage must not turn a recorded escalation into a swallowed one.
+  it("still records the crisis when the alert channel throws", async () => {
+    const broken = harness({ alertsFail: true });
+    const conversation = await activeConversation(broken);
+    broken.judge.willReturn(verdict({ action: "escalate_crisis", severity: "critical" }));
+
+    await broken.service.reviewIfDue(conversation.id);
+
+    expect(
+      (await broken.conversations.findById(conversation.id))?.crisisRaisedAt,
+    ).toBeInstanceOf(Date);
+    expect(broken.flags.raised).toHaveLength(1);
+
+    // And the volunteer — the person actually in the room — is still told.
+    // Losing the pager must not also lose the notice to the one human present.
+    expect(
+      broken.realtime.published.some((p) => p.event.type === "moderation_notice"),
+    ).toBe(true);
+  });
+
+  // The software must not tell a volunteer that help is coming when no
+  // webhook exists to summon it.
+  it("tells the volunteer an administrator was alerted only when one was", async () => {
+    const wired = harness({ alertsDeliver: true });
+    const alone = harness({ alertsDeliver: false });
+
+    for (const h of [wired, alone]) {
+      const conversation = await activeConversation(h);
+      h.judge.willReturn(verdict({ action: "escalate_crisis", severity: "critical" }));
+      await h.service.reviewIfDue(conversation.id);
+    }
+
+    const textOf = (h: ReturnType<typeof harness>) => {
+      const notice = h.realtime.published.find(
+        (p) => p.event.type === "moderation_notice",
+      );
+      if (notice?.event.type !== "moderation_notice") throw new Error("no notice");
+      return notice.event.text;
+    };
+
+    expect(textOf(wired)).toMatch(/administrator has been alerted/i);
+    expect(textOf(alone)).not.toMatch(/administrator has been alerted/i);
+    expect(textOf(alone)).toMatch(/you are the person here/i);
   });
 
   it("never reviews a conversation that has already ended", async () => {

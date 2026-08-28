@@ -26,6 +26,7 @@ export function toConversation(row: ConversationRow): Conversation {
     startedAt: row.startedAt,
     matchedAt: row.matchedAt,
     lastModeratedAt: row.lastModeratedAt,
+    crisisRaisedAt: row.crisisRaisedAt,
     endedAt: row.endedAt,
     retainUntil: row.retainUntil,
   };

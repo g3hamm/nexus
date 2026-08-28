@@ -186,6 +186,44 @@ describeIfDb("repositories against real Postgres", () => {
       expect([first, second].filter(Boolean)).toHaveLength(1);
     });
 
+    // Set-once is enforced by `is null` in the UPDATE's predicate, so it is
+    // only real against a real database. The timestamp has to keep meaning
+    // "when we first knew" — a crisis card that quietly resets its clock on
+    // every later review is a lie about when someone first said something.
+    it("keeps the first crisis timestamp across repeated escalations", async () => {
+      const conversation = await newConversation();
+      const first = new Date("2026-01-01T00:00:00Z");
+
+      await conversations().markCrisis(conversation.id, first);
+      await conversations().markCrisis(conversation.id, new Date("2026-06-01T00:00:00Z"));
+
+      const stored = await conversations().findById(conversation.id);
+      expect(stored?.crisisRaisedAt?.toISOString()).toBe(first.toISOString());
+    });
+
+    it("leaves crisis unset on a conversation that never escalated", async () => {
+      const conversation = await newConversation();
+      expect((await conversations().findById(conversation.id))?.crisisRaisedAt).toBeNull();
+    });
+
+    // Two escalations landing at once must not race into two different
+    // timestamps, which is the same conditional-update story as claiming.
+    it("survives two escalations arriving together", async () => {
+      const conversation = await newConversation();
+      const a = new Date("2026-02-01T00:00:00Z");
+      const b = new Date("2026-03-01T00:00:00Z");
+
+      await Promise.all([
+        conversations().markCrisis(conversation.id, a),
+        conversations().markCrisis(conversation.id, b),
+      ]);
+
+      const stored = await conversations().findById(conversation.id);
+      expect([a.toISOString(), b.toISOString()]).toContain(
+        stored?.crisisRaisedAt?.toISOString(),
+      );
+    });
+
     it("computes whether translation is needed from the two languages", async () => {
       const shared = await conversations().create({
         seekerId: asSeekerId("skr_en"),

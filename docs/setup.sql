@@ -354,5 +354,27 @@ WHERE NOT EXISTS (
   SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = 'd3207767450802b6a0c7a81e205d29923697c331d37630dbd134bb905d75e435'
 );
 
+-- ── Migration 0005_fancy_wrecker ───────────────────────────────────────
+
+DO $$ BEGIN
+  ALTER TABLE "conversations" ADD COLUMN "crisis_raised_at" timestamp with time zone;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+-- Record this migration as applied, so a later `pnpm db:migrate` skips
+-- it rather than failing on tables that already exist.
+CREATE SCHEMA IF NOT EXISTS drizzle;
+CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+  id SERIAL PRIMARY KEY,
+  hash text NOT NULL,
+  created_at bigint
+);
+
+INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+SELECT '5153d47c6cc413d6bbbc480be13ca2ccbd80c48fed3edf57b4cf1e130e775054', 1787890092195
+WHERE NOT EXISTS (
+  SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = '5153d47c6cc413d6bbbc480be13ca2ccbd80c48fed3edf57b4cf1e130e775054'
+);
+
 -- ── Done ───────────────────────────────────────────────────────────────
 -- You should see eight tables under 'public' in the Neon Tables view.

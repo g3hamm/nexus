@@ -1,7 +1,9 @@
 import type {
+  AlertChannel,
   AppendMessageInput,
   AuditEntry,
   AuditLog,
+  OperationalAlert,
   ConversationWindow,
   AdminId,
   FlagId,
@@ -59,6 +61,7 @@ export class FakeConversationRepository implements ConversationRepository {
       startedAt: new Date(),
       matchedAt: null,
       lastModeratedAt: null,
+      crisisRaisedAt: null,
       endedAt: null,
       retainUntil: input.retainUntil,
     };
@@ -135,6 +138,13 @@ export class FakeConversationRepository implements ConversationRepository {
   async markModerated(id: ConversationId, at: Date): Promise<void> {
     const existing = this.rows.get(id);
     if (existing) this.rows.set(id, { ...existing, lastModeratedAt: at });
+  }
+
+  /** Set-once, matching the real repository's `is null` guard. */
+  async markCrisis(id: ConversationId, at: Date): Promise<void> {
+    const existing = this.rows.get(id);
+    if (!existing || existing.crisisRaisedAt !== null) return;
+    this.rows.set(id, { ...existing, crisisRaisedAt: at });
   }
 
   async findPurgeable(now: Date, limit: number): Promise<readonly ConversationId[]> {
@@ -447,4 +457,25 @@ export function fakeVolunteer(overrides: Partial<Volunteer> = {}): Volunteer {
     createdAt: new Date(),
     ...overrides,
   };
+}
+
+/**
+ * Captures alerts instead of sending them.
+ *
+ * Asserting on what is *not* here matters as much as what is: an alert must
+ * never carry a line of what anyone said.
+ */
+export class RecordingAlertChannel implements AlertChannel {
+  readonly sent: OperationalAlert[] = [];
+
+  async send(alert: OperationalAlert): Promise<void> {
+    this.sent.push(alert);
+  }
+}
+
+/** An alert channel that is having a bad day, like a real one eventually will. */
+export class FailingAlertChannel implements AlertChannel {
+  async send(): Promise<void> {
+    throw new Error("webhook exploded");
+  }
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "conversations" ADD COLUMN "crisis_raised_at" timestamp with time zone;

@@ -3,12 +3,14 @@ import { z } from "zod";
 import {
   NexusError,
   asConversationId,
+  crisisResourcesFor,
   languageCodeSchema,
   RATE_LIMITS,
 } from "@nexus/core";
 import { container } from "@/server/container";
 import { ConversationService } from "@/server/conversation-service";
 import { ModerationService } from "@/server/moderation-service";
+import { countryFor } from "@/server/geo";
 import { errorResponse, ok } from "@/server/http";
 import { enforceRateLimit } from "@/server/rate-limit";
 import { seekerSession, staffSession } from "@/server/session";
@@ -81,10 +83,37 @@ export async function GET(
         status: participant.conversation.status,
         matched: participant.conversation.volunteerId !== null,
       },
+      crisis: crisisFor(participant, request),
     });
   } catch (error) {
     return errorResponse(error);
   }
+}
+
+/**
+ * The crisis card's contents, or the absence of one.
+ *
+ * Delivered on the transcript response rather than pushed over the realtime
+ * channel, for the same reason messages are: a data packet is spoofable, and
+ * the polling fallback has to carry everything the socket does. A seeker on a
+ * bad mobile connection is not a seeker who should miss this.
+ *
+ * The seeker gets resources for where they appear to be. The volunteer gets
+ * the international directory and nothing more — we could only give them the
+ * seeker's local numbers by storing the seeker's country, and a volunteer can
+ * simply ask where someone is, which is a better conversation anyway.
+ */
+function crisisFor(
+  participant: Awaited<ReturnType<typeof participantFor>>,
+  request: NextRequest,
+) {
+  if (participant.conversation.crisisRaisedAt === null) return { active: false };
+
+  const country = participant.role === "seeker" ? countryFor(request) : null;
+  return {
+    active: true,
+    resources: crisisResourcesFor(country, participant.language),
+  };
 }
 
 /** Send a message. */

@@ -5,6 +5,26 @@ import { requiresHumanReview } from "@nexus/core";
 import type { Container } from "./container";
 
 /**
+ * What the volunteer is told when someone may be at risk.
+ *
+ * The wording depends on whether alerts actually go anywhere, because the
+ * alternative is the software lying to a volunteer in the worst moment of
+ * their week. "An administrator has been alerted" has to be true, and it is
+ * only true when a webhook is configured. Where none is, the volunteer is
+ * told plainly that they are the person here — which is the fact, and which
+ * changes what a reasonable person does next.
+ */
+function crisisNotice(alertsDeliver: boolean): string {
+  const shared =
+    "Someone here may be at risk. Stay with them and take it seriously. " +
+    "They can now see emergency numbers for where they are, on their own screen.";
+
+  return alertsDeliver
+    ? `${shared} An administrator has been alerted.`
+    : `${shared} This is flagged for review, but nobody has been paged — right now you are the person here.`;
+}
+
+/**
  * Runs the judge and acts on what it says.
  *
  * The judge decides *what* is happening; this decides what the platform does
@@ -101,15 +121,17 @@ export class ModerationService {
     if (!conversation) return;
 
     if (verdict.action === "escalate_crisis") {
+      // Durable first, and set-once, so the seeker's crisis card survives a
+      // reload and a dropped connection. Everything after this is delivery,
+      // and delivery is allowed to fail.
+      await this.#c.conversations.markCrisis(conversationId, new Date());
+      await this.#alert(conversationId);
+
       // Reaches the volunteer, who is the person actually able to help right
       // now. The seeker is not told they have been flagged — they came here
-      // for a conversation, not to be handled.
-      await this.#notify(
-        conversation.roomId,
-        "critical",
-        "Someone may be at risk. Stay with them, take it seriously, and " +
-          "encourage local emergency help. An administrator has been alerted.",
-      );
+      // for a conversation, not to be handled — but they are shown the
+      // numbers, which is care rather than handling.
+      await this.#notify(conversation.roomId, "critical", crisisNotice(this.#c.alertsDeliver));
       return;
     }
 
@@ -132,6 +154,40 @@ export class ModerationService {
 
     if (verdict.action === "coach_volunteer") {
       await this.#notify(conversation.roomId, "low", verdict.rationale);
+    }
+  }
+
+  /**
+   * Rings the doorbell outside the app.
+   *
+   * Reserved for risk to life, and nothing else. Every other category the
+   * judge can raise — coercion, solicitation, an abusive volunteer — is
+   * serious and belongs in the flag queue, where an admin reviews it with the
+   * transcript in front of them. Paging people for those would train everyone
+   * to ignore the pager, and the one time it means someone might die is the
+   * one time that must not happen.
+   *
+   * The alert carries an id and a link, never a word of what was said.
+   *
+   * The channel's contract says it will not throw, and the shipped adapters
+   * hold to it — but this one call reaches a third party over the network,
+   * and a `catch` here is the difference between a webhook outage costing us
+   * the alert and it also costing the volunteer the notice that follows.
+   * Everything after this point still has to run.
+   */
+  async #alert(conversationId: ConversationId): Promise<void> {
+    const base = this.#c.publicUrl;
+    try {
+      await this.#c.alerts.send({
+        severity: "urgent",
+        title: "Someone on Nexus may be at risk of harm",
+        detail:
+          "A live conversation was escalated. Open it, decide whether anyone needs to step in, and check the volunteer is supported.",
+        conversationId,
+        ...(base ? { url: `${base}/admin/conversations/${conversationId}` } : {}),
+      });
+    } catch (error) {
+      console.error("[nexus] crisis alert failed to send", { conversationId, error });
     }
   }
 

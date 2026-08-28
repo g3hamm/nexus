@@ -13,6 +13,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@nexus/alerts": "workspace:*",
     "@nexus/auth": "workspace:*",
     "@nexus/bible": "workspace:*",
     "@nexus/core": "workspace:*",

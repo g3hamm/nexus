@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   AdminRepository,
+  AlertChannel,
   AuditLog,
   BibleProvider,
   ConversationCrypto,
@@ -33,6 +34,7 @@ import {
   type NexusDatabase,
 } from "@nexus/db";
 import { createLlmProvider } from "@nexus/llm";
+import { createAlertChannel } from "@nexus/alerts";
 import { createRealtimeTransport } from "@nexus/realtime";
 import { LlmTranslator } from "@nexus/translation";
 import { LlmEnablementEngine } from "@nexus/enablement";
@@ -73,6 +75,12 @@ export interface Container {
   readonly rateLimiter: RateLimiter;
   readonly judge: Judge;
   readonly moderationScheduler: ModerationScheduler;
+  /** Reaches a human outside the app. Only ever used for risk to life. */
+  readonly alerts: AlertChannel;
+  /** This deployment's public origin, or null when it does not know it. */
+  readonly publicUrl: string | null;
+  /** Whether alerts actually leave the building. Governs what we tell people. */
+  readonly alertsDeliver: boolean;
   /** Wave two. Constructed here so the wiring point is already obvious. */
   readonly enablement: EnablementEngine;
   readonly knowledge: KnowledgeBase;
@@ -146,12 +154,30 @@ export function container(): Container {
       : new InMemoryRateLimiter(),
     judge: new LlmJudge(llm),
     moderationScheduler: new CadenceModerationScheduler(),
+    alerts: createAlertChannel({ webhookUrl: config.NEXUS_ALERT_WEBHOOK_URL }),
+    publicUrl: publicUrl(config.NEXUS_PUBLIC_URL),
+    alertsDeliver: Boolean(config.NEXUS_ALERT_WEBHOOK_URL?.trim()),
     enablement: new LlmEnablementEngine(llm, knowledge),
     knowledge,
     bible,
   };
 
   return instance;
+}
+
+/**
+ * The origin to put in an alert link, or null.
+ *
+ * Falls back to Vercel's production domain, never to the per-deployment one:
+ * a preview URL in an alert sends whoever clicks it to a build that may not
+ * exist by the time they do.
+ */
+function publicUrl(configured: string | undefined): string | null {
+  const explicit = configured?.trim();
+  if (explicit) return explicit.replace(/\/+$/, "");
+
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  return vercel ? `https://${vercel}` : null;
 }
 
 /** Tests replace the container wholesale rather than reaching into it. */

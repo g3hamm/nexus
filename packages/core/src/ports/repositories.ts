@@ -54,6 +54,17 @@ export interface ConversationRepository {
   markUnderReview(id: ConversationId): Promise<void>;
   /** Stamps when the judge last looked, so the cadence can be computed. */
   markModerated(id: ConversationId, at: Date): Promise<void>;
+  /**
+   * Records that someone in this conversation may be at risk of harm.
+   *
+   * Set-once: implementations must ignore a second call, so the timestamp
+   * keeps meaning "when we first knew" instead of creeping forward with
+   * every later review. What it drives is the crisis card — which is why it
+   * lives on the conversation rather than only on the flag. A seeker whose
+   * phone drops the connection and who comes back five minutes later should
+   * still find the numbers there.
+   */
+  markCrisis(id: ConversationId, at: Date): Promise<void>;
 
   /**
    * Puts a conversation back on a retention clock after review, and returns

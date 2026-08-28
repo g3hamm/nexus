@@ -40,6 +40,27 @@ const envSchema = z.object({
   API_BIBLE_KEY: z.string().optional(),
 
   /**
+   * Incoming webhook — a Teams channel, a Slack channel — for the one class
+   * of event that cannot wait for someone to open the flag queue: a seeker
+   * who may be about to hurt themselves.
+   *
+   * Optional, and unset is a real configuration rather than a mistake: a
+   * small deployment where an admin watches the queue is legitimate, and
+   * alerts fall back to the platform logs. What is not legitimate is the
+   * code claiming an administrator was alerted when nothing was sent, which
+   * is why the volunteer's wording depends on whether this is set.
+   */
+  NEXUS_ALERT_WEBHOOK_URL: z.string().optional(),
+
+  /**
+   * This deployment's public origin, used to put a clickable link in alerts.
+   *
+   * Vercel supplies its own, but only for production deploys, and a preview
+   * URL in an alert is worse than no link at all.
+   */
+  NEXUS_PUBLIC_URL: z.string().optional(),
+
+  /**
    * Unlocks /setup, which creates the first volunteer without a terminal.
    * Unset it once you have an account — the route is inert without it.
    */

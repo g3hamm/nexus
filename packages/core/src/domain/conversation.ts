@@ -49,6 +49,16 @@ export interface Conversation {
   readonly matchedAt: Date | null;
   /** When the judge last reviewed this conversation. Null means never. */
   readonly lastModeratedAt: Date | null;
+  /**
+   * When the judge first judged someone here to be at risk of harm.
+   *
+   * Set once and never cleared. It is what makes the crisis card survive a
+   * page reload, a dropped socket, and a device change — a seeker who closes
+   * the tab and comes back should not have to say it twice to get the numbers
+   * again. It is a timestamp, not a diagnosis, and nothing in the product
+   * treats the person differently because of it.
+   */
+  readonly crisisRaisedAt: Date | null;
   readonly endedAt: Date | null;
   /**
    * When the transcript becomes eligible for purge. Null means "keep",

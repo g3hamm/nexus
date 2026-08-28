@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CrisisResources } from "@nexus/core";
 
 export interface TranscriptEntry {
   readonly id: string;
@@ -14,9 +15,23 @@ export interface TranscriptEntry {
   readonly sentAt: string;
 }
 
+/**
+ * Whether to show crisis resources, and which ones.
+ *
+ * Arrives on the transcript rather than over the realtime channel: a data
+ * packet is spoofable and the polling fallback has to carry everything the
+ * socket does. Someone on a failing mobile connection is not someone who
+ * should miss this.
+ */
+export interface CrisisState {
+  readonly active: boolean;
+  readonly resources?: CrisisResources;
+}
+
 interface TranscriptResponse {
   readonly messages: TranscriptEntry[];
   readonly conversation: { id: string; status: string; matched: boolean };
+  readonly crisis?: CrisisState;
 }
 
 /**
@@ -32,6 +47,7 @@ export function useConversation(conversationId: string) {
   const [messages, setMessages] = useState<TranscriptEntry[]>([]);
   const [matched, setMatched] = useState(false);
   const [status, setStatus] = useState<string>("waiting");
+  const [crisis, setCrisis] = useState<CrisisState>({ active: false });
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +68,10 @@ export function useConversation(conversationId: string) {
       const data = (await response.json()) as TranscriptResponse;
       setMatched(data.conversation.matched);
       setStatus(data.conversation.status);
+      // Latches on. An incremental poll that arrives without it — an older
+      // deploy, a truncated response — must not take the numbers away from
+      // someone who is currently looking at them.
+      if (data.crisis?.active) setCrisis(data.crisis);
 
       if (data.messages.length > 0) {
         latestAt.current = data.messages[data.messages.length - 1]?.sentAt ?? null;
@@ -140,5 +160,5 @@ export function useConversation(conversationId: string) {
     [conversationId, refresh],
   );
 
-  return { messages, matched, status, connected, loading, send, refresh };
+  return { messages, matched, status, connected, loading, crisis, send, refresh };
 }
