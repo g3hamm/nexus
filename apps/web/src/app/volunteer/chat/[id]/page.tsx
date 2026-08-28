@@ -37,7 +37,11 @@ export default async function VolunteerChatPage({
   return (
     <div className="mx-auto flex h-dvh w-full max-w-7xl">
       <div className="min-w-0 flex-1">
-        <ChatWindow conversationId={id} viewerRole="volunteer" />
+        <ChatWindow
+          conversationId={id}
+          viewerRole="volunteer"
+          peerName={scenario ? null : conversation.seekerName}
+        />
       </div>
       <aside className="border-line hidden w-80 shrink-0 border-l lg:block xl:w-96">
         {scenario ? (

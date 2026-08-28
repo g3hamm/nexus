@@ -170,6 +170,72 @@ describeIfDb("repositories against real Postgres", () => {
     });
   });
 
+  describe("the seeker's chosen name", () => {
+    it("round-trips through encryption", async () => {
+      const created = await conversations().create({
+        seekerId: asSeekerId("skr_named"),
+        seekerLanguage: "fa",
+        modality: "text",
+        retainUntil: null,
+        seekerName: "Sara",
+      });
+
+      expect(created.seekerName).toBe("Sara");
+      expect((await conversations().findById(created.id))?.seekerName).toBe("Sara");
+    });
+
+    // The whole reason it is encrypted. A name is the single most identifying
+    // thing a seeker gives us, and one sitting in plaintext beside an
+    // encrypted transcript would undo the point of encrypting the transcript.
+    it("is never stored in the clear", async () => {
+      const created = await conversations().create({
+        seekerId: asSeekerId("skr_named"),
+        seekerLanguage: "fa",
+        modality: "text",
+        retainUntil: null,
+        seekerName: "Zahra-Unique-Handle",
+      });
+
+      const raw = await db.execute(
+        sql`select * from conversations where id = ${created.id}`,
+      );
+      expect(JSON.stringify(raw.rows ?? raw)).not.toContain("Zahra-Unique-Handle");
+    });
+
+    it("is null when nobody said", async () => {
+      const created = await newConversation();
+      expect(created.seekerName).toBeNull();
+      expect((await conversations().findById(created.id))?.seekerName).toBeNull();
+    });
+
+    it("reaches the volunteer queue", async () => {
+      await conversations().create({
+        seekerId: asSeekerId("skr_named"),
+        seekerLanguage: "es",
+        modality: "text",
+        retainUntil: null,
+        seekerName: "Marisol",
+      });
+
+      const waiting = await conversations().findWaiting(10);
+      expect(waiting.map((c) => c.seekerName)).toContain("Marisol");
+    });
+
+    it("survives being claimed", async () => {
+      const created = await conversations().create({
+        seekerId: asSeekerId("skr_named"),
+        seekerLanguage: "es",
+        modality: "text",
+        retainUntil: null,
+        seekerName: "Marisol",
+      });
+      const helper = await newVolunteer({ approved: true });
+
+      const claimed = await conversations().claim(created.id, helper.id, "en");
+      expect(claimed?.seekerName).toBe("Marisol");
+    });
+  });
+
   describe("practice sessions", () => {
     // The one thing that must never happen: a volunteer looking for someone
     // who needs help is handed somebody's rehearsal. Practice conversations

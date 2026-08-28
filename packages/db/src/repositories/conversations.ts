@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import type {
   Conversation,
   ConversationCrypto,
+  WrappedDataKey,
   ConversationId,
   ConversationRepository,
   CreateConversationInput,
@@ -43,12 +44,81 @@ export class DrizzleConversationRepository implements ConversationRepository {
         wrappedKey: dataKey.wrapped,
         keyId: dataKey.keyId,
         retainUntil: input.retainUntil,
+        ...(await this.#sealName(id, dataKey, input.seekerName)),
       })
       .returning();
 
     const row = rows[0];
     if (!row) throw new Error("Insert returned no conversation row");
-    return toConversation(row);
+    return this.#decrypted(row);
+  }
+
+  /**
+   * Encrypts the chosen name, or returns nothing to store.
+   *
+   * Under `seeker_metadata` rather than `message`, so a name ciphertext and a
+   * message ciphertext can never be substituted for one another — the same
+   * reason flag rationales have their own purpose.
+   */
+  async #sealName(
+    conversationId: ConversationId,
+    key: WrappedDataKey,
+    name: string | undefined,
+  ) {
+    const trimmed = name?.trim();
+    if (!trimmed) return {};
+
+    const sealed = await this.#crypto.encrypt(trimmed, key, {
+      conversationId,
+      purpose: "seeker_metadata",
+    });
+
+    return {
+      seekerNameCiphertext: sealed.ciphertext,
+      seekerNameIv: sealed.iv,
+      seekerNameAuthTag: sealed.authTag,
+      seekerNameAlgorithm: sealed.algorithm,
+      seekerNameKeyId: sealed.keyId,
+      seekerNameCipherVersion: sealed.version,
+    };
+  }
+
+  /**
+   * A row plus its decrypted name.
+   *
+   * Every read goes through here, so nothing above this line has to remember
+   * that the name is encrypted. The data-key cache means a queue polling the
+   * same conversations every few seconds pays for one unwrap each, not one
+   * per poll.
+   */
+  async #decrypted(row: typeof conversations.$inferSelect): Promise<Conversation> {
+    const conversation = toConversation(row);
+    if (!row.seekerNameCiphertext) return conversation;
+
+    try {
+      const seekerName = await this.#crypto.decrypt(
+        {
+          ciphertext: row.seekerNameCiphertext,
+          iv: row.seekerNameIv ?? "",
+          authTag: row.seekerNameAuthTag ?? "",
+          algorithm: row.seekerNameAlgorithm ?? "",
+          keyId: row.seekerNameKeyId ?? "",
+          version: row.seekerNameCipherVersion ?? 1,
+        },
+        { wrapped: row.wrappedKey, keyId: row.keyId },
+        { conversationId: conversation.id, purpose: "seeker_metadata" },
+      );
+      return { ...conversation, seekerName };
+    } catch (error) {
+      // A name that will not decrypt must not take down the conversation it
+      // belongs to. Losing how to address someone is a bad afternoon; losing
+      // the ability to open their transcript is a different order of problem.
+      console.error("[nexus] could not decrypt seeker name", {
+        conversationId: conversation.id,
+        error,
+      });
+      return conversation;
+    }
   }
 
   /**
@@ -90,7 +160,7 @@ export class DrizzleConversationRepository implements ConversationRepository {
 
     const row = rows[0];
     if (!row) throw new Error("Insert returned no practice conversation row");
-    return toConversation(row);
+    return this.#decrypted(row);
   }
 
   async findById(id: ConversationId): Promise<Conversation | null> {
@@ -100,7 +170,7 @@ export class DrizzleConversationRepository implements ConversationRepository {
       .where(eq(conversations.id, id))
       .limit(1);
     const row = rows[0];
-    return row ? toConversation(row) : null;
+    return row ? await this.#decrypted(row) : null;
   }
 
   async findWaiting(limit: number): Promise<readonly Conversation[]> {
@@ -120,7 +190,7 @@ export class DrizzleConversationRepository implements ConversationRepository {
       // Oldest first: nobody should be overtaken in the queue.
       .orderBy(asc(conversations.startedAt))
       .limit(limit);
-    return rows.map(toConversation);
+    return Promise.all(rows.map((row) => this.#decrypted(row)));
   }
 
   async findActiveForVolunteer(
@@ -136,7 +206,7 @@ export class DrizzleConversationRepository implements ConversationRepository {
         ),
       )
       .orderBy(asc(conversations.matchedAt));
-    return rows.map(toConversation);
+    return Promise.all(rows.map((row) => this.#decrypted(row)));
   }
 
   /**
@@ -174,7 +244,7 @@ export class DrizzleConversationRepository implements ConversationRepository {
       .returning();
 
     const row = rows[0];
-    return row ? toConversation(row) : null;
+    return row ? await this.#decrypted(row) : null;
   }
 
   async end(id: ConversationId, reason: "ended" | "terminated"): Promise<void> {

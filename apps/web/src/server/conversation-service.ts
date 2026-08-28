@@ -52,11 +52,13 @@ export class ConversationService {
   async startForSeeker(
     seekerId: SeekerId,
     language: LanguageCode,
+    seekerName?: string,
   ): Promise<StartConversationResult> {
     const conversation = await this.#c.conversations.create({
       seekerId,
       seekerLanguage: language,
       modality: "text",
+      ...(seekerName ? { seekerName } : {}),
       // Ninety days by default. A flag clears this, so anything under review
       // outlives the retention window.
       retainUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
@@ -72,7 +74,10 @@ export class ConversationService {
       actorRole: "seeker",
       actorId: null,
       conversationId: conversation.id,
-      detail: { language },
+      // Whether they gave a name, never the name itself. The audit log is the
+      // one table not encrypted per conversation, and it outlives the
+      // transcript it describes.
+      detail: { language, named: conversation.seekerName !== null },
     });
 
     return { conversation };

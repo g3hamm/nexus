@@ -398,5 +398,52 @@ WHERE NOT EXISTS (
   SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = 'e0fabd74e9020249d86eb82eaacc987df945699f2ac0b503c56f31c29d637d38'
 );
 
+-- ── Migration 0007_worthless_steve_rogers ───────────────────────────────────────
+
+DO $$ BEGIN
+  ALTER TABLE "conversations" ADD COLUMN "seeker_name_ciphertext" text;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "conversations" ADD COLUMN "seeker_name_iv" text;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "conversations" ADD COLUMN "seeker_name_auth_tag" text;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "conversations" ADD COLUMN "seeker_name_algorithm" text;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "conversations" ADD COLUMN "seeker_name_key_id" text;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "conversations" ADD COLUMN "seeker_name_cipher_version" smallint;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+-- Record this migration as applied, so a later `pnpm db:migrate` skips
+-- it rather than failing on tables that already exist.
+CREATE SCHEMA IF NOT EXISTS drizzle;
+CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+  id SERIAL PRIMARY KEY,
+  hash text NOT NULL,
+  created_at bigint
+);
+
+INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+SELECT '9eb641c932bc46effd2f38f9ee698c175ce3524ade880bc8eb93bad0086ed03e', 1787924729310
+WHERE NOT EXISTS (
+  SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = '9eb641c932bc46effd2f38f9ee698c175ce3524ade880bc8eb93bad0086ed03e'
+);
+
 -- ── Done ───────────────────────────────────────────────────────────────
 -- You should see eight tables under 'public' in the Neon Tables view.

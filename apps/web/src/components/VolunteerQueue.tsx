@@ -6,6 +6,7 @@ import { Button, Card, Spinner } from "@nexus/ui";
 
 interface QueueEntry {
   readonly id: string;
+  readonly name: string | null;
   readonly language: string;
   readonly languageName: string;
   readonly waitingSince?: string;
@@ -79,9 +80,12 @@ export function VolunteerQueue() {
               <Card key={entry.id} padded={false} className="p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-ink">Speaking {entry.languageName}</p>
+                    <p className="text-ink" dir="auto">
+                      {entry.name ?? "Someone"}
+                    </p>
                     <p className="text-ink-subtle text-sm">
-                      {entry.matchedAt ? `Since ${timeAgo(entry.matchedAt)}` : "Active"}
+                      {entry.languageName}
+                      {entry.matchedAt ? ` · since ${timeAgo(entry.matchedAt)}` : ""}
                     </p>
                   </div>
                   <Button
@@ -115,9 +119,12 @@ export function VolunteerQueue() {
               <Card key={entry.id} padded={false} className="p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-ink">Speaking {entry.languageName}</p>
+                    <p className="text-ink" dir="auto">
+                      {entry.name ?? "Someone"}
+                    </p>
                     <p className="text-ink-subtle text-sm">
-                      Waiting {entry.waitingSince ? timeAgo(entry.waitingSince) : ""}
+                      {entry.languageName}
+                      {entry.waitingSince ? ` · waiting ${timeAgo(entry.waitingSince)}` : ""}
                     </p>
                   </div>
                   <Button

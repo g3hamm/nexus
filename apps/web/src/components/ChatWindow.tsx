@@ -18,9 +18,12 @@ import { useConversation } from "./useConversation";
 export function ChatWindow({
   conversationId,
   viewerRole,
+  peerName,
 }: {
   readonly conversationId: string;
   readonly viewerRole: "seeker" | "volunteer";
+  /** What the other person asked to be called, when they said. */
+  readonly peerName?: string | null | undefined;
 }) {
   const { messages, matched, status, loading, crisis, coverage, peerTyping, notifyTyping, send } =
     useConversation(conversationId, viewerRole);
@@ -47,7 +50,9 @@ export function ChatWindow({
   return (
     <div className="mx-auto flex h-dvh w-full max-w-3xl flex-col px-4 py-4 sm:px-6">
       <header className="border-line flex items-center justify-between border-b pb-4">
-        <span className="text-ink font-serif text-lg">Nexus</span>
+        <span className="text-ink font-serif text-lg" dir="auto">
+          {viewerRole === "volunteer" ? (peerName ?? "Someone") : "Nexus"}
+        </span>
         {viewerRole === "seeker" ? (
           <WaitingIndicator matched={matched} ended={ended} coverage={coverage} />
         ) : null}

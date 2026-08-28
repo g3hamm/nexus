@@ -5,16 +5,30 @@ import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Button } from "@nexus/ui";
 
 /**
- * The entry point. A text box and nothing else.
+ * The entry point. A text box, and one optional line above it.
  *
  * The first message is sent with the request that creates the conversation,
  * so the seeker never sees an empty room — they write, and they are already
  * talking. Waiting for a volunteer happens behind their message, not in front
  * of it.
+ *
+ * The name field is the only thing here that is not the message, and it earns
+ * its place three times over: a volunteer can address a person instead of a
+ * language, someone holding two conversations can tell them apart, and a name
+ * nobody would give in earnest says something useful before anyone has spent
+ * twenty minutes finding out.
+ *
+ * It gates nothing. Autofocus stays on the message, Enter still sends from the
+ * message, and the button is enabled on the message alone — so someone who has
+ * worked up to typing one sentence is never stopped by a form field. The hint
+ * says "any name" rather than "your name" deliberately: for a seeker somewhere
+ * this conversation is dangerous, being nudged toward their real one would be
+ * the worst thing this page could do.
  */
 export function SeekerEntry() {
   const router = useRouter();
   const [text, setText] = useState("");
+  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +44,10 @@ export function SeekerEntry() {
       const response = await fetch("/api/seeker/start", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ firstMessage: message }),
+        body: JSON.stringify({
+          firstMessage: message,
+          ...(name.trim() ? { name: name.trim() } : {}),
+        }),
       });
 
       if (!response.ok) throw new Error("start failed");
@@ -57,6 +74,22 @@ export function SeekerEntry() {
 
   return (
     <form onSubmit={start} className="w-full">
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <label htmlFor="seeker-name" className="text-ink-muted text-sm">
+          What can we call you?
+        </label>
+        <input
+          id="seeker-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={40}
+          autoComplete="off"
+          dir="auto"
+          placeholder="Optional — any name you like"
+          className="border-line bg-surface text-ink placeholder:text-ink-subtle focus:border-accent min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none transition-colors"
+        />
+      </div>
+
       <label htmlFor="seeker-message" className="sr-only">
         Write your message in any language
       </label>

@@ -26,6 +26,8 @@ export interface CreateConversationInput {
   readonly seekerLanguage: LanguageCode;
   readonly modality: Modality;
   readonly retainUntil: Date | null;
+  /** What they asked to be called. Always optional; never verified. */
+  readonly seekerName?: string | undefined;
 }
 
 export interface AppendMessageInput {

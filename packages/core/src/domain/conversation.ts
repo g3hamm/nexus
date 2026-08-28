@@ -36,6 +36,21 @@ export const conversationStatusSchema = z.enum([
 export interface Conversation {
   readonly id: ConversationId;
   readonly seekerId: SeekerId;
+  /**
+   * What the seeker asked to be called, or null.
+   *
+   * Optional, never verified, and explicitly not an identity — the question is
+   * "what can we call you", not "who are you". It exists so a volunteer can
+   * address a person rather than a language, and so someone holding two
+   * conversations can tell them apart.
+   *
+   * Encrypted at rest under the conversation's own key, like everything else
+   * anyone types here. A name is the single most identifying thing a seeker
+   * will ever give us, and "Sara" sitting in plaintext beside an encrypted
+   * transcript from a country where this conversation is dangerous would
+   * undo the point of encrypting the transcript.
+   */
+  readonly seekerName: string | null;
   readonly volunteerId: VolunteerId | null;
   readonly status: ConversationStatus;
   /** Realtime room backing this conversation. Carries over unchanged to video. */
@@ -75,6 +90,21 @@ export interface Conversation {
    */
   readonly retainUntil: Date | null;
 }
+
+/**
+ * What a seeker may call themselves.
+ *
+ * Short, trimmed, single-line. The cap is deliberately tight: this is a form
+ * of address, and a field long enough for a sentence invites people to put
+ * their situation in it — or their phone number, which is exactly what this
+ * product spends its effort not storing.
+ */
+export const seekerNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(40)
+  .transform((v) => v.replace(/\s+/g, " "));
 
 export const startConversationSchema = z.object({
   seekerLanguage: languageCodeSchema,

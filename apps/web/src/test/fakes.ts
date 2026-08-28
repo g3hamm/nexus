@@ -60,6 +60,7 @@ export class FakeConversationRepository implements ConversationRepository {
     const conversation: Conversation = {
       id,
       seekerId: input.seekerId,
+      seekerName: input.seekerName?.trim() || null,
       volunteerId: null,
       status: "waiting",
       roomId: asRoomId(`nexus-${id}`),
@@ -84,6 +85,7 @@ export class FakeConversationRepository implements ConversationRepository {
     const conversation: Conversation = {
       id,
       seekerId: asSeekerId(`practice_${id}`),
+      seekerName: null,
       volunteerId: input.volunteerId,
       status: "active",
       roomId: asRoomId(`nexus-${id}`),

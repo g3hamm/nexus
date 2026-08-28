@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { SEEKER_SESSION_TTL_SECONDS, issueSeekerSession } from "@nexus/auth";
-import { languageCodeSchema, RATE_LIMITS } from "@nexus/core";
+import { languageCodeSchema, RATE_LIMITS, seekerNameSchema } from "@nexus/core";
 import { container } from "@/server/container";
 import { ConversationService } from "@/server/conversation-service";
 import { errorResponse, ok } from "@/server/http";
@@ -15,6 +15,8 @@ const bodySchema = z.object({
   firstMessage: z.string().min(1).max(4000).optional(),
   /** From `Accept-Language`, as a starting guess. */
   language: languageCodeSchema.optional(),
+  /** What they would like to be called. Optional, and never verified. */
+  name: seekerNameSchema.optional(),
 });
 
 /**
@@ -50,7 +52,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { seekerId, token } = await issueSeekerSession(c.sessions, language);
-    const { conversation } = await service.startForSeeker(seekerId, language);
+    const { conversation } = await service.startForSeeker(
+      seekerId,
+      language,
+      parsed.data.name,
+    );
 
     await setSeekerCookie(token, SEEKER_SESSION_TTL_SECONDS);
 

@@ -16,6 +16,9 @@ export function toConversation(row: ConversationRow): Conversation {
   return {
     id: asConversationId(row.id),
     seekerId: asSeekerId(row.seekerId),
+    // Filled in by the repository, which has the key. A mapper is synchronous
+    // and has no business holding one.
+    seekerName: null,
     volunteerId: row.volunteerId ? asVolunteerId(row.volunteerId) : null,
     status: row.status,
     roomId: asRoomId(row.roomId),

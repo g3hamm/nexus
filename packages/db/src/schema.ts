@@ -163,6 +163,17 @@ export const conversations = pgTable(
     crisisRaisedAt: timestamp("crisis_raised_at", { withTimezone: true }),
     /** Non-null makes this a volunteer's practice session, not a real one. */
     practiceScenario: text("practice_scenario"),
+
+    /**
+     * What the seeker asked to be called, encrypted like everything else they
+     * type. Null when they did not say, which is always allowed.
+     */
+    seekerNameCiphertext: text("seeker_name_ciphertext"),
+    seekerNameIv: text("seeker_name_iv"),
+    seekerNameAuthTag: text("seeker_name_auth_tag"),
+    seekerNameAlgorithm: text("seeker_name_algorithm"),
+    seekerNameKeyId: text("seeker_name_key_id"),
+    seekerNameCipherVersion: smallint("seeker_name_cipher_version"),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     /** Null means "retain indefinitely", which is what a flag sets. */
     retainUntil: timestamp("retain_until", { withTimezone: true }),

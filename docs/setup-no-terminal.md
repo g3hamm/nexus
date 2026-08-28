@@ -324,6 +324,10 @@ it cites with suspicion. For real conversations, set
 
 ## Re-run the setup file
 
+Migration 0007 is the seeker's chosen name, so the volunteer queue will show
+people rather than languages once you have run it.
+
+
 New versions sometimes add columns to the database. Nexus will show errors on
 the pages that use them until you do this.
 
