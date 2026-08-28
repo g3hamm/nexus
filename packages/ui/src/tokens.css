@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+/*
+ * Scan this package's own components.
+ *
+ * Tailwind's automatic source detection starts from the app being built, so
+ * every class that lives only in @nexus/ui was invisible to it and simply not
+ * emitted. That fails silently and asymmetrically: `h-11` survived because
+ * apps/web happens to use it too, while `px-5` — which only Button asks for —
+ * did not, so every button in the product rendered with no horizontal padding
+ * and clipped its own label.
+ *
+ * Declared here rather than in the app so the package stays self-describing:
+ * anything that imports these tokens gets the components styled correctly,
+ * without having to know where they live.
+ */
+@source ".";
+
 /**
  * Nexus design tokens.
  *

@@ -302,6 +302,50 @@ when you turned it on.
 
 Two things to do whenever you deploy a newer version of the code.
 
+## Making Bible references work
+
+When somebody types "Numbers 31" or "John 3:16", olivechat underlines it and
+shows the passage on hover. If instead you see **"No Bible text has been set up
+on this site yet"**, that is exactly what has happened — the feature works,
+there is simply no scripture for it to show. Nothing is broken.
+
+There are two ways to give it some. The first needs no terminal.
+
+### The easy way: a free API.Bible key
+
+This is the better option anyway — it reaches languages that no
+public-domain text covers, which matters for a product where seekers write in
+Farsi, Arabic and Chinese.
+
+1. Go to **scripture.api.bible** and create a free account.
+2. Create an application when it asks. Copy the **API key** it gives you.
+3. In Vercel: **Settings → Environment Variables → Add New**
+   - **Key**: `API_BIBLE_KEY`
+   - **Value**: the key you copied
+   - Tick all three environments, then **Save**.
+4. Redeploy (**Deployments → ⋯ on the newest → Redeploy**).
+
+Hover a reference. It should now show the passage.
+
+### The other way: load a public-domain translation yourself
+
+This one needs somebody comfortable at a command line, and a downloaded
+public-domain Bible file. It stores the text in your own database, so it keeps
+working with no third party involved:
+
+```
+pnpm bible:load --file ./web.txt --translation WEB --language en --public-domain
+```
+
+Only public-domain translations may be loaded this way — the World English
+Bible, the King James Version, the American Standard Version. The command
+refuses to run without the `--public-domain` flag, on purpose: most modern
+translations are copyrighted and self-hosting them is not something to do by
+accident.
+
+If you set up both, API.Bible is tried first and your own copy is the fallback,
+so a bad afternoon at their end does not take scripture off the screen.
+
 ## If a page says the deployment is newer than its database
 
 You will see: *"This deployment is newer than its database. Re-run

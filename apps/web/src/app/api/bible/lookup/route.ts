@@ -52,9 +52,17 @@ export async function GET(request: NextRequest) {
     const passage = await container().bible.lookup(reference, { language });
 
     if (!passage) {
-      // A perfectly ordinary outcome — no translation loaded for that
-      // language, or the reference does not exist. The card says so.
-      return ok({ found: false, reference: formatReference(reference) });
+      // Two very different situations look identical from here, and telling
+      // them apart is the difference between "we do not have that verse in
+      // Farsi" and "nobody ever gave this deployment a Bible". The second one
+      // is a setup step somebody forgot, and it should say so rather than
+      // implying the reference was the problem.
+      const configured = (await container().bible.listTranslations()).length > 0;
+      return ok({
+        found: false,
+        configured,
+        reference: formatReference(reference),
+      });
     }
 
     return ok({

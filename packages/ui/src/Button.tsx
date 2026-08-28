@@ -40,6 +40,11 @@ export function Button({
       disabled={disabled || busy}
       className={cn(
         "inline-flex select-none items-center justify-center gap-2 font-medium",
+        // Never let flex squeeze a button narrower than its own label. Sitting
+        // next to a `flex-1` textarea, the default shrink clipped "Send" to
+        // "Sen" on a phone — the most important control in the product,
+        // quietly broken by a layout default.
+        "shrink-0 whitespace-nowrap",
         "ease-calm transition-colors duration-200",
         "disabled:cursor-not-allowed",
         VARIANTS[variant],

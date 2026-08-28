@@ -6,6 +6,8 @@ import { Spinner } from "@nexus/ui";
 
 interface Passage {
   readonly found: boolean;
+  /** False when no Bible source is set up at all, rather than this one verse missing. */
+  readonly configured?: boolean;
   readonly reference: string;
   readonly translationName?: string;
   readonly copyright?: string | null;
@@ -162,7 +164,10 @@ function VerseLink({
       {open ? (
         <span
           role="tooltip"
-          className="border-line bg-surface shadow-lifted absolute bottom-full left-1/2 z-20 mb-2 block w-72 -translate-x-1/2 rounded-lg border p-3 text-left text-sm font-normal sm:w-80"
+          // Width is clamped to the viewport, not just to a breakpoint: a
+          // reference near the edge of a narrow screen pushed a fixed-width
+          // card off the side, where the passage could not be read at all.
+          className="border-line bg-surface shadow-lifted absolute bottom-full left-1/2 z-20 mb-2 block w-[min(20rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border p-3 text-left text-sm font-normal"
         >
           {loading && !passage ? (
             <span className="flex justify-center py-2">
@@ -192,8 +197,13 @@ function VerseLink({
             </>
           ) : (
             <span className="text-ink-muted block">
-              {/* Honest about why, rather than looking broken. */}
-              No text is available for {passage?.reference ?? label} in this language yet.
+              {/* Honest about which of the two things went wrong. "Not in this
+                  language" sends a volunteer looking for a translation; "no
+                  Bible configured" sends them to an administrator, which is
+                  where the fix actually is. */}
+              {passage?.configured === false
+                ? "No Bible text has been set up on this site yet."
+                : `No text is available for ${passage?.reference ?? label} in this language yet.`}
             </span>
           )}
         </span>
