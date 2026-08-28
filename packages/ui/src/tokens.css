@@ -52,6 +52,22 @@
   --color-danger: oklch(56% 0.14 25);
 
   /* ── Type ───────────────────────────────────────────────────────────── */
+  /*
+   * The brand face is Bernoru, and it is deliberately not in this stack.
+   *
+   * It sets the olivechat wordmark, where it belongs — but the wordmark is a
+   * picture, so nothing here has to load it. Promoting it to the interface
+   * font would be the obvious next step and would be a mistake, for a reason
+   * that has nothing to do with taste: a Latin display face cannot set this
+   * product's text. People write here in Farsi, Arabic, Chinese, Korean,
+   * Hindi and Russian, and a font with no coverage for those scripts falls
+   * back silently — so the one seeker whose language it does cover gets the
+   * brand, and everyone else gets whatever their device chose. That is worse
+   * than picking one stack that treats every script the same way.
+   *
+   * Hence the Noto entries below. They are not padding; they are the reason a
+   * Devanagari message and an English one look like the same product.
+   */
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
     "Noto Sans", "Noto Sans Arabic", "Noto Sans SC", "Noto Sans Devanagari", Arial,

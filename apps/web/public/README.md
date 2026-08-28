@@ -31,6 +31,22 @@ Put brand images here: a logo, a wordmark, an illustration, anything a page
 refers to by URL. **Do not put icons here** — see below, they belong somewhere
 else and Next.js wires them up on its own.
 
+## The brand font
+
+**Bernoru**, and it is already baked into the wordmark images — the app never
+loads it, and no page needs it installed.
+
+It is deliberately not the interface font. See the comment on `--font-sans` in
+`packages/ui/src/tokens.css` for the reasoning; the short version is that a
+Latin display face cannot set text for a product people write to in Farsi,
+Arabic, Chinese, Korean, Hindi and Russian. Everyone whose script it does not
+cover would fall back to whatever their device chose, so the brand would show
+up for a minority of seekers and nobody else.
+
+If you want Bernoru on screen rather than in a picture, the defensible place
+is a large Latin-only heading on a staff page — and it needs a webfont licence
+first. Do not put it in `--font-sans`.
+
 ## Icons go in `src/app/`, not here
 
 Next.js recognises these by filename and puts the right tags in `<head>`
