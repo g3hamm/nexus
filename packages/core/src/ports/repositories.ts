@@ -7,6 +7,7 @@ import type {
   VolunteerId,
 } from "../domain/ids.js";
 import type { LanguageCode } from "../domain/language.js";
+import type { Coverage } from "../domain/coverage.js";
 import type { Conversation, Modality } from "../domain/conversation.js";
 import type { Message, Rendering } from "../domain/message.js";
 import type { ModerationFlag, ModerationVerdict } from "../domain/moderation.js";
@@ -148,6 +149,15 @@ export interface VolunteerRepository {
   passwordHashFor(email: string): Promise<string | null>;
   /** Total volunteers, approved or not. Used to gate first-run setup. */
   count(): Promise<number>;
+  /**
+   * Who is actually on, right now.
+   *
+   * One query rather than `findAvailable().length`, because this runs on the
+   * landing page of a site meant to be the calmest thing a distressed person
+   * opens all day, and because the answer needs "online but busy" — a state
+   * `findAvailable` cannot express.
+   */
+  coverage(): Promise<Coverage>;
 
   /**
    * Issues a one-time password reset.

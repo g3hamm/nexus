@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CrisisResources } from "@nexus/core";
+import type { CoverageState, CrisisResources } from "@nexus/core";
 
 export interface TranscriptEntry {
   readonly id: string;
@@ -32,6 +32,7 @@ interface TranscriptResponse {
   readonly messages: TranscriptEntry[];
   readonly conversation: { id: string; status: string; matched: boolean };
   readonly crisis?: CrisisState;
+  readonly coverage?: { state: CoverageState } | null;
 }
 
 /**
@@ -48,6 +49,7 @@ export function useConversation(conversationId: string) {
   const [matched, setMatched] = useState(false);
   const [status, setStatus] = useState<string>("waiting");
   const [crisis, setCrisis] = useState<CrisisState>({ active: false });
+  const [coverage, setCoverage] = useState<CoverageState | null>(null);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -72,6 +74,9 @@ export function useConversation(conversationId: string) {
       // deploy, a truncated response — must not take the numbers away from
       // someone who is currently looking at them.
       if (data.crisis?.active) setCrisis(data.crisis);
+      // Null once a volunteer picks the conversation up, which is the point:
+      // the waiting copy disappears because the waiting is over.
+      setCoverage(data.coverage?.state ?? null);
 
       if (data.messages.length > 0) {
         latestAt.current = data.messages[data.messages.length - 1]?.sentAt ?? null;
@@ -160,5 +165,15 @@ export function useConversation(conversationId: string) {
     [conversationId, refresh],
   );
 
-  return { messages, matched, status, connected, loading, crisis, send, refresh };
+  return {
+    messages,
+    matched,
+    status,
+    connected,
+    loading,
+    crisis,
+    coverage,
+    send,
+    refresh,
+  };
 }

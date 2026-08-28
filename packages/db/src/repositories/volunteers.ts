@@ -1,5 +1,6 @@
 import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import type {
+  Coverage,
   LanguageCode,
   Volunteer,
   VolunteerId,
@@ -7,7 +8,7 @@ import type {
 } from "@nexus/core";
 import type { NexusDatabase } from "../client.js";
 import { conversations, volunteers } from "../schema.js";
-import { asVolunteerId } from "@nexus/core";
+import { asVolunteerId, coverageStateFrom } from "@nexus/core";
 import { toVolunteer } from "./mappers.js";
 
 export class DrizzleVolunteerRepository implements VolunteerRepository {
@@ -65,6 +66,46 @@ export class DrizzleVolunteerRepository implements VolunteerRepository {
       );
 
     return rows.map(toVolunteer);
+  }
+
+  /**
+   * Who is on, in one round trip.
+   *
+   * Deliberately not `findAvailable().length`. That would drag every
+   * volunteer row across the wire on every landing-page render, and it cannot
+   * tell "nobody is on" apart from "everyone on is mid-conversation" — which
+   * is the entire distinction the waiting copy turns on.
+   *
+   * The `filter` clauses share one scan and one predicate for approval and
+   * suspension, so this stays a single indexed count however many volunteers
+   * the ministry grows to.
+   */
+  async coverage(): Promise<Coverage> {
+    const activeCount = sql<number>`(
+      select count(*) from ${conversations}
+      where ${conversations.volunteerId} = ${volunteers.id}
+        and ${conversations.status} = 'active'
+    )`;
+
+    const rows = await this.#db
+      .select({
+        freeNow: sql<string>`count(*) filter (
+          where ${volunteers.status} = 'available'
+            and ${activeCount} < ${volunteers.maxConcurrentConversations}
+        )`,
+        onlineNow: sql<string>`count(*) filter (
+          where ${volunteers.status} in ('available', 'in_conversation')
+        )`,
+      })
+      .from(volunteers)
+      .where(and(isNotNull(volunteers.approvedAt), isNull(volunteers.suspendedAt)));
+
+    // Postgres counts come back as bigint, which node-postgres hands over as
+    // a string rather than silently losing precision.
+    const freeNow = Number(rows[0]?.freeNow ?? 0);
+    const onlineNow = Number(rows[0]?.onlineNow ?? 0);
+
+    return { state: coverageStateFrom(freeNow, onlineNow), freeNow, onlineNow };
   }
 
   async listAll(limit: number): Promise<readonly Volunteer[]> {

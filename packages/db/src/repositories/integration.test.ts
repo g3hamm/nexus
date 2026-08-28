@@ -170,6 +170,78 @@ describeIfDb("repositories against real Postgres", () => {
     });
   });
 
+  describe("coverage", () => {
+    it("reports nobody on when the roster is empty", async () => {
+      expect(await volunteers().coverage()).toEqual({
+        state: "closed",
+        freeNow: 0,
+        onlineNow: 0,
+      });
+    });
+
+    // Unapproved and suspended people are not coverage. Counting them would
+    // make the front door promise someone who cannot be matched.
+    it("ignores volunteers who could not be matched anyway", async () => {
+      const pending = await newVolunteer({ approved: false });
+      await volunteers().setStatus(pending.id, "available");
+
+      const suspended = await newVolunteer({ approved: true });
+      await volunteers().setStatus(suspended.id, "available");
+      await volunteers().setSuspended(suspended.id, true);
+
+      expect((await volunteers().coverage()).state).toBe("closed");
+    });
+
+    it("is open when an approved volunteer is available", async () => {
+      const helper = await newVolunteer({ approved: true });
+      await volunteers().setStatus(helper.id, "available");
+
+      expect(await volunteers().coverage()).toMatchObject({
+        state: "open",
+        freeNow: 1,
+        onlineNow: 1,
+      });
+    });
+
+    it("is busy when everyone on is mid-conversation", async () => {
+      const helper = await newVolunteer({ approved: true });
+      await volunteers().setStatus(helper.id, "in_conversation");
+
+      expect(await volunteers().coverage()).toMatchObject({
+        state: "busy",
+        freeNow: 0,
+        onlineNow: 1,
+      });
+    });
+
+    // The concurrency cap is part of "free", and it is enforced in SQL
+    // against live conversation rows, so only a real database exercises it.
+    it("is busy when the only volunteer on is at their cap", async () => {
+      const helper = await newVolunteer({ approved: true });
+      await volunteers().setStatus(helper.id, "available");
+
+      const conversation = await newConversation();
+      await conversations().claim(conversation.id, helper.id, "en");
+
+      expect(await volunteers().coverage()).toMatchObject({
+        state: "busy",
+        freeNow: 0,
+        onlineNow: 1,
+      });
+    });
+
+    it("counts an away volunteer as neither free nor online", async () => {
+      const helper = await newVolunteer({ approved: true });
+      await volunteers().setStatus(helper.id, "away");
+
+      expect(await volunteers().coverage()).toEqual({
+        state: "closed",
+        freeNow: 0,
+        onlineNow: 0,
+      });
+    });
+  });
+
   describe("conversations", () => {
     it("lets exactly one of two concurrent claims win", async () => {
       const conversation = await newConversation();

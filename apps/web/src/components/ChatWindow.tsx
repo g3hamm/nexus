@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { INTERNATIONAL_DIRECTORY, type CoverageState } from "@nexus/core";
 import { Spinner } from "@nexus/ui";
 import { Composer } from "./Composer";
 import { CrisisCard } from "./CrisisCard";
@@ -21,7 +22,7 @@ export function ChatWindow({
   readonly conversationId: string;
   readonly viewerRole: "seeker" | "volunteer";
 }) {
-  const { messages, matched, status, loading, crisis, send } =
+  const { messages, matched, status, loading, crisis, coverage, send } =
     useConversation(conversationId);
   const sentPending = useRef(false);
 
@@ -48,7 +49,7 @@ export function ChatWindow({
       <header className="border-line flex items-center justify-between border-b pb-4">
         <span className="text-ink font-serif text-lg">Nexus</span>
         {viewerRole === "seeker" ? (
-          <WaitingIndicator matched={matched} ended={ended} />
+          <WaitingIndicator matched={matched} ended={ended} coverage={coverage} />
         ) : null}
       </header>
 
@@ -65,6 +66,9 @@ export function ChatWindow({
       <div className="border-line border-t pt-4">
         {crisis.active && crisis.resources ? (
           <CrisisCard resources={crisis.resources} conversationId={conversationId} />
+        ) : null}
+        {viewerRole === "seeker" && !matched && !ended && coverage === "closed" ? (
+          <NobodyOnNote showHelpline={!crisis.active} />
         ) : null}
         {ended ? (
           <p className="text-ink-muted py-2 text-center text-sm">
@@ -84,13 +88,21 @@ export function ChatWindow({
  * It never says "you are number 4 in the queue" or shows an estimated wait.
  * Someone who has just written down something difficult should not then be
  * given a reason to leave.
+ *
+ * It also never spins when nothing is happening. "Finding someone to talk
+ * with you", shown at three in the morning with the rota empty, is the
+ * software pretending to work — and a person who eventually realises that is
+ * a person who has learned this place cannot be trusted with the thing they
+ * just typed. The spinner is reserved for a search that is really running.
  */
 function WaitingIndicator({
   matched,
   ended,
+  coverage,
 }: {
   readonly matched: boolean;
   readonly ended: boolean;
+  readonly coverage: CoverageState | null;
 }) {
   if (ended) return null;
   if (matched) {
@@ -101,10 +113,57 @@ function WaitingIndicator({
       </span>
     );
   }
+
+  if (coverage === "closed") {
+    return (
+      <span className="text-ink-muted flex items-center gap-2 text-sm">
+        <span aria-hidden="true" className="bg-ink-subtle size-2 rounded-full" />
+        Nobody is here right now
+      </span>
+    );
+  }
+
   return (
     <span className="text-ink-muted flex items-center gap-2 text-sm">
       <Spinner className="size-3" />
-      Finding someone to talk with you
+      {coverage === "busy"
+        ? "Waiting for someone to be free"
+        : "Finding someone to talk with you"}
     </span>
+  );
+}
+
+/**
+ * Shown once, quietly, when a seeker is waiting and the rota is empty.
+ *
+ * Two things a person in this position needs and cannot work out for
+ * themselves: that writing it down was not wasted, and that there is
+ * somewhere else to go if tonight cannot wait. Neither is an apology, and
+ * neither suggests they should leave.
+ *
+ * The helpline is suppressed when the crisis card is already showing, so
+ * nobody gets the same directory twice on one screen.
+ */
+function NobodyOnNote({ showHelpline }: { readonly showHelpline: boolean }) {
+  return (
+    <p className="text-ink-subtle mb-3 text-sm leading-relaxed">
+      What you write is saved. Come back on this device and you will find any
+      reply.
+      {showHelpline ? (
+        <>
+          {" "}
+          If you need someone tonight,{" "}
+          <a
+            href={INTERNATIONAL_DIRECTORY.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-ink-muted underline underline-offset-2"
+          >
+            {INTERNATIONAL_DIRECTORY.name}
+          </a>{" "}
+          lists free, confidential support in over 130 countries.
+        </>
+      ) : null}
+    </p>
   );
 }

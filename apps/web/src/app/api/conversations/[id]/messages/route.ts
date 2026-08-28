@@ -84,9 +84,36 @@ export async function GET(
         matched: participant.conversation.volunteerId !== null,
       },
       crisis: crisisFor(participant, request),
+      coverage: await coverageFor(participant),
     });
   } catch (error) {
     return errorResponse(error);
+  }
+}
+
+/**
+ * Whether anyone is on, for a seeker who is still waiting.
+ *
+ * Only computed for an unmatched seeker: once someone has picked the
+ * conversation up the question is answered, and a volunteer does not need to
+ * be told how thin the rota is while they are mid-conversation.
+ *
+ * Fails to null rather than throwing. A coverage lookup is a nicety on top of
+ * a transcript; it must never be the reason a message fails to load.
+ */
+async function coverageFor(participant: Awaited<ReturnType<typeof participantFor>>) {
+  if (participant.role !== "seeker") return null;
+  if (participant.conversation.volunteerId !== null) return null;
+
+  try {
+    // The count is operational detail. The seeker gets the word, not the
+    // number — how thinly a ministry is staffed is not something a person in
+    // distress benefits from knowing, in either direction.
+    const { state } = await container().volunteers.coverage();
+    return { state };
+  } catch (error) {
+    console.error("[nexus] coverage lookup failed", { error });
+    return null;
   }
 }
 

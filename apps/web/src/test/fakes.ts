@@ -1,6 +1,7 @@
 import type {
   AlertChannel,
   AppendMessageInput,
+  Coverage,
   AuditEntry,
   AuditLog,
   OperationalAlert,
@@ -28,6 +29,7 @@ import type {
 import {
   NexusError,
   asConversationId,
+  coverageStateFrom,
   asFlagId,
   asMessageId,
   asRoomId,
@@ -331,6 +333,17 @@ export class FakeVolunteerRepository implements VolunteerRepository {
 
   async listAll(limit: number): Promise<readonly Volunteer[]> {
     return [...this.rows.values()].slice(0, limit);
+  }
+
+  async coverage(): Promise<Coverage> {
+    const staffed = [...this.rows.values()].filter(
+      (v) => v.approvedAt !== null && v.suspendedAt === null,
+    );
+    const freeNow = staffed.filter((v) => v.status === "available").length;
+    const onlineNow = staffed.filter(
+      (v) => v.status === "available" || v.status === "in_conversation",
+    ).length;
+    return { state: coverageStateFrom(freeNow, onlineNow), freeNow, onlineNow };
   }
 
   async setApproved(id: VolunteerId, approved: boolean): Promise<void> {

@@ -16,6 +16,7 @@ export * from "./domain/conversation.js";
 export * from "./domain/message.js";
 export * from "./domain/moderation.js";
 export * from "./domain/crisis.js";
+export * from "./domain/coverage.js";
 export * from "./domain/scripture.js";
 export * from "./domain/doctrine.js";
 
