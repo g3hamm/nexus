@@ -312,5 +312,47 @@ WHERE NOT EXISTS (
   SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = '716d8ee4f720d181124ad6d73c4252bcc36bb4cb4aea964f3593ac1ebb307ed4'
 );
 
+-- ── Migration 0004_cute_agent_zero ───────────────────────────────────────
+
+DO $$ BEGIN
+  ALTER TABLE "admins" ADD COLUMN "totp_secret" text;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "admins" ADD COLUMN "totp_enabled_at" timestamp with time zone;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "admins" ADD COLUMN "recovery_code_hashes" text[] DEFAULT '{}' NOT NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "volunteers" ADD COLUMN "reset_code_hash" text;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "volunteers" ADD COLUMN "reset_expires_at" timestamp with time zone;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+-- Record this migration as applied, so a later `pnpm db:migrate` skips
+-- it rather than failing on tables that already exist.
+CREATE SCHEMA IF NOT EXISTS drizzle;
+CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+  id SERIAL PRIMARY KEY,
+  hash text NOT NULL,
+  created_at bigint
+);
+
+INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+SELECT 'd3207767450802b6a0c7a81e205d29923697c331d37630dbd134bb905d75e435', 1787879955709
+WHERE NOT EXISTS (
+  SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = 'd3207767450802b6a0c7a81e205d29923697c331d37630dbd134bb905d75e435'
+);
+
 -- ── Done ───────────────────────────────────────────────────────────────
 -- You should see eight tables under 'public' in the Neon Tables view.

@@ -1,5 +1,5 @@
 import { desc, eq, sql } from "drizzle-orm";
-import type { Admin, AdminId, AdminRepository } from "@nexus/core";
+import type { Admin, AdminId, AdminMfa, AdminRepository } from "@nexus/core";
 import { asAdminId } from "@nexus/core";
 import type { NexusDatabase } from "../client.js";
 import { admins } from "../schema.js";
@@ -68,6 +68,58 @@ export class DrizzleAdminRepository implements AdminRepository {
       .select({ total: sql<number>`count(*)::int` })
       .from(admins);
     return rows[0]?.total ?? 0;
+  }
+
+  async mfaFor(id: AdminId): Promise<AdminMfa | null> {
+    const rows = await this.#db
+      .select({
+        sealedSecret: admins.totpSecret,
+        enabledAt: admins.totpEnabledAt,
+        recoveryCodeHashes: admins.recoveryCodeHashes,
+      })
+      .from(admins)
+      .where(eq(admins.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async beginMfaEnrolment(id: AdminId, sealedSecret: string): Promise<void> {
+    // Secret only. Enabling waits for a verified code, so an abandoned setup
+    // never locks anyone out.
+    await this.#db
+      .update(admins)
+      .set({ totpSecret: sealedSecret, totpEnabledAt: null })
+      .where(eq(admins.id, id));
+  }
+
+  async completeMfaEnrolment(
+    id: AdminId,
+    recoveryCodeHashes: readonly string[],
+  ): Promise<void> {
+    await this.#db
+      .update(admins)
+      .set({ totpEnabledAt: new Date(), recoveryCodeHashes: [...recoveryCodeHashes] })
+      .where(eq(admins.id, id));
+  }
+
+  async disableMfa(id: AdminId): Promise<void> {
+    // Clear everything. A stale secret left behind would silently come back
+    // into force if MFA were re-enabled without re-enrolling.
+    await this.#db
+      .update(admins)
+      .set({ totpSecret: null, totpEnabledAt: null, recoveryCodeHashes: [] })
+      .where(eq(admins.id, id));
+  }
+
+  async setRecoveryCodeHashes(id: AdminId, hashes: readonly string[]): Promise<void> {
+    await this.#db
+      .update(admins)
+      .set({ recoveryCodeHashes: [...hashes] })
+      .where(eq(admins.id, id));
+  }
+
+  async setPasswordHash(id: AdminId, passwordHash: string): Promise<void> {
+    await this.#db.update(admins).set({ passwordHash }).where(eq(admins.id, id));
   }
 
   /** Newest first. Only used by the roster screen. */

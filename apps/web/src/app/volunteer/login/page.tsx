@@ -17,6 +17,14 @@ export default async function VolunteerLoginPage() {
       </div>
 
       <p className="text-ink-subtle mt-6 text-sm">
+        Forgotten your password? Ask an administrator for a reset code, then use it at{" "}
+        <Link href="/volunteer/reset" className="underline underline-offset-2">
+          /volunteer/reset
+        </Link>
+        .
+      </p>
+
+      <p className="text-ink-subtle mt-2 text-sm">
         Not a volunteer yet?{" "}
         <Link href="/volunteer/apply" className="underline underline-offset-2">
           Apply to help

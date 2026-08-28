@@ -19,6 +19,8 @@ export function VolunteerRoster() {
   const [rows, setRows] = useState<VolunteerRow[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Shown once, right after issuing. There is no way to retrieve it later.
+  const [issued, setIssued] = useState<{ email: string; code: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -53,6 +55,23 @@ export function VolunteerRoster() {
     }
   }
 
+  async function issueReset(id: string) {
+    setBusy(id);
+    setError(null);
+    try {
+      const response = await fetch(`/api/admin/volunteers/${id}/reset`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("failed");
+      const body = (await response.json()) as { email: string; code: string };
+      setIssued(body);
+    } catch {
+      setError("Could not issue a reset code.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (error && !rows) return <p className="text-danger text-sm">{error}</p>;
   if (!rows) {
     return (
@@ -68,6 +87,23 @@ export function VolunteerRoster() {
   return (
     <div className="flex flex-col gap-4">
       {error ? <p className="text-danger text-sm">{error}</p> : null}
+
+      {issued ? (
+        <Card className="border-accent/40">
+          <p className="text-ink font-medium">Reset code for {issued.email}</p>
+          <p className="bg-surface-sunken text-ink mt-3 rounded-md p-3 text-center font-mono text-lg">
+            {issued.code}
+          </p>
+          <p className="text-ink-muted mt-3 text-sm">
+            Give this to them however you already talk — Nexus sends no email. It works
+            once, expires in 24 hours, and cannot be shown again. They enter it at{" "}
+            <code className="bg-surface-sunken rounded px-1">/volunteer/reset</code>.
+          </p>
+          <Button variant="quiet" className="mt-4 w-full" onClick={() => setIssued(null)}>
+            Done
+          </Button>
+        </Card>
+      ) : null}
 
       {ordered.length === 0 ? (
         <Card>
@@ -114,6 +150,16 @@ export function VolunteerRoster() {
                     onClick={() => void update(volunteer.id, { approved: true })}
                   >
                     Approve
+                  </Button>
+                ) : null}
+                {volunteer.approved ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    busy={busy === volunteer.id}
+                    onClick={() => void issueReset(volunteer.id)}
+                  >
+                    Reset password
                   </Button>
                 ) : null}
                 {volunteer.suspended ? (

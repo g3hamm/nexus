@@ -50,10 +50,45 @@ Implement authentication in `@nexus/auth`:
 
 ## Consequences
 
-- No SSO, no MFA, no social login today. MFA for admins is the first thing to
-  add — an admin account is a key to every transcript.
-- No password reset flow yet. Admins provision volunteers.
+- No SSO and no social login. Both remain reasons to move to a managed
+  provider; neither is needed yet.
 - We own this code, which means we own its bugs.
+
+## Added since
+
+**MFA for admins** (TOTP, RFC 6238). Implemented rather than imported: the
+specification is short, completely pinned down, and — decisively — ships
+published test vectors, so the implementation is _proved_ correct rather than
+trusted. `totp.test.ts` runs the RFC's own vectors for both HOTP and TOTP.
+That is a better position than an unaudited dependency in the admin
+authentication path.
+
+Seeds are encrypted at rest under a key derived from `NEXUS_SESSION_SECRET`
+through HKDF, so a leaked database does not hand over password hashes _and_
+the factor meant to survive them. Enrolment and enabling are separate steps —
+a secret is stored when the QR is shown, but nothing takes effect until a code
+is verified, so an abandoned setup cannot lock anyone out.
+
+Ten recovery codes are issued on enabling and shown once. Without them,
+turning MFA on would be a way to lose access to every transcript on the
+platform permanently. They are hashed with HMAC-SHA256 rather than scrypt,
+deliberately: scrypt is slow because passwords are low-entropy, and these are
+80 random bits, so the cost buys nothing.
+
+**Password reset**, in two forms, neither of which invents an email
+dependency:
+
+- An administrator issues a one-time code for a volunteer and passes it on
+  however they already communicate. For a small vetted volunteer base that is
+  workable, and a code handed over in a conversation you were already having
+  is arguably harder to intercept than a link sitting in an inbox.
+- `pnpm reset:password` for the cases the UI cannot reach — an administrator
+  who has forgotten their own password, or one locked out by a lost second
+  factor with no recovery codes left. The bar is database credentials, which
+  is the right bar for something that restores access to every transcript.
+
+A self-service reset by email remains unbuilt, and needs an email provider
+before it can exist.
 
 ## When to revisit
 

@@ -7,6 +7,7 @@ import type {
 } from "@nexus/core";
 import type { NexusDatabase } from "../client.js";
 import { conversations, volunteers } from "../schema.js";
+import { asVolunteerId } from "@nexus/core";
 import { toVolunteer } from "./mappers.js";
 
 export class DrizzleVolunteerRepository implements VolunteerRepository {
@@ -131,6 +132,51 @@ export class DrizzleVolunteerRepository implements VolunteerRepository {
       .select({ total: sql<number>`count(*)::int` })
       .from(volunteers);
     return rows[0]?.total ?? 0;
+  }
+
+  async issuePasswordReset(
+    id: VolunteerId,
+    codeHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    // Replaces any previous reset, so issuing a second code invalidates the
+    // first rather than leaving two live.
+    await this.#db
+      .update(volunteers)
+      .set({ resetCodeHash: codeHash, resetExpiresAt: expiresAt })
+      .where(eq(volunteers.id, id));
+  }
+
+  async pendingResetFor(email: string): Promise<{
+    id: VolunteerId;
+    codeHash: string;
+    expiresAt: Date;
+  } | null> {
+    const rows = await this.#db
+      .select({
+        id: volunteers.id,
+        codeHash: volunteers.resetCodeHash,
+        expiresAt: volunteers.resetExpiresAt,
+      })
+      .from(volunteers)
+      .where(eq(volunteers.email, email.toLowerCase()))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row?.codeHash || !row.expiresAt) return null;
+    return {
+      id: asVolunteerId(row.id),
+      codeHash: row.codeHash,
+      expiresAt: row.expiresAt,
+    };
+  }
+
+  async completePasswordReset(id: VolunteerId, passwordHash: string): Promise<void> {
+    // Clearing the code in the same statement is what makes it one-time.
+    await this.#db
+      .update(volunteers)
+      .set({ passwordHash, resetCodeHash: null, resetExpiresAt: null })
+      .where(eq(volunteers.id, id));
   }
 
   async passwordHashFor(email: string): Promise<string | null> {

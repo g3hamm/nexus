@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-export function AdminNav({ current }: { readonly current: "flags" | "volunteers" }) {
+export function AdminNav({
+  current,
+}: {
+  readonly current: "flags" | "volunteers" | "security";
+}) {
   const link = (href: string, label: string, key: string) => (
     <Link
       key={key}
@@ -21,6 +25,7 @@ export function AdminNav({ current }: { readonly current: "flags" | "volunteers"
       <nav className="flex gap-5 text-sm">
         {link("/admin", "Review queue", "flags")}
         {link("/admin/volunteers", "Volunteers", "volunteers")}
+        {link("/admin/security", "Your sign-in", "security")}
       </nav>
     </header>
   );

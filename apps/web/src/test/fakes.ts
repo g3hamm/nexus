@@ -371,6 +371,33 @@ export class FakeVolunteerRepository implements VolunteerRepository {
   async count(): Promise<number> {
     return this.rows.size;
   }
+
+  readonly resets = new Map<string, { codeHash: string; expiresAt: Date }>();
+
+  async issuePasswordReset(
+    id: VolunteerId,
+    codeHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    this.resets.set(id, { codeHash, expiresAt });
+  }
+
+  async pendingResetFor(email: string): Promise<{
+    id: VolunteerId;
+    codeHash: string;
+    expiresAt: Date;
+  } | null> {
+    const volunteer = await this.findByEmail(email);
+    if (!volunteer) return null;
+    const reset = this.resets.get(volunteer.id);
+    return reset ? { id: volunteer.id, ...reset } : null;
+  }
+
+  async completePasswordReset(id: VolunteerId, passwordHash: string): Promise<void> {
+    // Clearing the reset is what makes the code one-time.
+    this.resets.delete(id);
+    void passwordHash;
+  }
 }
 
 /** A judge that returns whatever the test tells it to. */

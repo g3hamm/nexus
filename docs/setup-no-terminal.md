@@ -217,6 +217,34 @@ including a few sentences about themselves, and an account is created that
 Then sign in at `/admin/login`, open **Volunteers**, and you will see them at
 the top of the list with what they wrote. Approve, or leave them.
 
+# Turn on two-factor authentication
+
+Worth doing before anyone else uses Nexus. An administrator account opens
+every transcript on the platform, so a stolen password is not one account's
+problem — it is every seeker who has ever talked to you.
+
+1. Sign in at `/admin/login`.
+2. Click **Your sign-in**.
+3. Click **Set it up**, scan the QR code with any authenticator app (Google
+   Authenticator, 1Password, Bitwarden, Authy), and type the six-digit code it
+   shows.
+4. **Save the recovery codes it gives you.** They are shown once and cannot be
+   retrieved — they are what stops a lost phone becoming a lost account.
+
+If you lose both your phone and the codes, someone with database access can
+run `pnpm reset:password --email you@example.org --role admin --clear-mfa`.
+
+# Helping a volunteer who forgot their password
+
+Nexus sends no email, so there is no "forgot password" link. Instead:
+
+1. Sign in at `/admin/login` and open **Volunteers**.
+2. Click **Reset password** next to them.
+3. You are shown a code once. Pass it on however you already talk to them.
+4. They enter it at `/volunteer/reset` with a new password.
+
+The code works once and expires after 24 hours.
+
 # If something goes wrong
 
 **The `/setup` page says "Setup is switched off."**

@@ -62,8 +62,9 @@ These are things that look done and are not:
    seeker start, message send, both sign-ins, and volunteer applications.
    Counters are keyed on an HMAC of the caller's address, never the address
    itself, and swept nightly by the purge.
-5. **No password reset, no MFA.** An admin account is a key to every transcript.
-   MFA for admins should not wait long.
+5. ~~No password reset, no MFA.~~ **Built.** TOTP for admins with recovery
+   codes, admin-issued reset codes for volunteers, and `pnpm reset:password`
+   for lockouts. Self-service reset by email still needs an email provider.
 6. ~~The Drizzle repositories have no test coverage at all.~~ **Built.**
    `NexusDatabase` is now the shared `PgDatabase` base class, so the same
    repositories run against Neon in production and a local Postgres under

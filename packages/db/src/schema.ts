@@ -84,6 +84,17 @@ export const volunteers = pgTable(
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),
     /** What the applicant said about themselves. Read by whoever approves them. */
     applicationNote: text("application_note"),
+
+    /**
+     * A one-time password reset, issued by an administrator.
+     *
+     * There is no email provider wired into Nexus, so a self-service reset
+     * link cannot be sent. An admin issues a code instead and passes it to the
+     * person however they already communicate — which for a small, vetted
+     * volunteer base is both workable and arguably safer than email.
+     */
+    resetCodeHash: text("reset_code_hash"),
+    resetExpiresAt: timestamp("reset_expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -99,6 +110,20 @@ export const admins = pgTable(
     displayName: text("display_name").notNull(),
     email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
+
+    /**
+     * TOTP seed, encrypted at rest. A leaked database must not hand over both
+     * the password hashes and the second factor meant to survive them.
+     */
+    totpSecret: text("totp_secret"),
+    /** Null until a code has been verified. Enrolling is not enabling. */
+    totpEnabledAt: timestamp("totp_enabled_at", { withTimezone: true }),
+    /**
+     * HMACs of unused recovery codes. Without these, enabling MFA is a way to
+     * lock yourself out of every transcript on the platform permanently.
+     */
+    recoveryCodeHashes: text("recovery_code_hashes").array().notNull().default([]),
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("admins_email_idx").on(t.email)],

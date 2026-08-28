@@ -25,3 +25,17 @@ export {
   SEEKER_SESSION_TTL_SECONDS,
   VOLUNTEER_SESSION_TTL_SECONDS,
 } from "./seeker.js";
+export {
+  generateTotpSecret,
+  totpCodeAt,
+  totpProvisioningUri,
+  verifyTotp,
+} from "./totp.js";
+export { base32Encode, base32Decode } from "./base32.js";
+export { sealSecret, openSecret } from "./secret-box.js";
+export {
+  generateRecoveryCodes,
+  hashRecoveryCode,
+  findRecoveryCode,
+  type RecoveryCodes,
+} from "./recovery.js";

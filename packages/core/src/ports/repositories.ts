@@ -137,6 +137,39 @@ export interface VolunteerRepository {
   passwordHashFor(email: string): Promise<string | null>;
   /** Total volunteers, approved or not. Used to gate first-run setup. */
   count(): Promise<number>;
+
+  /**
+   * Issues a one-time password reset.
+   *
+   * Nexus has no email provider, so nothing is sent — an administrator is
+   * shown the code once and passes it on however they already communicate
+   * with the person. For a small vetted volunteer base that is workable, and
+   * arguably safer than a link in an inbox.
+   */
+  issuePasswordReset(id: VolunteerId, codeHash: string, expiresAt: Date): Promise<void>;
+  /** The pending reset for an email, if there is one. */
+  pendingResetFor(email: string): Promise<{
+    readonly id: VolunteerId;
+    readonly codeHash: string;
+    readonly expiresAt: Date;
+  } | null>;
+  /** Sets the new password and clears the reset in one step. */
+  completePasswordReset(id: VolunteerId, passwordHash: string): Promise<void>;
+}
+
+/**
+ * An admin's second-factor state.
+ *
+ * Enrolled and enabled are separate on purpose: a secret is written when the
+ * QR code is shown, but MFA only takes effect once a code has been verified.
+ * Otherwise a half-finished setup locks someone out of their own account.
+ */
+export interface AdminMfa {
+  /** Encrypted TOTP seed, or null if never enrolled. */
+  readonly sealedSecret: string | null;
+  /** Null until a code proved the app is set up correctly. */
+  readonly enabledAt: Date | null;
+  readonly recoveryCodeHashes: readonly string[];
 }
 
 export interface AdminRepository {
@@ -150,6 +183,16 @@ export interface AdminRepository {
   /** Returns the stored hash, or null if there is no such admin. */
   passwordHashFor(email: string): Promise<string | null>;
   count(): Promise<number>;
+
+  mfaFor(id: AdminId): Promise<AdminMfa | null>;
+  /** Writes the secret without enabling. See `AdminMfa`. */
+  beginMfaEnrolment(id: AdminId, sealedSecret: string): Promise<void>;
+  /** Takes effect now. Replaces any previous recovery codes. */
+  completeMfaEnrolment(id: AdminId, recoveryCodeHashes: readonly string[]): Promise<void>;
+  disableMfa(id: AdminId): Promise<void>;
+  /** Replaces the stored set, so a used code cannot be used again. */
+  setRecoveryCodeHashes(id: AdminId, hashes: readonly string[]): Promise<void>;
+  setPasswordHash(id: AdminId, passwordHash: string): Promise<void>;
 }
 
 export interface FlagRepository {

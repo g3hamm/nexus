@@ -8,56 +8,49 @@ const FIELD =
   "h-11 rounded-md border border-line bg-surface px-3 text-ink outline-none " +
   "transition-colors focus:border-accent";
 
-export function AdminLoginForm() {
+export function VolunteerResetForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [needsCode, setNeedsCode] = useState(false);
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch("/api/admin/login", {
+      const response = await fetch("/api/volunteer/reset", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        // The password goes with the second step too. That is deliberate:
-        // it avoids issuing a half-authenticated token between the two,
-        // which is a thing that can be stolen or replayed.
-        body: JSON.stringify({ email, password, ...(code ? { code } : {}) }),
+        body: JSON.stringify({ email, code, password }),
       });
-
-      const body = (await response.json().catch(() => null)) as {
-        mfaRequired?: boolean;
-        error?: { message?: string };
-      } | null;
-
       if (!response.ok) {
-        setError(
-          needsCode
-            ? (body?.error?.message ?? "That code is not correct")
-            : "Email or password is incorrect",
-        );
+        const body = (await response.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
+        setError(body?.error?.message ?? "Something went wrong.");
         setBusy(false);
         return;
       }
-
-      if (body?.mfaRequired) {
-        setNeedsCode(true);
-        setBusy(false);
-        return;
-      }
-
-      router.push("/admin");
-      router.refresh();
+      setDone(true);
     } catch {
-      setError("Could not reach the server. Please try again.");
+      setError("Could not reach the server.");
       setBusy(false);
     }
+  }
+
+  if (done) {
+    return (
+      <Card>
+        <p className="text-ink font-medium">Your password is set.</p>
+        <Button className="mt-5 w-full" onClick={() => router.push("/volunteer/login")}>
+          Sign in
+        </Button>
+      </Card>
+    );
   }
 
   return (
@@ -78,47 +71,44 @@ export function AdminLoginForm() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="password" className="text-ink text-sm font-medium">
-            Password
+          <label htmlFor="code" className="text-ink text-sm font-medium">
+            Reset code
           </label>
+          <input
+            id="code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            required
+            placeholder="abcd-efgh-ijkl"
+            className={`${FIELD} font-mono`}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="password" className="text-ink text-sm font-medium">
+            New password
+          </label>
+          <p className="text-ink-subtle text-xs">
+            At least 12 characters. A short phrase beats a mangled word.
+          </p>
           <input
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            autoComplete="current-password"
+            autoComplete="new-password"
             className={FIELD}
           />
         </div>
-        {needsCode ? (
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="code" className="text-ink text-sm font-medium">
-              Authentication code
-            </label>
-            <p className="text-ink-subtle text-xs">
-              From your authenticator app, or one of your recovery codes.
-            </p>
-            <input
-              id="code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus
-              required
-              className={`${FIELD} font-mono`}
-            />
-          </div>
-        ) : null}
 
         {error ? (
           <p role="alert" className="text-danger text-sm">
             {error}
           </p>
         ) : null}
+
         <Button type="submit" busy={busy} className="mt-2">
-          {needsCode ? "Verify" : "Sign in"}
+          Set my password
         </Button>
       </form>
     </Card>
