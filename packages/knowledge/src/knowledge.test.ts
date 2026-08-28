@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { chunkDocument } from "./chunking.js";
 import { parseDocument } from "./load.js";
 import {
@@ -152,7 +152,30 @@ describe("createEmbeddingProvider", () => {
   it("refuses the hashing embedder in production", () => {
     expect(() =>
       createEmbeddingProvider({ provider: "hashing", isProduction: true }),
-    ).toThrow(/no semantic understanding/);
+    ).toThrow(/Refusing to start/);
+  });
+
+  // The refusal names the way out, the way KMS's does. A guard that blocks a
+  // deployment without saying what to set instead is a guard people work
+  // around by deleting it.
+  it("names both ways out when it refuses", () => {
+    expect(() =>
+      createEmbeddingProvider({ provider: "hashing", isProduction: true }),
+    ).toThrow(/NEXUS_EMBEDDING_PROVIDER='voyage'[\s\S]*NEXUS_ALLOW_HASHING_EMBEDDINGS/);
+  });
+
+  it("allows it in production when a trial deployment opts in explicitly", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      createEmbeddingProvider({
+        provider: "hashing",
+        isProduction: true,
+        allowHashingInProduction: true,
+      }).name,
+    ).toBe("hashing");
+    // Opting in is not the same as it being fine. Say so, every boot.
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/ungrounded/));
+    warn.mockRestore();
   });
 
   it("allows it in development", () => {

@@ -27,6 +27,16 @@ const envSchema = z.object({
 
   NEXUS_EMBEDDING_PROVIDER: z.string().default("hashing"),
   VOYAGE_API_KEY: z.string().optional(),
+  /**
+   * Lets a trial deployment run without a Voyage account.
+   *
+   * The knowledge base still answers, just badly — retrieval matches on shared
+   * words rather than meaning. Everything else in Nexus is unaffected.
+   */
+  NEXUS_ALLOW_HASHING_EMBEDDINGS: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
 
   NEXUS_REALTIME_PROVIDER: z.string().default("livekit"),
   LIVEKIT_URL: z.string().optional(),

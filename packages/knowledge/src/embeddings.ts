@@ -120,6 +120,8 @@ export interface EmbeddingConfig {
   readonly provider: string;
   readonly voyageApiKey?: string | undefined;
   readonly isProduction: boolean;
+  /** Trial deployments only. See docs/deploying.md. */
+  readonly allowHashingInProduction?: boolean | undefined;
 }
 
 export function createEmbeddingProvider(config: EmbeddingConfig): EmbeddingProvider {
@@ -128,11 +130,23 @@ export function createEmbeddingProvider(config: EmbeddingConfig): EmbeddingProvi
       return new VoyageEmbeddingProvider(config.voyageApiKey ?? "");
 
     case "hashing":
-      if (config.isProduction) {
+      if (config.isProduction && !config.allowHashingInProduction) {
         throw new NexusError(
           "provider_unavailable",
-          "The hashing embedder has no semantic understanding and must not " +
-            "back a production knowledge base. Set NEXUS_EMBEDDING_PROVIDER='voyage'.",
+          "Refusing to start: NEXUS_EMBEDDING_PROVIDER is 'hashing' in " +
+            "production. The hashing embedder matches on shared words, not " +
+            "meaning, so knowledge-base retrieval returns near-random passages " +
+            "and the sidebar cites them as though they were relevant. Set " +
+            "NEXUS_EMBEDDING_PROVIDER='voyage' and VOYAGE_API_KEY. To run a " +
+            "trial without a knowledge base, set " +
+            "NEXUS_ALLOW_HASHING_EMBEDDINGS='true'.",
+        );
+      }
+      if (config.isProduction) {
+        console.warn(
+          "[nexus] Running with the hashing embedder. Knowledge-base retrieval " +
+            "is not meaningful, so the sidebar's suggestions are ungrounded. " +
+            "Set NEXUS_EMBEDDING_PROVIDER='voyage' before real conversations.",
         );
       }
       return new HashingEmbeddingProvider();

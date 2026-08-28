@@ -302,6 +302,26 @@ when you turned it on.
 
 Two things to do whenever you deploy a newer version of the code.
 
+## If every sign-in page shows "This page couldn't load"
+
+The home page works but `/volunteer`, `/volunteer/login` and `/admin` all show
+a server error. This was a real bug, fixed on 28 August 2026: signing in built
+the knowledge base, and the knowledge base refuses to start in production
+without proper embeddings — so a setting that should only have affected the
+volunteer sidebar took down every page behind a login.
+
+Redeploying picks up the fix. If you also want the sidebar working without
+paying for a Voyage account, add this in Vercel under **Settings →
+Environment Variables**, tick all three environments, and redeploy:
+
+- **Key**: `NEXUS_ALLOW_HASHING_EMBEDDINGS`
+- **Value**: `true`
+
+The sidebar will then suggest verses and discussion points, but its
+apologetics lookups match on shared words rather than meaning, so treat what
+it cites with suspicion. For real conversations, set
+`NEXUS_EMBEDDING_PROVIDER` to `voyage` and add a `VOYAGE_API_KEY` instead.
+
 ## Re-run the setup file
 
 New versions sometimes add columns to the database. Nexus will show errors on

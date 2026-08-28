@@ -93,78 +93,174 @@ export interface Container {
 
 let instance: Container | null = null;
 
+/**
+ * Builds once, on first use, and never again.
+ *
+ * This is what makes the laziness above real rather than aspirational. It was
+ * aspirational for a while, and the bill came due on a deploy: the container
+ * constructed every subsystem eagerly, so a knowledge base that refused to
+ * start took down the volunteer sign-in page — a page that has no knowledge
+ * base, no LLM, and no realtime transport anywhere near it. Signing in should
+ * not be able to fail because of how retrieval is configured.
+ */
+function memo<T>(build: () => T): () => T {
+  let value: T;
+  let built = false;
+  return () => {
+    if (!built) {
+      value = build();
+      built = true;
+    }
+    return value;
+  };
+}
+
 export function container(): Container {
   if (instance) return instance;
 
   const config = env();
+  const production = isProduction();
 
-  const db = createDatabase(config.DATABASE_URL);
+  const db = memo(() => createDatabase(config.DATABASE_URL));
 
-  const crypto = createConversationCrypto({
-    provider: config.NEXUS_KMS_PROVIDER,
-    masterKeyBase64: config.NEXUS_MASTER_KEY,
-    awsKeyId: config.AWS_KMS_KEY_ID,
-    awsRegion: config.AWS_REGION,
-    isProduction: isProduction(),
-    allowInsecureLocalKeyInProduction: config.NEXUS_ALLOW_INSECURE_LOCAL_KMS,
-  });
+  const crypto = memo(() =>
+    createConversationCrypto({
+      provider: config.NEXUS_KMS_PROVIDER,
+      masterKeyBase64: config.NEXUS_MASTER_KEY,
+      awsKeyId: config.AWS_KMS_KEY_ID,
+      awsRegion: config.AWS_REGION,
+      isProduction: production,
+      allowInsecureLocalKeyInProduction: config.NEXUS_ALLOW_INSECURE_LOCAL_KMS,
+    }),
+  );
 
-  const llm = createLlmProvider({
-    provider: config.NEXUS_LLM_PROVIDER,
-    anthropicApiKey: config.ANTHROPIC_API_KEY,
-    isProduction: isProduction(),
-  });
+  const llm = memo(() =>
+    createLlmProvider({
+      provider: config.NEXUS_LLM_PROVIDER,
+      anthropicApiKey: config.ANTHROPIC_API_KEY,
+      isProduction: production,
+    }),
+  );
 
-  const embeddings = createEmbeddingProvider({
-    provider: config.NEXUS_EMBEDDING_PROVIDER,
-    voyageApiKey: config.VOYAGE_API_KEY,
-    isProduction: isProduction(),
-  });
+  const embeddings = memo(() =>
+    createEmbeddingProvider({
+      provider: config.NEXUS_EMBEDDING_PROVIDER,
+      voyageApiKey: config.VOYAGE_API_KEY,
+      isProduction: production,
+      allowHashingInProduction: config.NEXUS_ALLOW_HASHING_EMBEDDINGS,
+    }),
+  );
 
-  const knowledge = new PgVectorKnowledgeBase(db, embeddings);
+  const knowledge = memo(() => new PgVectorKnowledgeBase(db(), embeddings()));
 
   // Widest coverage first, our own copy last. API.Bible reaches languages no
   // public-domain text covers; the database is the floor that cannot go down.
-  const bible = new CompositeBibleProvider([
-    ...(config.API_BIBLE_KEY ? [new ApiBibleProvider(config.API_BIBLE_KEY)] : []),
-    new DatabaseBibleProvider(db),
-  ]);
+  const bible = memo(
+    () =>
+      new CompositeBibleProvider([
+        ...(config.API_BIBLE_KEY ? [new ApiBibleProvider(config.API_BIBLE_KEY)] : []),
+        new DatabaseBibleProvider(db()),
+      ]),
+  );
 
-  const realtime = createRealtimeTransport({
-    provider: config.NEXUS_REALTIME_PROVIDER,
-    url: config.LIVEKIT_URL,
-    apiKey: config.LIVEKIT_API_KEY,
-    apiSecret: config.LIVEKIT_API_SECRET,
-    isProduction: isProduction(),
-  });
+  const realtime = memo(() =>
+    createRealtimeTransport({
+      provider: config.NEXUS_REALTIME_PROVIDER,
+      url: config.LIVEKIT_URL,
+      apiKey: config.LIVEKIT_API_KEY,
+      apiSecret: config.LIVEKIT_API_SECRET,
+      isProduction: production,
+    }),
+  );
+
+  const conversations = memo(() => new DrizzleConversationRepository(db(), crypto()));
+  const messages = memo(() => new DrizzleMessageRepository(db(), crypto()));
+  const volunteers = memo(() => new DrizzleVolunteerRepository(db()));
+  const admins = memo(() => new DrizzleAdminRepository(db()));
+  const flags = memo(() => new DrizzleFlagRepository(db(), crypto()));
+  const audit = memo(() => new DrizzleAuditLog(db()));
+  const translator = memo(() => new LlmTranslator(llm()));
+  const sessions = memo(() => new SessionSigner(config.NEXUS_SESSION_SECRET));
+  const judge = memo(() => new LlmJudge(llm()));
+  const scheduler = memo(() => new CadenceModerationScheduler());
+  const alerts = memo(() =>
+    createAlertChannel({ webhookUrl: config.NEXUS_ALERT_WEBHOOK_URL }),
+  );
+  const practice = memo(() => new LlmPracticePartner(llm()));
+  const enablement = memo(() => new LlmEnablementEngine(llm(), knowledge()));
+
+  // Keyed on an HMAC of the caller's address under the session secret, so the
+  // counter table never holds a recoverable IP. See PostgresRateLimiter.
+  const rateLimiter = memo(() =>
+    production
+      ? new PostgresRateLimiter(db(), config.NEXUS_SESSION_SECRET)
+      : new InMemoryRateLimiter(),
+  );
 
   instance = {
-    db,
-    crypto,
-    conversations: new DrizzleConversationRepository(db, crypto),
-    messages: new DrizzleMessageRepository(db, crypto),
-    volunteers: new DrizzleVolunteerRepository(db),
-    admins: new DrizzleAdminRepository(db),
-    flags: new DrizzleFlagRepository(db, crypto),
-    audit: new DrizzleAuditLog(db),
-    llm,
-    translator: new LlmTranslator(llm),
-    realtime,
-    sessions: new SessionSigner(config.NEXUS_SESSION_SECRET),
-    // Keyed on an HMAC of the caller's address under the session secret, so
-    // the counter table never holds a recoverable IP. See PostgresRateLimiter.
-    rateLimiter: isProduction()
-      ? new PostgresRateLimiter(db, config.NEXUS_SESSION_SECRET)
-      : new InMemoryRateLimiter(),
-    judge: new LlmJudge(llm),
-    moderationScheduler: new CadenceModerationScheduler(),
-    alerts: createAlertChannel({ webhookUrl: config.NEXUS_ALERT_WEBHOOK_URL }),
+    get db() {
+      return db();
+    },
+    get crypto() {
+      return crypto();
+    },
+    get conversations() {
+      return conversations();
+    },
+    get messages() {
+      return messages();
+    },
+    get volunteers() {
+      return volunteers();
+    },
+    get admins() {
+      return admins();
+    },
+    get flags() {
+      return flags();
+    },
+    get audit() {
+      return audit();
+    },
+    get llm() {
+      return llm();
+    },
+    get translator() {
+      return translator();
+    },
+    get realtime() {
+      return realtime();
+    },
+    get sessions() {
+      return sessions();
+    },
+    get rateLimiter() {
+      return rateLimiter();
+    },
+    get judge() {
+      return judge();
+    },
+    get moderationScheduler() {
+      return scheduler();
+    },
+    get alerts() {
+      return alerts();
+    },
+    get practice() {
+      return practice();
+    },
+    get enablement() {
+      return enablement();
+    },
+    get knowledge() {
+      return knowledge();
+    },
+    get bible() {
+      return bible();
+    },
+    // Plain values. Neither can fail, so neither needs deferring.
     publicUrl: publicUrl(config.NEXUS_PUBLIC_URL),
     alertsDeliver: Boolean(config.NEXUS_ALERT_WEBHOOK_URL?.trim()),
-    practice: new LlmPracticePartner(llm),
-    enablement: new LlmEnablementEngine(llm, knowledge),
-    knowledge,
-    bible,
   };
 
   return instance;
