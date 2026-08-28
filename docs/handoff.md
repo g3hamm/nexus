@@ -18,6 +18,16 @@ overturn.
 - Authentication for volunteers, anonymous sessions for seekers.
 - **One end-to-end path**: a seeker arrives writing any language, is matched to
   a volunteer, and both hold a live translated conversation. 14 tests cover it.
+- A crisis pathway that runs on static data — verified per-country helplines,
+  card text in 19 languages, and an international directory that is always
+  shown. No model call, no network call, no database read, so it renders when
+  everything else is down. See ADR 8.
+- Honest coverage. The front door and the waiting screen never promise a
+  volunteer who is not there, and admins see the state of the rota on the page
+  they already check.
+- A volunteer training sandbox: nine deliberately difficult simulated seekers,
+  eight of them writing in a language the volunteer does not read, running on
+  the real conversation surface, with an honest debrief afterwards. See ADR 9.
 
 `pnpm verify` runs typecheck, lint, tests, and build across everything.
 
@@ -34,6 +44,20 @@ records the decisions already taken — read it before designing:
 | `@nexus/moderation` | The judge and its scheduling            |
 
 They are already constructed in `container.ts`, so the wiring points exist.
+
+## Safeguarding is a policy question, not a code question
+
+The crisis pathway gives a ministry somewhere to put its decisions. It does
+not make them, and nothing in this repository can:
+
+- Who is on call, and what they do when the webhook fires at 3am.
+- What the church's obligations are when a disclosure arrives from a
+  jurisdiction none of its staff are in.
+- What happens when the person writing is plainly a child.
+- What is said to a volunteer after they have sat with something hard.
+
+Someone needs to own these before the first real seeker, and it should not be
+whoever is on shift when it first comes up.
 
 ## Known gaps — read this section first
 

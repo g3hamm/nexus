@@ -301,6 +301,34 @@ describe("ModerationService", () => {
     expect(textOf(alone)).toMatch(/you are the person here/i);
   });
 
+  // The load-bearing safety property of the training sandbox. Practice
+  // scenarios are deliberately hostile and one of them is built to reach a
+  // disclosure of self-harm; without this the sandbox would fill the admin
+  // queue with flags, exempt rehearsals from the retention purge, and page
+  // somebody at two in the morning over an exercise.
+  it("never reviews a practice session", async () => {
+    const conversation = await h.conversations.createPractice({
+      volunteerId: fakeVolunteer().id,
+      volunteerLanguage: "en",
+      seekerLanguage: "ru",
+      scenario: "at-risk",
+      retainUntil: new Date(Date.now() + 14 * 86_400_000),
+    });
+    await h.messages.append({
+      conversationId: conversation.id,
+      authorRole: "seeker",
+      authorId: null,
+      originalLanguage: "ru",
+      renderings: [{ language: "ru", text: "я не знаю", source: "original" }],
+    });
+    h.judge.willReturn(verdict({ action: "escalate_crisis", severity: "critical" }));
+
+    expect(await h.service.reviewIfDue(conversation.id)).toBeNull();
+    expect(h.judge.reviews).toHaveLength(0);
+    expect(h.flags.raised).toHaveLength(0);
+    expect(h.alerts.sent).toHaveLength(0);
+  });
+
   it("never reviews a conversation that has already ended", async () => {
     const conversation = await activeConversation(h);
     await h.conversations.end(conversation.id, "ended");

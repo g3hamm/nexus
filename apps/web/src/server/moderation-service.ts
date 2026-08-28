@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { ConversationId, ConversationWindow, ModerationVerdict } from "@nexus/core";
-import { requiresHumanReview } from "@nexus/core";
+import { isPractice, requiresHumanReview } from "@nexus/core";
 import type { Container } from "./container";
 
 /**
@@ -55,6 +55,16 @@ export class ModerationService {
       if (conversation.status !== "active" && conversation.status !== "waiting") {
         return null;
       }
+
+      // Training sessions are not moderated, and this is the load-bearing
+      // line that makes the sandbox safe to build on the real surface. The
+      // scenarios are deliberately hostile, one of them is built to reach a
+      // disclosure of self-harm, and every one of them would otherwise
+      // produce flags in the admin queue, conversations exempted from the
+      // retention purge, and — in the worst case — a webhook waking somebody
+      // at two in the morning over an exercise. The volunteer still sees the
+      // crisis card; see PracticeService, which raises it directly.
+      if (isPractice(conversation)) return null;
 
       const messages = await this.#c.messages.listForConversation(conversationId, {
         limit: this.#windowSize,

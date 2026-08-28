@@ -59,6 +59,15 @@ export interface Conversation {
    * treats the person differently because of it.
    */
   readonly crisisRaisedAt: Date | null;
+  /**
+   * The practice scenario this conversation is an exercise in, or null.
+   *
+   * Non-null makes it a training session: a real conversation row on the real
+   * surface, so the volunteer practises the product rather than a mock, but
+   * one that never enters the seeker queue, is never reviewed by the judge,
+   * and never pages anyone. See `isPractice`.
+   */
+  readonly practiceScenario: string | null;
   readonly endedAt: Date | null;
   /**
    * When the transcript becomes eligible for purge. Null means "keep",

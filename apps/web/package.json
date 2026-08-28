@@ -23,6 +23,7 @@
     "@nexus/knowledge": "workspace:*",
     "@nexus/llm": "workspace:*",
     "@nexus/moderation": "workspace:*",
+    "@nexus/practice": "workspace:*",
     "@nexus/realtime": "workspace:*",
     "@nexus/translation": "workspace:*",
     "@nexus/ui": "workspace:*",

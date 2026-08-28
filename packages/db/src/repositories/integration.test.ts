@@ -170,6 +170,83 @@ describeIfDb("repositories against real Postgres", () => {
     });
   });
 
+  describe("practice sessions", () => {
+    // The one thing that must never happen: a volunteer looking for someone
+    // who needs help is handed somebody's rehearsal. Practice conversations
+    // are born matched so they cannot reach the waiting query anyway, and the
+    // query filters them out as well — this proves both.
+    it("never appear in the waiting queue", async () => {
+      const helper = await newVolunteer({ approved: true });
+      await conversations().createPractice({
+        volunteerId: helper.id,
+        volunteerLanguage: "en",
+        seekerLanguage: "es",
+        scenario: "grief-mother",
+        retainUntil: new Date(Date.now() + 14 * 86_400_000),
+      });
+
+      expect(await conversations().findWaiting(10)).toHaveLength(0);
+    });
+
+    it("open already matched, so there is nothing to claim", async () => {
+      const helper = await newVolunteer({ approved: true });
+      const session = await conversations().createPractice({
+        volunteerId: helper.id,
+        volunteerLanguage: "en",
+        seekerLanguage: "fa",
+        scenario: "hidden-convert",
+        retainUntil: new Date(Date.now() + 14 * 86_400_000),
+      });
+
+      expect(session.status).toBe("active");
+      expect(session.volunteerId).toBe(helper.id);
+      expect(session.matchedAt).not.toBeNull();
+      expect(session.practiceScenario).toBe("hidden-convert");
+      expect(session.translationRequired).toBe(true);
+    });
+
+    // Same envelope encryption as a real conversation. A volunteer's fumbling
+    // first attempt at the self-harm scenario is not something to leave in
+    // plaintext for the next administrator to read.
+    it("encrypt their transcript like any other conversation", async () => {
+      const helper = await newVolunteer({ approved: true });
+      const session = await conversations().createPractice({
+        volunteerId: helper.id,
+        volunteerLanguage: "en",
+        seekerLanguage: "es",
+        scenario: "grief-mother",
+        retainUntil: new Date(Date.now() + 14 * 86_400_000),
+      });
+
+      await messages().append({
+        conversationId: session.id,
+        authorRole: "volunteer",
+        authorId: helper.id,
+        originalLanguage: "en",
+        renderings: [{ language: "en", text: "unique-practice-phrase", source: "original" }],
+      });
+
+      const raw = await db.execute(
+        sql`select ciphertext from messages where conversation_id = ${session.id}`,
+      );
+      const stored = JSON.stringify(raw.rows ?? raw);
+      expect(stored).not.toContain("unique-practice-phrase");
+    });
+
+    it("skips translation when both sides share a language", async () => {
+      const helper = await newVolunteer({ approved: true });
+      const session = await conversations().createPractice({
+        volunteerId: helper.id,
+        volunteerLanguage: "en",
+        seekerLanguage: "en",
+        scenario: "deconstructing",
+        retainUntil: new Date(Date.now() + 14 * 86_400_000),
+      });
+
+      expect(session.translationRequired).toBe(false);
+    });
+  });
+
   describe("coverage", () => {
     it("reports nobody on when the roster is empty", async () => {
       expect(await volunteers().coverage()).toEqual({

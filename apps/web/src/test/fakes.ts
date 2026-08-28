@@ -2,6 +2,11 @@ import type {
   AlertChannel,
   AppendMessageInput,
   Coverage,
+  PracticeDebrief,
+  PracticeExchange,
+  PracticePartner,
+  PracticeScenario,
+  PracticeTurn,
   AuditEntry,
   AuditLog,
   OperationalAlert,
@@ -18,6 +23,7 @@ import type {
   ConversationId,
   ConversationRepository,
   CreateConversationInput,
+  CreatePracticeInput,
   LanguageCode,
   Message,
   MessageId,
@@ -29,6 +35,7 @@ import type {
 import {
   NexusError,
   asConversationId,
+  asSeekerId,
   coverageStateFrom,
   asFlagId,
   asMessageId,
@@ -64,6 +71,31 @@ export class FakeConversationRepository implements ConversationRepository {
       matchedAt: null,
       lastModeratedAt: null,
       crisisRaisedAt: null,
+      practiceScenario: null,
+      endedAt: null,
+      retainUntil: input.retainUntil,
+    };
+    this.rows.set(id, conversation);
+    return conversation;
+  }
+
+  async createPractice(input: CreatePracticeInput): Promise<Conversation> {
+    const id = asConversationId(`practice-${++this.#seq}`);
+    const conversation: Conversation = {
+      id,
+      seekerId: asSeekerId(`practice_${id}`),
+      volunteerId: input.volunteerId,
+      status: "active",
+      roomId: asRoomId(`nexus-${id}`),
+      modality: "text",
+      seekerLanguage: input.seekerLanguage,
+      volunteerLanguage: input.volunteerLanguage,
+      translationRequired: !sameLanguage(input.seekerLanguage, input.volunteerLanguage),
+      startedAt: new Date(),
+      matchedAt: new Date(),
+      lastModeratedAt: null,
+      crisisRaisedAt: null,
+      practiceScenario: input.scenario,
       endedAt: null,
       retainUntil: input.retainUntil,
     };
@@ -490,5 +522,58 @@ export class RecordingAlertChannel implements AlertChannel {
 export class FailingAlertChannel implements AlertChannel {
   async send(): Promise<void> {
     throw new Error("webhook exploded");
+  }
+}
+
+/**
+ * A scripted practice partner.
+ *
+ * Turns are queued and handed out in order, so a test can say exactly when
+ * the simulated seeker discloses risk or walks away, rather than hoping a
+ * model does.
+ */
+export class StubPracticePartner implements PracticePartner {
+  readonly seen: PracticeExchange[][] = [];
+  readonly debriefedIn: string[] = [];
+  #turns: PracticeTurn[] = [];
+  #fail = false;
+
+  willSay(...turns: readonly Partial<PracticeTurn>[]): this {
+    this.#turns = turns.map((t) => ({
+      text: t.text ?? "…",
+      ends: t.ends ?? false,
+      disclosesRisk: t.disclosesRisk ?? false,
+    }));
+    return this;
+  }
+
+  willFail(): this {
+    this.#fail = true;
+    return this;
+  }
+
+  async reply(
+    _scenario: PracticeScenario,
+    exchanges: readonly PracticeExchange[],
+  ): Promise<PracticeTurn> {
+    if (this.#fail) throw new Error("partner unavailable");
+    this.seen.push([...exchanges]);
+    return this.#turns.shift() ?? { text: "…", ends: false, disclosesRisk: false };
+  }
+
+  async debrief(
+    _scenario: PracticeScenario,
+    _exchanges: readonly PracticeExchange[],
+    language: string,
+  ): Promise<PracticeDebrief> {
+    this.debriefedIn.push(language);
+    return {
+      summary: "You stayed with her.",
+      strengths: [],
+      growth: [],
+      harms: [],
+      missed: [],
+      readiness: "with_support",
+    };
   }
 }

@@ -4,12 +4,14 @@ import {
   NexusError,
   asConversationId,
   crisisResourcesFor,
+  isPractice,
   languageCodeSchema,
   RATE_LIMITS,
 } from "@nexus/core";
 import { container } from "@/server/container";
 import { ConversationService } from "@/server/conversation-service";
 import { ModerationService } from "@/server/moderation-service";
+import { PracticeService } from "@/server/practice-service";
 import { countryFor } from "@/server/geo";
 import { errorResponse, ok } from "@/server/http";
 import { enforceRateLimit } from "@/server/rate-limit";
@@ -175,11 +177,17 @@ export async function POST(
       language: parsed.data.language ?? participant.language,
     });
 
-    // The judge runs after the response is sent, never in front of it.
-    // Moderation is important, but nobody should watch a spinner while a
-    // second model decides whether their message was acceptable — and the
-    // scheduler means most sends do no work here at all.
+    // Both of these run after the response is sent, never in front of it.
+    //
+    // In a real conversation the judge looks, and the scheduler means most
+    // sends do no work at all — nobody should watch a spinner while a second
+    // model decides whether their message was acceptable. In a practice
+    // session the other side answers instead, and the judge never runs.
     after(async () => {
+      if (isPractice(participant.conversation)) {
+        await new PracticeService(c).respond(participant.conversation.id);
+        return;
+      }
       await new ModerationService(c).reviewIfDue(participant.conversation.id);
     });
 

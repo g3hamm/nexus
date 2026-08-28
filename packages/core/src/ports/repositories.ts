@@ -52,6 +52,15 @@ export interface ConversationRepository {
     volunteerLanguage: LanguageCode,
   ): Promise<Conversation | null>;
   end(id: ConversationId, reason: "ended" | "terminated"): Promise<void>;
+  /**
+   * Opens a volunteer's practice session.
+   *
+   * Separate from `create` because a practice conversation is born already
+   * matched — there is no queue to wait in and no seeker to wait for, and
+   * routing one through the normal path would put it in front of a real
+   * volunteer looking for a real person.
+   */
+  createPractice(input: CreatePracticeInput): Promise<Conversation>;
   markUnderReview(id: ConversationId): Promise<void>;
   /** Stamps when the judge last looked, so the cadence can be computed. */
   markModerated(id: ConversationId, at: Date): Promise<void>;
@@ -117,6 +126,17 @@ export interface MessageRepository {
    * for the same language rather than accumulating duplicates.
    */
   addRendering(id: MessageId, rendering: Rendering): Promise<Message>;
+}
+
+export interface CreatePracticeInput {
+  readonly volunteerId: VolunteerId;
+  readonly volunteerLanguage: LanguageCode;
+  /** The language the simulated seeker writes in. */
+  readonly seekerLanguage: LanguageCode;
+  /** Scenario id. Its presence is what marks the conversation as practice. */
+  readonly scenario: string;
+  /** Short. A rehearsal is not something to keep for ninety days. */
+  readonly retainUntil: Date;
 }
 
 export interface VolunteerRepository {
@@ -256,7 +276,11 @@ export type AuditAction =
   | "volunteer.suspended"
   | "knowledge.updated"
   | "auth.login"
-  | "auth.failed";
+  | "auth.failed"
+  /** A volunteer opened a training session. Never a real conversation. */
+  | "practice.started"
+  /** A volunteer read their debrief. The band is recorded; the notes are not. */
+  | "practice.debriefed";
 
 export interface AuditEntry {
   readonly action: AuditAction;

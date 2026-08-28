@@ -14,6 +14,7 @@ import type {
   LlmProvider,
   MessageRepository,
   ModerationScheduler,
+  PracticePartner,
   RateLimiter,
   RealtimeTransport,
   Translator,
@@ -35,6 +36,7 @@ import {
 } from "@nexus/db";
 import { createLlmProvider } from "@nexus/llm";
 import { createAlertChannel } from "@nexus/alerts";
+import { LlmPracticePartner } from "@nexus/practice";
 import { createRealtimeTransport } from "@nexus/realtime";
 import { LlmTranslator } from "@nexus/translation";
 import { LlmEnablementEngine } from "@nexus/enablement";
@@ -81,6 +83,8 @@ export interface Container {
   readonly publicUrl: string | null;
   /** Whether alerts actually leave the building. Governs what we tell people. */
   readonly alertsDeliver: boolean;
+  /** The difficult simulated seeker, and the coach afterwards. */
+  readonly practice: PracticePartner;
   /** Wave two. Constructed here so the wiring point is already obvious. */
   readonly enablement: EnablementEngine;
   readonly knowledge: KnowledgeBase;
@@ -157,6 +161,7 @@ export function container(): Container {
     alerts: createAlertChannel({ webhookUrl: config.NEXUS_ALERT_WEBHOOK_URL }),
     publicUrl: publicUrl(config.NEXUS_PUBLIC_URL),
     alertsDeliver: Boolean(config.NEXUS_ALERT_WEBHOOK_URL?.trim()),
+    practice: new LlmPracticePartner(llm),
     enablement: new LlmEnablementEngine(llm, knowledge),
     knowledge,
     bible,

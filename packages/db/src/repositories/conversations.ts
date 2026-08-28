@@ -5,6 +5,7 @@ import type {
   ConversationId,
   ConversationRepository,
   CreateConversationInput,
+  CreatePracticeInput,
   LanguageCode,
   VolunteerId,
 } from "@nexus/core";
@@ -50,6 +51,48 @@ export class DrizzleConversationRepository implements ConversationRepository {
     return toConversation(row);
   }
 
+  /**
+   * Opens a practice session, already matched to the volunteer running it.
+   *
+   * It gets its own data key and its own encrypted transcript like any other
+   * conversation. That is not ceremony: a volunteer rehearsing the self-harm
+   * scenario writes the same kind of thing they would write to a real person,
+   * and their own fumbling first attempts are not something to leave lying
+   * around in plaintext for the next administrator to read.
+   */
+  async createPractice(input: CreatePracticeInput): Promise<Conversation> {
+    const id = asConversationId(crypto.randomUUID());
+    const dataKey = await this.#crypto.createDataKey(id);
+
+    const rows = await this.#db
+      .insert(conversations)
+      .values({
+        id,
+        // A handle in the same shape as a real seeker's, so nothing
+        // downstream has to special-case it — but derived from the
+        // conversation, since there is nobody on the other end to identify.
+        seekerId: `practice_${id}`,
+        volunteerId: input.volunteerId,
+        volunteerLanguage: input.volunteerLanguage,
+        seekerLanguage: input.seekerLanguage,
+        translationRequired: !sameLanguage(input.seekerLanguage, input.volunteerLanguage),
+        // Born active. There is no queue to wait in.
+        status: "active",
+        matchedAt: sql`now()`,
+        modality: "text",
+        roomId: `nexus-${id}`,
+        wrappedKey: dataKey.wrapped,
+        keyId: dataKey.keyId,
+        practiceScenario: input.scenario,
+        retainUntil: input.retainUntil,
+      })
+      .returning();
+
+    const row = rows[0];
+    if (!row) throw new Error("Insert returned no practice conversation row");
+    return toConversation(row);
+  }
+
   async findById(id: ConversationId): Promise<Conversation | null> {
     const rows = await this.#db
       .select()
@@ -64,7 +107,16 @@ export class DrizzleConversationRepository implements ConversationRepository {
     const rows = await this.#db
       .select()
       .from(conversations)
-      .where(and(eq(conversations.status, "waiting"), isNull(conversations.volunteerId)))
+      .where(
+        and(
+          eq(conversations.status, "waiting"),
+          isNull(conversations.volunteerId),
+          // Belt and braces. Practice sessions are born matched so they
+          // cannot reach this query anyway, but a volunteer looking for
+          // someone who needs help must never be handed an exercise.
+          isNull(conversations.practiceScenario),
+        ),
+      )
       // Oldest first: nobody should be overtaken in the queue.
       .orderBy(asc(conversations.startedAt))
       .limit(limit);

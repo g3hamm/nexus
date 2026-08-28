@@ -16,6 +16,8 @@ const ENV_KEYS: Record<LlmTask, string> = {
   enablement: "NEXUS_MODEL_ENABLEMENT",
   moderation: "NEXUS_MODEL_MODERATION",
   knowledge_synthesis: "NEXUS_MODEL_KNOWLEDGE",
+  practice: "NEXUS_MODEL_PRACTICE",
+  practice_debrief: "NEXUS_MODEL_PRACTICE_DEBRIEF",
 };
 
 /**
@@ -36,6 +38,12 @@ export const TASK_DEFAULTS: Record<
   enablement: { effort: "high", maxTokens: 8000 },
   moderation: { effort: "high", maxTokens: 4000 },
   knowledge_synthesis: { effort: "medium", maxTokens: 8000 },
+  // In the latency path of a live exercise, and short: one message from a
+  // person who is upset, not an essay.
+  practice: { effort: "medium", maxTokens: 1500 },
+  // Off the critical path, read once, and acted on for years. Worth thinking
+  // about properly.
+  practice_debrief: { effort: "high", maxTokens: 8000 },
 };
 
 export class StaticModelRouter implements LlmModelRouter {
@@ -48,6 +56,8 @@ export class StaticModelRouter implements LlmModelRouter {
       enablement: overrides.enablement ?? DEFAULT_MODEL,
       moderation: overrides.moderation ?? DEFAULT_MODEL,
       knowledge_synthesis: overrides.knowledge_synthesis ?? DEFAULT_MODEL,
+      practice: overrides.practice ?? DEFAULT_MODEL,
+      practice_debrief: overrides.practice_debrief ?? DEFAULT_MODEL,
     };
   }
 

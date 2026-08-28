@@ -25,7 +25,11 @@ export type LlmTask =
   | "language_detection"
   | "enablement"
   | "moderation"
-  | "knowledge_synthesis";
+  | "knowledge_synthesis"
+  /** Playing the difficult seeker in a volunteer's practice session. */
+  | "practice"
+  /** Marking that practice session afterwards. */
+  | "practice_debrief";
 
 export type LlmEffort = "low" | "medium" | "high";
 

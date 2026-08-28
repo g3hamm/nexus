@@ -1,0 +1,1 @@
+ALTER TABLE "conversations" ADD COLUMN "practice_scenario" text;

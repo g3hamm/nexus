@@ -43,6 +43,13 @@
       "when": 1787890092195,
       "tag": "0005_fancy_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787891318713,
+      "tag": "0006_mushy_magdalene",
+      "breakpoints": true
     }
   ]
 }

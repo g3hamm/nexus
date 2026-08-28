@@ -290,7 +290,110 @@ happening to any future account.
 Add it (any long random string) under Settings → Environment Variables and
 redeploy. Without it, every conversation is kept forever.
 
-**You forgot the volunteer password.**
-There is no password reset yet. In Neon's SQL Editor, run
-`DELETE FROM volunteers;` then repeat Part 2 — the setup page reopens once no
-volunteers exist.
+**Somebody forgot their password.**
+See "Helping a volunteer who forgot their password" above — an administrator
+issues a one-time code from the roster. If it is *your* administrator password
+that is lost and two-factor is on, you need the recovery codes you were shown
+when you turned it on.
+
+---
+
+# After updating Nexus
+
+Two things to do whenever you deploy a newer version of the code.
+
+## Re-run the setup file
+
+New versions sometimes add columns to the database. Nexus will show errors on
+the pages that use them until you do this.
+
+Open `docs/setup.sql`, copy all of it, paste it into Neon's **SQL Editor**, and
+click **Run** — exactly as in Part 1. It is safe to run on a database that
+already has conversations in it: it only adds what is missing and leaves
+everything else alone.
+
+## Check the review queue still opens
+
+Sign in at `/admin` and make sure the page loads. If it shows an error
+mentioning a column, the step above has not been done yet.
+
+---
+
+# Being told when somebody is in danger
+
+Nexus watches conversations for signs that someone may be about to hurt
+themselves. When it sees one, three things happen straight away: the person
+is shown emergency numbers for their own country in their own language, the
+volunteer is told, and the conversation is held for review.
+
+The fourth thing — telling one of *your* people, immediately — only happens if
+you set this up.
+
+## Set up the alert
+
+1. In **Microsoft Teams**, open the channel your leaders actually watch. Click
+   the **⋯** beside the channel name → **Workflows** → choose **"Post to a
+   channel when a webhook request is received"**. Follow it through and copy
+   the web address it gives you at the end.
+
+   In **Slack** instead: go to `api.slack.com/apps`, create an app for your
+   workspace, turn on **Incoming Webhooks**, add one to a channel, and copy the
+   address.
+
+2. In Vercel: **Settings → Environment Variables → Add New**.
+   - **Key**: `NEXUS_ALERT_WEBHOOK_URL`
+   - **Value**: the address you copied
+   - Tick all three environments, then **Save**.
+
+3. Redeploy (**Deployments → ⋯ on the newest → Redeploy**).
+
+## What gets posted
+
+A short line saying a conversation was escalated, and a link to open it. It
+never contains anything the person said. Those words stay encrypted in the
+database, behind your administrator login, where they belong — a Teams channel
+is readable by everyone in it and is outside every protection Nexus provides.
+
+## If you do not set this up
+
+That is a supported way to run Nexus, and nothing breaks. What changes is what
+the volunteer is told: instead of "an administrator has been alerted", they are
+told plainly that nobody has been paged and that right now they are the person
+here. That is deliberate. Software should not tell someone in the worst moment
+of their week that help is coming when it is not.
+
+**Decide who is on the other end of this before you switch it on.** An alert
+firing into a channel nobody is watching at 3am is worse than no alert, because
+it feels like a plan.
+
+---
+
+# Letting volunteers practise
+
+New volunteers can rehearse before they ever meet a real person. Sign in as a
+volunteer and click **Practice**.
+
+There are nine scenarios and they are meant to be hard: a mother furious about
+her son's death, someone who left the church and knows the arguments better
+than most pastors, somebody looking for a fight, a woman told her illness was
+her own lack of faith, a man asking for money. Eight of the nine are written in
+a language the volunteer will not read, because that is what this work is
+actually like.
+
+Nothing about a practice session is real. It never appears in the queue, no
+real person is waiting, nothing is flagged for you to review, and **nobody is
+alerted** — including in the one scenario that reaches somebody talking about
+ending their life. That scenario is there on purpose, so the first time a
+volunteer meets it is not the first time it is real. It is marked clearly, and
+they can stop at any point.
+
+When they finish, they get written feedback on how it went: what they did well,
+what to work on, anything they said that would have hurt a real person, and a
+plain reading of whether they look ready. Only they see it. Nexus does not keep
+it.
+
+**This costs money.** Every practice message is an AI request, like a real
+conversation. A session is perhaps a dozen of them plus the feedback at the
+end. It is worth it — but it is not free, so it is worth knowing that a
+volunteer who works through all nine scenarios costs about as much as a busy
+afternoon of real conversations.

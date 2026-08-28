@@ -52,4 +52,12 @@ export const RATE_LIMITS = {
   login: { scope: "auth.login", limit: 10, windowSeconds: 900 },
   /** Volunteer applications. Nobody applies twice in an hour in good faith. */
   volunteerApply: { scope: "volunteer.apply", limit: 3, windowSeconds: 3600 },
+  /**
+   * Starting a practice session.
+   *
+   * Tighter than anything else here, because this is the one action a signed
+   * -in volunteer can take that spends model budget on demand — a session is
+   * a dozen calls, and a stuck button should cost one of them, not twenty.
+   */
+  practiceStart: { scope: "practice.start", limit: 12, windowSeconds: 3600 },
 } as const satisfies Record<string, RateLimitRule>;

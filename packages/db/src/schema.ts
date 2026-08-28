@@ -161,6 +161,8 @@ export const conversations = pgTable(
     lastModeratedAt: timestamp("last_moderated_at", { withTimezone: true }),
     /** When someone here was first judged to be at risk. Set once, never cleared. */
     crisisRaisedAt: timestamp("crisis_raised_at", { withTimezone: true }),
+    /** Non-null makes this a volunteer's practice session, not a real one. */
+    practiceScenario: text("practice_scenario"),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     /** Null means "retain indefinitely", which is what a flag sets. */
     retainUntil: timestamp("retain_until", { withTimezone: true }),
