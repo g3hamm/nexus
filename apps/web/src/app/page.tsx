@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { CoverageState } from "@nexus/core";
 import { SeekerEntry } from "@/components/SeekerEntry";
 import { container } from "@/server/container";
@@ -32,12 +33,31 @@ export default async function HomePage() {
   const coverage = await coverageState();
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center px-6 py-12">
+    <main className="relative mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center px-6 py-12">
+      {/* Volunteers arrive here too, and were expected to remember a URL
+          nobody told them. It says "volunteer" rather than "sign in" because
+          the line under the box promises a seeker there is no account to
+          make, and a bare login link two inches above it makes that read
+          like a lie. Small, grey, and out of the way for the same reason
+          every other element on this page had to justify itself.
+
+          It points at /volunteer rather than the login page, so somebody
+          already signed in lands on their queue instead of a form. No session
+          is read here — that would make the front door dynamic, and this page
+          is cached precisely so it is the fastest thing a distressed person
+          opens all day. */}
+      <Link
+        href="/volunteer"
+        className="text-ink-subtle hover:text-ink-muted absolute end-0 top-0 p-5 text-sm transition-colors"
+      >
+        Volunteer sign in
+      </Link>
+
       <div className="w-full">
         <h1 className="text-ink text-balance text-center font-serif text-3xl leading-snug sm:text-4xl">
           Is something on your mind?
         </h1>
-        <p className="text-ink-muted mt-4 text-center text-lg text-balance">
+        <p className="text-ink-muted mt-4 text-balance text-center text-lg">
           {invitationFor(coverage)}
         </p>
 
@@ -50,7 +70,6 @@ export default async function HomePage() {
         <p className="text-ink-subtle mt-8 text-center text-sm">
           No account. No email. Nothing to sign up for.
         </p>
-
       </div>
     </main>
   );
