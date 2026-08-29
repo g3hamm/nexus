@@ -10,15 +10,15 @@
  * textured mark at low opacity turns it to mud. `dark:invert` puts it back for
  * a viewer in dark mode, where the original was right all along.
  *
- * Deliberately quiet. This is a credit line, not a masthead: nobody arrives at
- * this product to find out who made it, and a seeker least of all.
+ * Deliberately quiet, and the mark alone. This is a credit line, not a
+ * masthead: nobody arrives at this product to find out who made it, and a
+ * seeker least of all.
  */
 export function BrandFooter() {
   return (
-    <footer className="flex shrink-0 flex-col items-center gap-1.5 px-6 py-5">
-      <span className="text-ink-subtle text-[0.6875rem] tracking-wide">
-        A ministry of
-      </span>
+    <footer className="flex shrink-0 items-center justify-center px-6 py-5">
+      {/* The mark alone. It already carries the name; a line of text above it
+          saying so again was a caption a logo does not need. */}
       <img
         src="/nexus-logo.webp"
         alt="Nexus Global Mission"

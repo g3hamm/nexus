@@ -65,7 +65,26 @@ export function Composer({
         placeholder={placeholder}
         className={field("lg", "max-h-40 min-h-12 flex-1 resize-none")}
       />
-      <Button type="submit" busy={busy} disabled={disabled || text.trim().length === 0}>
+      {/*
+        `lg`, to match the field beside it.
+
+        The default `md` button is 44px against a 52px field, and bottom-
+        aligning them left the send button visibly short and squarer than the
+        box it belongs to. Button and field sizes are built to pair — an `lg`
+        button is the same height and radius as an `lg` field — so the fix is
+        to say so rather than to nudge a margin.
+
+        The label stays at the field's own size. `lg` bumps type to 19px,
+        which is right for the front door's full-width "Start talking" and too
+        loud for a Send button sitting next to what someone is writing.
+      */}
+      <Button
+        type="submit"
+        size="lg"
+        className="text-base"
+        busy={busy}
+        disabled={disabled || text.trim().length === 0}
+      >
         Send
       </Button>
     </form>
