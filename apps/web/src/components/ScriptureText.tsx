@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { referenceDetector } from "@nexus/bible/detect";
 import { Spinner } from "@nexus/ui";
 
@@ -21,6 +22,16 @@ interface Passage {
  * the cache survives a message list re-rendering.
  */
 const CACHE = new Map<string, Passage>();
+
+/** Matches the width class on the card; the two have to agree to centre it. */
+const CARD_WIDTH = 320;
+/** Roughly how tall a card gets, used only to decide above or below. */
+const CARD_MAX_HEIGHT = 220;
+const MARGIN = 16;
+
+function clamp(value: number, low: number, high: number): number {
+  return Math.min(Math.max(value, low), high);
+}
 
 /**
  * Renders message text with any scripture references made interactive.
@@ -82,6 +93,10 @@ function VerseLink({
   const [passage, setPassage] = useState<Passage | null>(null);
   const [loading, setLoading] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [at, setAt] = useState<{ left: number; top: number; below: boolean } | null>(
+    null,
+  );
 
   const cacheKey = `${language}:${reference.book}.${reference.chapter}.${reference.verse ?? ""}.${reference.endVerse ?? ""}`;
 
@@ -117,7 +132,35 @@ function VerseLink({
     }
   }, [cacheKey, label, language, reference]);
 
+  /**
+   * Where the card should sit, in viewport coordinates.
+   *
+   * Above the reference by preference, below it when there is no room above —
+   * a reference in the first line of a long message would otherwise open a
+   * card half off the top of the screen. Clamped to the viewport on both
+   * sides so a reference near an edge does not push the passage out of reach.
+   */
+  const place = useCallback(() => {
+    const el = trigger.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    const width = Math.min(CARD_WIDTH, window.innerWidth - 2 * MARGIN);
+    const below = rect.top < CARD_MAX_HEIGHT + MARGIN;
+
+    setAt({
+      left: clamp(
+        rect.left + rect.width / 2 - width / 2,
+        MARGIN,
+        Math.max(MARGIN, window.innerWidth - width - MARGIN),
+      ),
+      top: below ? rect.bottom + 8 : rect.top - 8,
+      below,
+    });
+  }, []);
+
   function show() {
+    place();
     setOpen(true);
     void load();
   }
@@ -139,9 +182,24 @@ function VerseLink({
     };
   }, []);
 
+  // The card is fixed to the viewport, so it has to be told when the thing it
+  // is pointing at moves. Capture phase, because the transcript that scrolls
+  // is an inner element and a scroll there does not bubble.
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => place();
+    window.addEventListener("scroll", reposition, true);
+    window.addEventListener("resize", reposition);
+    return () => {
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+    };
+  }, [open, place]);
+
   return (
-    <span className="relative inline-block">
+    <span className="inline-block">
       <button
+        ref={trigger}
         type="button"
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}
@@ -160,47 +218,62 @@ function VerseLink({
         {label}
       </button>
 
-      {open ? (
-        <span
-          role="tooltip"
-          // Width is clamped to the viewport, not just to a breakpoint: a
-          // reference near the edge of a narrow screen pushed a fixed-width
-          // card off the side, where the passage could not be read at all.
-          className="border-line bg-surface shadow-lifted absolute bottom-full left-1/2 z-20 mb-2 block w-[min(20rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border p-3 text-left text-sm font-normal"
-        >
-          {loading && !passage ? (
-            <span className="flex justify-center py-2">
-              <Spinner className="text-ink-subtle" />
-            </span>
-          ) : passage?.found ? (
-            <>
-              <span className="text-ink-subtle block text-xs">
-                {passage.reference}
-                {passage.translationName ? ` · ${passage.translationName}` : ""}
-              </span>
-              <span dir="auto" className="text-ink mt-1.5 block leading-relaxed">
-                {passage.verses?.map((v) => (
-                  <span key={v.verse}>
-                    {passage.verses!.length > 1 ? (
-                      <sup className="text-ink-subtle mr-0.5">{v.verse}</sup>
-                    ) : null}
-                    {v.text}{" "}
-                  </span>
-                ))}
-              </span>
-              {passage.copyright ? (
-                <span className="text-ink-subtle mt-2 block text-xs">
-                  {passage.copyright}
+      {open && at
+        ? createPortal(
+            /*
+              In a portal, fixed to the viewport.
+              
+              It used to be absolutely positioned beside the reference, which
+              put it inside the transcript — and a scroll container clips its
+              children on both axes, so a card next to a message near the right
+              edge was sliced off mid-sentence and left a stray horizontal
+              scrollbar under the conversation. Nothing can clip it from out
+              here.
+            */
+            <span
+              role="tooltip"
+              style={{
+                left: at.left,
+                top: at.top,
+                transform: at.below ? undefined : "translateY(-100%)",
+              }}
+              className="border-line bg-surface shadow-lifted fixed z-50 block max-h-[60vh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border p-3 text-left text-sm font-normal"
+            >
+              {loading && !passage ? (
+                <span className="flex justify-center py-2">
+                  <Spinner className="text-ink-subtle" />
                 </span>
-              ) : null}
-            </>
-          ) : (
-            <span className="text-ink-muted block">
-              {`No text is available for ${passage?.reference ?? label} in this language yet.`}
-            </span>
-          )}
-        </span>
-      ) : null}
+              ) : passage?.found ? (
+                <>
+                  <span className="text-ink-subtle block text-xs">
+                    {passage.reference}
+                    {passage.translationName ? ` · ${passage.translationName}` : ""}
+                  </span>
+                  <span dir="auto" className="text-ink mt-1.5 block leading-relaxed">
+                    {passage.verses?.map((v) => (
+                      <span key={v.verse}>
+                        {passage.verses!.length > 1 ? (
+                          <sup className="text-ink-subtle mr-0.5">{v.verse}</sup>
+                        ) : null}
+                        {v.text}{" "}
+                      </span>
+                    ))}
+                  </span>
+                  {passage.copyright ? (
+                    <span className="text-ink-subtle mt-2 block text-xs">
+                      {passage.copyright}
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                <span className="text-ink-muted block">
+                  {`No text is available for ${passage?.reference ?? label} in this language yet.`}
+                </span>
+              )}
+            </span>,
+            document.body,
+          )
+        : null}
     </span>
   );
 }

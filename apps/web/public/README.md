@@ -1,7 +1,12 @@
 # Images and static files
 
-Currently empty, on purpose. The team has not settled on a brand, so the
-interface uses type and colour only and presumes nothing.
+One file: `nexus-logo.webp`, the Nexus Global Mission mark, shown as a credit
+line at the foot of every page by `BrandFooter`. It is the inverted copy — the
+supplied mark is pale grey drawn for a dark background, and inverting it once
+at rest beats filtering it in CSS, which turns a textured mark to mud.
+
+Nothing else, on purpose. The team has not settled on a brand for the product
+itself, so the interface uses type and colour only and presumes nothing.
 
 ## When you do have artwork
 

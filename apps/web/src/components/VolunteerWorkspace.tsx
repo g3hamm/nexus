@@ -60,7 +60,7 @@ export function VolunteerWorkspace({
   }, []);
 
   return (
-    <div className="flex h-dvh flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       {/*
         A swipe nobody knows about is a feature nobody uses, so the two pages
         are named. Hidden on desktop, where both are simply visible.
@@ -81,7 +81,12 @@ export function VolunteerWorkspace({
       <div
         ref={scroller}
         className={[
-          "mx-auto flex min-h-0 w-full max-w-7xl flex-1",
+          // Full width on purpose. Capping this centred the pair and left the
+          // panel floating in the middle of a wide screen with dead space
+          // beside it; the conversation column has its own reading width, so
+          // the room is better spent putting the panel against the edge where
+          // the eye expects it.
+          "flex min-h-0 w-full flex-1",
           // Phone: two pages, one per screen, snapping.
           "snap-x snap-mandatory overflow-x-auto overscroll-x-contain",
           // Desktop: an ordinary two-column layout again.

@@ -32,7 +32,7 @@ export default async function SeekerChatPage({
   if (!conversation) redirect("/");
 
   return (
-    <div className="h-dvh">
+    <div className="flex min-h-0 flex-1 flex-col">
       <ChatWindow conversationId={id} viewerRole="seeker" />
     </div>
   );

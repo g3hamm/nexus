@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { BrandFooter } from "@/components/BrandFooter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,7 +23,17 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-canvas text-ink min-h-dvh antialiased">{children}</body>
+      {/*
+        A column, so the credit line sits under the page rather than over it.
+        Pages that want the whole viewport — a conversation, which is all
+        composer and transcript — take `flex-1` and get what is left after the
+        footer, instead of measuring themselves against the viewport and
+        pushing it off the bottom.
+      */}
+      <body className="bg-canvas text-ink flex min-h-dvh flex-col antialiased">
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <BrandFooter />
+      </body>
     </html>
   );
 }

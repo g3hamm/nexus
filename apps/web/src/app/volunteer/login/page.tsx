@@ -9,7 +9,7 @@ export default async function VolunteerLoginPage() {
   if (await staffSession()) redirect("/volunteer");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-16">
       <h1 className="text-ink font-serif text-2xl">Volunteer sign in</h1>
       <p className="text-ink-muted mt-2">Sign in to see who is waiting to talk.</p>
       <div className="mt-8">

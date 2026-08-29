@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function VolunteerResetPage() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-16">
       <h1 className="text-ink font-serif text-2xl">Set a new password</h1>
       <p className="text-ink-muted mt-2">
         Use the code an administrator gave you. If you do not have one, ask them to issue

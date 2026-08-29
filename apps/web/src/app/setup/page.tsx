@@ -29,7 +29,7 @@ export default async function SetupPage() {
   const adminOnly = volunteers > 0 && admins === 0;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-6 py-16">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-6 py-16">
       <h1 className="text-ink font-serif text-2xl">Set up Nexus</h1>
 
       {!enabled ? (

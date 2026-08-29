@@ -33,7 +33,7 @@ export default async function HomePage() {
   const coverage = await coverageState();
 
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center px-6 py-12">
+    <main className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6 py-12">
       {/* Volunteers arrive here too, and were expected to remember a URL
           nobody told them. It says "volunteer" rather than "sign in" because
           the line under the box promises a seeker there is no account to
