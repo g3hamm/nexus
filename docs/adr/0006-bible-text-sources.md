@@ -16,26 +16,41 @@ legal question before it is a technical one.
 
 A layered `BibleProvider`:
 
-1. **`DatabaseBibleProvider`** — public-domain text we host ourselves, loaded
-   with `pnpm bible:load`. No key, no outbound request, no licensing exposure.
+1. **`DatabaseBibleProvider`** — public-domain text a ministry has vetted and
+   loaded itself with `pnpm bible:load`. No key, no outbound request, no
+   licensing exposure.
+2. **`BundledBibleProvider`** — the World English Bible, in the repository.
 
-   Originally this said "shipped with the app". It is in the database instead:
-   a full translation is several megabytes, and bundling that into a
-   serverless function to serve one verse is the wrong shape. What the
-   guarantee below actually needs is that lookup never depends on a third
-   party at request time, and self-hosting satisfies that — the text simply
-   arrives by a loader rather than by `git clone`.
+   This has changed its mind twice. It first said "shipped with the app", then
+   moved to the database on the grounds that a full translation is several
+   megabytes and bundling that into a serverless function to serve one verse
+   is the wrong shape. That reasoning was sound and the conclusion was wrong,
+   because it optimised the wrong thing. A floor that only exists after
+   somebody runs a terminal command is not a floor — and in practice nobody
+   ran it, so for most of this project's life scripture lookup returned
+   nothing at all while every layer above it reported working correctly.
 
-2. **`ApiBibleProvider`** — scripture.api.bible for the long tail: 2,500+
-   versions across 1,600+ languages. Requires `API_BIBLE_KEY`. Each version
-   carries its own attribution and usage restrictions.
-3. **`CompositeBibleProvider`** — tries the remote catalogue, falls back to
-   bundled text.
+   Four megabytes, parsed once on the first lookup and never at import time,
+   costs about thirty milliseconds. An empty database costs the feature. The
+   WEB is public domain worldwide with no attribution required, so there is no
+   licence to breach by shipping it, and it is modern English rather than
+   Jacobean.
+
+   It is one translation in one language, and it sits underneath the other two
+   so that a better answer wins whenever one exists.
+
+3. **`ApiBibleProvider`** — scripture.api.bible for the long tail: 2,500+
+   versions across 1,600+ languages. Requires `API_BIBLE_KEY`, and is entirely
+   optional. Each version carries its own attribution and usage restrictions.
+4. **`CompositeBibleProvider`** — tries them in order of how good an answer
+   they can give this particular reader: the remote catalogue, then the
+   ministry's own translations, then the bundled WEB.
 
 ## Rationale
 
-- **Scripture lookup must never fail because a third party is down.** A
-  bundled floor guarantees it.
+- **Scripture lookup must never fail because a third party is down, or
+  because a deployment step was skipped.** A bundled floor guarantees both,
+  and only the second of those was ever actually at risk.
 - Public domain means zero legal exposure and full freedom to cache, index, and
   serve offline.
 - The remote catalogue is where the language coverage actually is, and Nexus's
@@ -47,7 +62,10 @@ A layered `BibleProvider`:
 
 - **Do not self-host copyrighted translations.** They are licensed
   individually, and several files circulating as free downloads are not
-  actually public domain — NVI, RVR 1960 and ARA among them. `bible:load`
+  actually public domain — NVI, RVR 1960, ARA, and the standard Korean and
+  Portuguese revisions among them. Anything added to `src/data` has to be
+  checked rather than assumed; `src/data/README.md` records where the WEB came
+  from and how to rebuild it. `bible:load`
   refuses to run without an explicit `--public-domain` flag, so asserting it
   is a deliberate act by whoever loads the file rather than a default.
   `TranslationInfo.copyright` carries required attribution to the UI, and it

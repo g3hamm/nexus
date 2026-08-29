@@ -3,4 +3,4 @@ dist
 .next
 .turbo
 pnpm-lock.yaml
-packages/bible/data
+packages/bible/src/data/web.json

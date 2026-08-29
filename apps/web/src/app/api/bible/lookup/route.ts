@@ -52,17 +52,13 @@ export async function GET(request: NextRequest) {
     const passage = await container().bible.lookup(reference, { language });
 
     if (!passage) {
-      // Two very different situations look identical from here, and telling
-      // them apart is the difference between "we do not have that verse in
-      // Farsi" and "nobody ever gave this deployment a Bible". The second one
-      // is a setup step somebody forgot, and it should say so rather than
-      // implying the reference was the problem.
-      const configured = (await container().bible.listTranslations()).length > 0;
-      return ok({
-        found: false,
-        configured,
-        reference: formatReference(reference),
-      });
+      // This used to distinguish "we do not have that verse in Farsi" from
+      // "nobody ever gave this deployment a Bible", because the second was a
+      // forgotten setup step and saying so was the only useful thing to
+      // report. There is no longer a way to reach it: the World English Bible
+      // ships in the code, so the only remaining miss is a reference nothing
+      // available carries.
+      return ok({ found: false, reference: formatReference(reference) });
     }
 
     return ok({

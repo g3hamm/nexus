@@ -302,20 +302,26 @@ when you turned it on.
 
 Two things to do whenever you deploy a newer version of the code.
 
-## Making Bible references work
+## Bible references
 
-When somebody types "Numbers 31" or "John 3:16", olivechat underlines it and
-shows the passage on hover. If instead you see **"No Bible text has been set up
-on this site yet"**, that is exactly what has happened — the feature works,
-there is simply no scripture for it to show. Nothing is broken.
+Nothing to do. When somebody types "Numbers 31" or "John 3:16", olivechat
+underlines it and shows the passage — the **World English Bible** ships inside
+the code, so it works the moment you deploy. No key, no account, no database
+step, nothing to switch on.
 
-There are two ways to give it some. The first needs no terminal.
+It is public domain worldwide, which is why there is no attribution line under
+the passage and nothing for you to agree to.
 
-### The easy way: a free API.Bible key
+**It is English only, and that is the one real limit.** A seeker reading
+Portuguese who taps a reference gets the passage in English, labelled as
+English. That is worse than the right answer and much better than a blank
+card, and there are two ways to improve on it when you want to.
 
-This is the better option anyway — it reaches languages that no
-public-domain text covers, which matters for a product where seekers write in
-Farsi, Arabic and Chinese.
+### Optional: wider language coverage with API.Bible
+
+This reaches 1,600+ languages, which matters for a product where seekers write
+in Farsi, Arabic and Chinese. It is optional, and everything keeps working
+without it.
 
 1. Go to **scripture.api.bible** and create a free account.
 2. Create an application when it asks. Copy the **API key** it gives you.
@@ -325,26 +331,29 @@ Farsi, Arabic and Chinese.
    - Tick all three environments, then **Save**.
 4. Redeploy (**Deployments → ⋯ on the newest → Redeploy**).
 
-Hover a reference. It should now show the passage.
+Each version there carries its own attribution and usage terms, which the app
+renders under the passage.
 
-### The other way: load a public-domain translation yourself
+### Optional: load your own translation
 
-This one needs somebody comfortable at a command line, and a downloaded
-public-domain Bible file. It stores the text in your own database, so it keeps
-working with no third party involved:
+This one needs somebody comfortable at a command line and a downloaded Bible
+file. It stores the text in your own database, so it keeps working with no
+third party involved:
 
 ```
-pnpm bible:load --file ./web.txt --translation WEB --language en --public-domain
+pnpm bible:load --file ./rv1909.json --id RV1909 --name "Reina-Valera 1909" \
+  --language es --public-domain
 ```
 
-Only public-domain translations may be loaded this way — the World English
-Bible, the King James Version, the American Standard Version. The command
-refuses to run without the `--public-domain` flag, on purpose: most modern
-translations are copyrighted and self-hosting them is not something to do by
-accident.
+Only public-domain translations may be loaded this way. The command refuses to
+run without the `--public-domain` flag, on purpose: most modern translations
+are copyrighted, several files circulating as free downloads are not actually
+free — NVI, RVR 1960 and ARA among them — and self-hosting one is not something
+to do by accident.
 
-If you set up both, API.Bible is tried first and your own copy is the fallback,
-so a bad afternoon at their end does not take scripture off the screen.
+Whatever you set up, they are tried in the order that gives a seeker the best
+answer: API.Bible first, then your own translations, then the bundled English.
+A bad afternoon at anyone else's end cannot take scripture off the screen.
 
 ## If a page says the deployment is newer than its database
 

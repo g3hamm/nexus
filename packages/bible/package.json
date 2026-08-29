@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Scripture lookup and in-message reference detection. Public-domain text bundled; API.Bible optional.",
+  "description": "Scripture lookup and in-message reference detection. The World English Bible ships with the package; API.Bible optional.",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -20,7 +20,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/copy-data.mjs",
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",

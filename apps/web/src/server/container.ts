@@ -44,6 +44,7 @@ import { PgVectorKnowledgeBase, createEmbeddingProvider } from "@nexus/knowledge
 import { CadenceModerationScheduler, LlmJudge } from "@nexus/moderation";
 import {
   ApiBibleProvider,
+  BundledBibleProvider,
   CompositeBibleProvider,
   DatabaseBibleProvider,
 } from "@nexus/bible";
@@ -153,13 +154,20 @@ export function container(): Container {
 
   const knowledge = memo(() => new PgVectorKnowledgeBase(db(), embeddings()));
 
-  // Widest coverage first, our own copy last. API.Bible reaches languages no
-  // public-domain text covers; the database is the floor that cannot go down.
+  // Widest coverage first, the shipped copy last.
+  //
+  // API.Bible reaches languages no public-domain text covers, and a ministry
+  // may have loaded its own vetted translations into the database — both are
+  // better answers for a seeker than English. Underneath them sits the World
+  // English Bible, in this repository, needing no key and no load step: it is
+  // the floor, and it is a floor precisely because nothing has to be done to
+  // it before it holds.
   const bible = memo(
     () =>
       new CompositeBibleProvider([
         ...(config.API_BIBLE_KEY ? [new ApiBibleProvider(config.API_BIBLE_KEY)] : []),
         new DatabaseBibleProvider(db()),
+        new BundledBibleProvider(),
       ]),
   );
 

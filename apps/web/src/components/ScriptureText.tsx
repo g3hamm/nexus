@@ -7,7 +7,6 @@ import { Spinner } from "@nexus/ui";
 interface Passage {
   readonly found: boolean;
   /** False when no Bible source is set up at all, rather than this one verse missing. */
-  readonly configured?: boolean;
   readonly reference: string;
   readonly translationName?: string;
   readonly copyright?: string | null;
@@ -197,13 +196,7 @@ function VerseLink({
             </>
           ) : (
             <span className="text-ink-muted block">
-              {/* Honest about which of the two things went wrong. "Not in this
-                  language" sends a volunteer looking for a translation; "no
-                  Bible configured" sends them to an administrator, which is
-                  where the fix actually is. */}
-              {passage?.configured === false
-                ? "No Bible text has been set up on this site yet."
-                : `No text is available for ${passage?.reference ?? label} in this language yet.`}
+              {`No text is available for ${passage?.reference ?? label} in this language yet.`}
             </span>
           )}
         </span>
