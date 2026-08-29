@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CoverageState } from "@nexus/core";
+import { BelongAnimation } from "@/components/BelongAnimation";
 import { SeekerEntry } from "@/components/SeekerEntry";
 import { container } from "@/server/container";
 
@@ -54,8 +55,11 @@ export default async function HomePage() {
       </Link>
 
       <div className="w-full">
-        <h1 className="text-ink text-balance text-center font-serif text-3xl leading-snug sm:text-4xl">
-          Is something on your mind?
+        {/* `min-h` reserves room for the longest translation wrapping onto a
+            second line, so a language change mid-cycle cannot shove the
+            subtitle and the form down the page while someone is reading. */}
+        <h1 className="text-ink flex min-h-24 items-center justify-center text-balance text-center font-serif text-3xl leading-snug sm:min-h-28 sm:text-4xl">
+          <BelongAnimation />
         </h1>
         <p className="text-ink-muted mt-4 text-balance text-center text-lg">
           {invitationFor(coverage)}

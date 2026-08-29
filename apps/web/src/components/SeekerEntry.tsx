@@ -103,7 +103,11 @@ export function SeekerEntry() {
         onKeyDown={onKeyDown}
         rows={4}
         maxLength={4000}
-        placeholder="Write here…"
+        // The question the heading used to ask, moved down to the point of
+        // action. "Write here" told a visitor where to click and nothing
+        // about what for; the actual invitation belongs on the field they
+        // are about to use it in.
+        placeholder="What's on your mind?"
         className={field("lg", "shadow-soft resize-none p-5 text-lg")}
       />
 
