@@ -22,5 +22,9 @@ export default async function SeekerChatPage({
   if (!conversation) notFound();
   if (conversation.seekerId !== session.subject) redirect("/");
 
-  return <ChatWindow conversationId={id} viewerRole="seeker" />;
+  return (
+    <div className="h-dvh">
+      <ChatWindow conversationId={id} viewerRole="seeker" />
+    </div>
+  );
 }

@@ -1,83 +1,38 @@
 # Images and static files
 
-## What is in here now
+Currently empty, on purpose. The team has not settled on a brand, so the
+interface uses type and colour only and presumes nothing.
 
-| File | Where it appears |
-|---|---|
-| `olivechat-mark.webp` | Landing page, sign-in pages, application form |
-| — | **Still the flat wordmark with no pimento.** Regenerate this lockup from the textured wordmark so it matches the header. |
-| `olivechat-wordmark.webp` | Chat header (seeker's side), volunteer dashboard |
-| `olive-upperleft.webp`, `olive-bottomright.webp` | Corner frame, desktop only |
-| `nexus-logo.webp` | Attribution footer |
+## When you do have artwork
 
-The originals were 5.7 MB of PNG; these are 300 KB of WebP at the sizes they
-are actually displayed. If you replace one, resize it to roughly twice its
-display size and export WebP — do not commit a 2000 x 2000 PNG for a box that
-is 200 px wide.
+Anything in this folder is served from the site root — `public/logo.svg` is
+reachable at `/logo.svg` and referenced in a component as
+`<img src="/logo.svg" alt="…" />`.
 
-The Nexus mark was supplied pale grey on transparent, drawn for a dark
-background. It is inverted here so it reads on the warm canvas. If Nexus ever
-supplies a dark version, use that instead.
+**Icons belong in `src/app/`, not here.** Next.js recognises these by filename
+and writes the `<head>` tags itself — no code change, no import:
 
-
-Anything in this folder is served from the site root. `public/logo.svg` is
-reachable at `/logo.svg`, and referenced in a component as:
-
-```tsx
-<img src="/logo.svg" alt="Nexus" />
-```
-
-Put brand images here: a logo, a wordmark, an illustration, anything a page
-refers to by URL. **Do not put icons here** — see below, they belong somewhere
-else and Next.js wires them up on its own.
-
-## The brand font
-
-**Bernoru**, and it is already baked into the wordmark images — the app never
-loads it, and no page needs it installed.
-
-It is deliberately not the interface font. See the comment on `--font-sans` in
-`packages/ui/src/tokens.css` for the reasoning; the short version is that a
-Latin display face cannot set text for a product people write to in Farsi,
-Arabic, Chinese, Korean, Hindi and Russian. Everyone whose script it does not
-cover would fall back to whatever their device chose, so the brand would show
-up for a minority of seekers and nobody else.
-
-If you want Bernoru on screen rather than in a picture, the defensible place
-is a large Latin-only heading on a staff page — and it needs a webfont licence
-first. Do not put it in `--font-sans`.
-
-## Icons go in `src/app/`, not here
-
-Next.js recognises these by filename and puts the right tags in `<head>`
-automatically. No code change, no import, nothing to register — drop the file
-in `apps/web/src/app/` and it works on the next deploy.
-
-| File | What it becomes | Suggested size |
+| File | Becomes | Size |
 |---|---|---|
 | `icon.png` (or `.svg`, `.ico`) | Browser tab favicon | 512 × 512 |
 | `apple-icon.png` | iOS home-screen icon | 180 × 180 |
-| `opengraph-image.png` | The picture on a shared link | 1200 × 630 |
+| `opengraph-image.png` | Picture on a shared link | 1200 × 630 |
 
-If both `icon.png` and a `favicon.ico` exist, the `.ico` wins. Pick one.
-
-## Two things specific to Nexus
-
-**Link previews are deliberately limited.** The root layout sets
-`robots: { index: false, follow: false }` — a seeker may be somewhere this page
-is best not advertised, and that decision predates any logo. An
-`opengraph-image` still renders where someone pastes the link into a chat, but
-this site is not meant to be found by searching.
+## Two things specific to this product
 
 **Keep files small.** Seekers arrive on cheap phones over slow mobile networks,
 often the worst connection of anyone who will ever load this page. Prefer SVG
-for anything flat — a logo, a wordmark — because it is usually a couple of
-kilobytes and stays sharp at any size. For photographs use WebP, and keep them
-under about 200 KB.
+for anything flat; export photographs as WebP under about 200 KB. Resize to
+roughly twice the display size — a 2000 × 2000 source for a 200 px box is
+several megabytes spent on nothing.
 
-## Nothing here is private
+**Nothing here is private.** Every file is downloadable by anyone who guesses
+the URL, whether or not a page links to it. Never put a document, an export, or
+anything about a person in this folder.
 
-This folder is public by definition: every file in it is downloadable by anyone
-who guesses the URL, whether or not a page links to it. Never put a document,
-an export, a screenshot of a conversation, or anything with a person's details
-in here.
+## The brand font, for whenever branding is decided
+
+Bernoru was used for an earlier wordmark. If it comes back, keep it in the
+artwork and out of `--font-sans`: a Latin display face cannot set text for a
+product people write to in Farsi, Arabic, Chinese, Korean, Hindi and Russian.
+See the comment on `--font-sans` in `packages/ui/src/tokens.css`.

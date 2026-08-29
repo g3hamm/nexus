@@ -69,17 +69,15 @@
 
   /* ── Type ───────────────────────────────────────────────────────────── */
   /*
-   * The brand face is Bernoru, and it is deliberately not in this stack.
+   * Whatever brand face is eventually chosen, it belongs in the artwork and
+   * not in this stack.
    *
-   * It sets the olivechat wordmark, where it belongs — but the wordmark is a
-   * picture, so nothing here has to load it. Promoting it to the interface
-   * font would be the obvious next step and would be a mistake, for a reason
-   * that has nothing to do with taste: a Latin display face cannot set this
-   * product's text. People write here in Farsi, Arabic, Chinese, Korean,
-   * Hindi and Russian, and a font with no coverage for those scripts falls
-   * back silently — so the one seeker whose language it does cover gets the
-   * brand, and everyone else gets whatever their device chose. That is worse
-   * than picking one stack that treats every script the same way.
+   * A Latin display face cannot set this product's text. People write here in
+   * Farsi, Arabic, Chinese, Korean, Hindi and Russian, and a font with no
+   * coverage for those scripts falls back silently — so the one seeker whose
+   * language it covers gets the brand and everyone else gets whatever their
+   * device chose. One stack that treats every script the same way is better
+   * than a brand that only shows up for a minority of the people it is for.
    *
    * Hence the Noto entries below. They are not padding; they are the reason a
    * Devanagari message and an English one look like the same product.
@@ -189,11 +187,11 @@ html {
 body {
   /* The canvas colour lives here and *only* here, deliberately.
      A background on the root element paints as the canvas itself, above which
-     nothing can go — so anything decorative sitting behind the page (see
-     OliveFrame) is invisible. Declared on `body` alone, it propagates to the
-     canvas and `body` paints no background of its own, which leaves a layer
-     underneath for a negative z-index to occupy. Moving this line up to
-     `html` looks harmless and silently deletes the olive branches. */
+     nothing can go — so anything decorative placed behind the page is
+     invisible. Declared on `body` alone it propagates to the canvas, `body`
+     paints no background of its own, and a layer remains underneath for a
+     negative z-index to occupy. Moving this line up to `html` looks harmless
+     and silently deletes anything sitting back there. */
   background-color: var(--color-canvas);
   color: var(--color-ink);
   font-size: var(--text-base);
@@ -202,11 +200,16 @@ body {
   overflow-x: hidden;
 }
 
-/* Everyone gets a visible focus ring. Keyboard use is not an edge case. */
+/*
+ * Everyone gets a visible focus ring. Keyboard use is not an edge case.
+ *
+ * No `border-radius` here. Setting it changes the *element's* own radius while
+ * focused, so a rounded-lg text box visibly squared off the moment you clicked
+ * into it. An outline already follows the element's radius on its own.
+ */
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
 }
 
 /* Respect a stated preference for less motion. */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type KeyboardEvent } from "react";
-import { Button } from "@nexus/ui";
+import { Button, field } from "@nexus/ui";
 
 export function Composer({
   onSend,
@@ -63,7 +63,7 @@ export function Composer({
         maxLength={4000}
         disabled={disabled}
         placeholder={placeholder}
-        className="border-line bg-surface text-ink placeholder:text-ink-subtle focus:border-accent max-h-40 min-h-12 flex-1 resize-none rounded-lg border px-4 py-3 text-base outline-none transition-colors disabled:opacity-60"
+        className={field("lg", "max-h-40 min-h-12 flex-1 resize-none")}
       />
       <Button type="submit" busy={busy} disabled={disabled || text.trim().length === 0}>
         Send

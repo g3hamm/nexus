@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, Spinner } from "@nexus/ui";
+import { Button, Card, Spinner, field } from "@nexus/ui";
 
 interface Status {
   readonly enrolled: boolean;
@@ -125,7 +125,7 @@ export function MfaSettings() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="123456"
-            className="border-line bg-surface text-ink focus:border-accent h-11 flex-1 rounded-md border px-3 outline-none transition-colors"
+            className={field("md", "flex-1")}
           />
           <Button
             variant="danger"
@@ -182,7 +182,7 @@ export function MfaSettings() {
             inputMode="numeric"
             autoComplete="one-time-code"
             placeholder="123456"
-            className="border-line bg-surface text-ink focus:border-accent h-11 flex-1 rounded-md border px-3 font-mono outline-none transition-colors"
+            className={field("md", "flex-1 font-mono")}
           />
           <Button
             busy={busy}

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Button, Card } from "@nexus/ui";
+import { Button, Card, field } from "@nexus/ui";
 
 export function VolunteerLoginForm() {
   const router = useRouter();
@@ -57,7 +57,7 @@ export function VolunteerLoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            className="border-line bg-surface text-ink focus:border-accent h-11 rounded-md border px-3 outline-none transition-colors"
+            className={field("md")}
           />
         </div>
 
@@ -72,7 +72,7 @@ export function VolunteerLoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            className="border-line bg-surface text-ink focus:border-accent h-11 rounded-md border px-3 outline-none transition-colors"
+            className={field("md")}
           />
         </div>
 

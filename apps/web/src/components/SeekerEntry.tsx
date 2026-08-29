@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
-import { Button } from "@nexus/ui";
+import { Button, field } from "@nexus/ui";
 
 /**
  * The entry point. A text box, and one optional line above it.
@@ -74,7 +74,7 @@ export function SeekerEntry() {
 
   return (
     <form onSubmit={start} className="w-full">
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
         <label htmlFor="seeker-name" className="text-ink-muted text-sm">
           What can we call you?
         </label>
@@ -86,7 +86,7 @@ export function SeekerEntry() {
           autoComplete="off"
           dir="auto"
           placeholder="Optional — any name you like"
-          className="border-line bg-surface text-ink placeholder:text-ink-subtle focus:border-accent min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none transition-colors"
+          className={field("sm", "min-w-0 flex-1")}
         />
       </div>
 
@@ -102,7 +102,7 @@ export function SeekerEntry() {
         autoFocus
         maxLength={4000}
         placeholder="Write here…"
-        className="border-line bg-surface text-ink shadow-soft placeholder:text-ink-subtle focus:border-accent w-full resize-none rounded-lg border p-5 text-lg outline-none transition-colors duration-200"
+        className={field("lg", "shadow-soft resize-none p-5 text-lg")}
       />
 
       {error ? (

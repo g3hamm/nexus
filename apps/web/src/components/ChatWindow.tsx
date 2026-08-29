@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { INTERNATIONAL_DIRECTORY, type CoverageState } from "@nexus/core";
 import { Spinner } from "@nexus/ui";
-import { OliveFrame, Wordmark } from "./Brand";
 import { Composer } from "./Composer";
 import { CrisisCard } from "./CrisisCard";
 import { MessageList } from "./MessageList";
@@ -49,16 +48,14 @@ export function ChatWindow({
   const ended = status === "ended" || status === "terminated";
 
   return (
-    <div className="mx-auto flex h-dvh w-full max-w-3xl flex-col px-4 py-4 sm:px-6">
-      <OliveFrame />
+    // `h-full`, not `h-dvh`: on a phone this sits inside a swipe pane that is
+    // already shorter than the viewport, and a viewport-height child would
+    // push the composer off the bottom of it.
+    <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-4 py-4 sm:px-6">
       <header className="border-line flex items-center justify-between border-b pb-4">
-        {viewerRole === "volunteer" ? (
-          <span className="text-ink font-serif text-lg" dir="auto">
-            {peerName ?? "Someone"}
-          </span>
-        ) : (
-          <Wordmark className="h-5" />
-        )}
+        <span className="text-ink font-serif text-lg" dir="auto">
+          {viewerRole === "volunteer" ? (peerName ?? "Someone") : "Nexus"}
+        </span>
         {viewerRole === "seeker" ? (
           <WaitingIndicator matched={matched} ended={ended} coverage={coverage} />
         ) : null}

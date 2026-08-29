@@ -10,7 +10,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANTS: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-accent text-accent-ink hover:bg-accent-hover shadow-soft disabled:bg-line-strong disabled:text-ink-subtle",
+    "bg-accent text-accent-ink hover:bg-accent-hover shadow-soft disabled:bg-line disabled:text-ink-subtle disabled:shadow-none",
   quiet:
     "bg-surface text-ink border border-line hover:border-line-strong hover:bg-surface-raised",
   ghost: "bg-transparent text-ink-muted hover:text-ink hover:bg-surface-sunken",

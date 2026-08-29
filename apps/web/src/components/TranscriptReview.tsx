@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, Spinner, cn } from "@nexus/ui";
+import { Button, Card, Spinner, cn, field } from "@nexus/ui";
 import { CATEGORY_LABEL, SEVERITY_STYLE, SUBJECT_LABEL, timeAgo } from "./severity";
 
 interface Line {
@@ -219,7 +219,7 @@ function FlagDecision({
         rows={3}
         maxLength={2000}
         placeholder="What you concluded, and what you did about it."
-        className="border-line bg-surface text-ink placeholder:text-ink-subtle focus:border-accent mt-1.5 w-full resize-none rounded-md border p-3 text-sm outline-none transition-colors"
+        className={field("sm", "mt-1.5 resize-none")}
       />
 
       {error ? (
