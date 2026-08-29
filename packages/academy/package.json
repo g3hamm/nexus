@@ -1,0 +1,33 @@
+{
+  "name": "@nexus/academy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Apologetics Academy: the volunteer training curriculum, as data.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "dependencies": {
+    "@nexus/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@nexus/practice": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

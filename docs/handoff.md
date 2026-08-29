@@ -28,6 +28,11 @@ overturn.
 - A volunteer training sandbox: nine deliberately difficult simulated seekers,
   eight of them writing in a language the volunteer does not read, running on
   the real conversation surface, with an honest debrief afterwards. See ADR 9.
+- The Apologetics Academy: a volunteer-only training library beside Practice.
+  The shell is complete — four tracks, twenty-four lessons, honest status
+  labels, cross-links to the scenarios that exercise each lesson. The
+  curriculum itself is deliberately mostly unwritten and belongs to the
+  ministry's apologetics lead; it is one data file, `packages/academy`.
 
 `pnpm verify` runs typecheck, lint, tests, and build across everything.
 

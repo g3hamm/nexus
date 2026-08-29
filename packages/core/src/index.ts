@@ -18,6 +18,7 @@ export * from "./domain/moderation.js";
 export * from "./domain/crisis.js";
 export * from "./domain/coverage.js";
 export * from "./domain/practice.js";
+export * from "./domain/academy.js";
 export * from "./domain/scripture.js";
 export * from "./domain/doctrine.js";
 

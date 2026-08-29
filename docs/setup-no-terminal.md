@@ -292,7 +292,7 @@ redeploy. Without it, every conversation is kept forever.
 
 **Somebody forgot their password.**
 See "Helping a volunteer who forgot their password" above — an administrator
-issues a one-time code from the roster. If it is *your* administrator password
+issues a one-time code from the roster. If it is _your_ administrator password
 that is lost and two-factor is on, you need the recovery codes you were shown
 when you turned it on.
 
@@ -348,8 +348,8 @@ so a bad afternoon at their end does not take scripture off the screen.
 
 ## If a page says the deployment is newer than its database
 
-You will see: *"This deployment is newer than its database. Re-run
-docs/setup.sql in the Neon SQL Editor, then reload."*
+You will see: _"This deployment is newer than its database. Re-run
+docs/setup.sql in the Neon SQL Editor, then reload."_
 
 That is exactly what to do, and nothing has been lost. It means a new version
 of the code was deployed without the setup file being run afterwards, so it is
@@ -381,7 +381,6 @@ it cites with suspicion. For real conversations, set
 Migration 0007 is the seeker's chosen name, so the volunteer queue will show
 people rather than languages once you have run it.
 
-
 New versions sometimes add columns to the database. Nexus will show errors on
 the pages that use them until you do this.
 
@@ -404,7 +403,7 @@ themselves. When it sees one, three things happen straight away: the person
 is shown emergency numbers for their own country in their own language, the
 volunteer is told, and the conversation is held for review.
 
-The fourth thing — telling one of *your* people, immediately — only happens if
+The fourth thing — telling one of _your_ people, immediately — only happens if
 you set this up.
 
 ## Set up the alert
@@ -475,3 +474,35 @@ conversation. A session is perhaps a dozen of them plus the feedback at the
 end. It is worth it — but it is not free, so it is worth knowing that a
 volunteer who works through all nine scenarios costs about as much as a busy
 afternoon of real conversations.
+
+---
+
+# The Apologetics Academy
+
+Beside **Practice** there is an **Academy** — the reading that goes with the
+rehearsing. It is visible to volunteers only. Seekers never see it, and nothing
+in it appears in a conversation.
+
+**Almost all of it is empty on purpose.** What ships is the outline: four
+tracks and twenty-four lessons, each with a title, a summary, and a label
+saying whether it is written, being written, or only planned. Two lessons are
+finished, and both are about method rather than doctrine — how to tell a
+philosophical question from a grieving one, and when to stop arguing. Nexus
+should not be shipping your ministry a position on hell or sexuality that your
+leadership did not choose.
+
+**The curriculum is yours to write.** It lives in one file in the code —
+`packages/academy/src/curriculum.ts` — and the comment at the top of that file
+explains what to change. Your apologetics lead does not need to understand the
+rest of the system: they write the lesson, mark it published, and it appears on
+the next deploy. The page is honest about the gap in the meantime, and tells
+volunteers how many lessons are actually written.
+
+Two things carry through from the knowledge base. Each written lesson names its
+source, because a volunteer about to repeat an argument to a stranger in
+another country should know whose argument it is. And lessons name the practice
+scenarios that exercise them, so the reading and the rehearsing point at each
+other.
+
+Nothing here costs anything to run. The Academy makes no AI request, reads
+nothing from the database, and is the same for every volunteer.
