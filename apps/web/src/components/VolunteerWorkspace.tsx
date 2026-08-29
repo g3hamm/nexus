@@ -98,8 +98,11 @@ export function VolunteerWorkspace({
         </div>
         <aside
           className={[
-            "w-full shrink-0 snap-center overflow-y-auto",
-            "lg:border-line lg:w-80 lg:border-l xl:w-96",
+            // The slab. It is the volunteer's instrument board, and looking
+            // exactly like the conversation beside it was the problem: a
+            // suggestion to weigh read as a message to answer.
+            "bg-panel w-full shrink-0 snap-center overflow-y-auto",
+            "lg:w-80 xl:w-96",
           ].join(" ")}
         >
           {panel}

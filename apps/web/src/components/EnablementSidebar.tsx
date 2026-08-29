@@ -63,27 +63,27 @@ export function EnablementSidebar({
   }, [load]);
 
   return (
-    <div className="flex h-full flex-col gap-5 overflow-y-auto p-5">
+    <div className="text-panel-ink flex h-full flex-col gap-5 overflow-y-auto p-5">
       <div>
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-ink font-serif text-lg">Alongside you</h2>
-          <Button variant="ghost" size="sm" busy={busy} onClick={() => void load()}>
+          <h2 className="text-panel-ink font-serif text-lg">Alongside you</h2>
+          <Button variant="ghost-panel" size="sm" busy={busy} onClick={() => void load()}>
             Update
           </Button>
         </div>
-        <p className="text-ink-subtle mt-1 text-sm">
+        <p className="text-panel-subtle mt-1 text-sm">
           They are writing in {seekerLanguage}.
         </p>
       </div>
 
       {error ? (
-        <p className="text-caution text-sm">{error}</p>
+        <p className="text-panel-caution text-sm">{error}</p>
       ) : busy && !data ? (
         <div className="flex justify-center py-8">
-          <Spinner className="text-ink-subtle" />
+          <Spinner className="text-panel-subtle" />
         </div>
       ) : !data?.ready ? (
-        <p className="text-ink-subtle text-sm">
+        <p className="text-panel-subtle text-sm">
           Once they have said something, suggestions will appear here.
         </p>
       ) : (
@@ -95,7 +95,7 @@ export function EnablementSidebar({
         </>
       )}
 
-      <p className="text-ink-subtle mt-auto pt-4 text-xs">
+      <p className="text-panel-subtle mt-auto pt-4 text-xs">
         Nothing here is sent for you. You decide what to say.
       </p>
     </div>
@@ -111,7 +111,7 @@ function Section({
 }) {
   return (
     <section>
-      <h3 className="text-ink-subtle mb-2 text-xs font-medium uppercase tracking-wide">
+      <h3 className="text-panel-subtle mb-2 text-xs font-medium uppercase tracking-wide">
         {title}
       </h3>
       {children}
@@ -137,24 +137,24 @@ function Understanding({
 
   return (
     <Section title="Understanding">
-      <div className="bg-surface-sunken rounded-md p-3">
-        <p className="text-ink text-sm">{understanding.summary}</p>
+      <div className="bg-panel-raised rounded-md p-3">
+        <p className="text-panel-ink text-sm">{understanding.summary}</p>
         {understanding.apparentNeed ? (
-          <p className="text-ink-muted mt-2 text-sm">
-            <span className="text-ink-subtle">What they seem to need: </span>
+          <p className="text-panel-muted mt-2 text-sm">
+            <span className="text-panel-subtle">What they seem to need: </span>
             {understanding.apparentNeed}
           </p>
         ) : null}
         {understanding.cautions.length > 0 ? (
           <ul className="mt-2 list-disc space-y-1 pl-4">
             {understanding.cautions.map((caution) => (
-              <li key={caution} className="text-ink-muted text-sm">
+              <li key={caution} className="text-panel-muted text-sm">
                 {caution}
               </li>
             ))}
           </ul>
         ) : null}
-        <p className="text-ink-subtle mt-3 text-xs">
+        <p className="text-panel-subtle mt-3 text-xs">
           {strength} — your read matters more.
         </p>
       </div>
@@ -169,14 +169,14 @@ function Verses({ verses }: { readonly verses: Suggestions["verses"] }) {
     <Section title="Scripture">
       <ul className="space-y-3">
         {verses.map((verse) => (
-          <li key={verse.reference} className="bg-surface-sunken rounded-md p-3">
-            <p className="text-ink font-medium">{verse.reference}</p>
+          <li key={verse.reference} className="bg-panel-raised rounded-md p-3">
+            <p className="text-panel-ink font-medium">{verse.reference}</p>
             {verse.preview ? (
-              <p className="border-line-strong text-ink-muted mt-1 border-l-2 pl-3 text-sm italic">
+              <p className="border-panel-line text-panel-muted mt-1 border-l-2 pl-3 text-sm italic">
                 {verse.preview}
               </p>
             ) : null}
-            <p className="text-ink-muted mt-2 text-sm">{verse.rationale}</p>
+            <p className="text-panel-muted mt-2 text-sm">{verse.rationale}</p>
           </li>
         ))}
       </ul>
@@ -210,19 +210,19 @@ function Points({ points }: { readonly points: Suggestions["discussionPoints"] }
             className={cn(
               "rounded-md p-3 text-sm",
               point.intent === "caution"
-                ? "border-caution/40 bg-surface border"
-                : "bg-surface-sunken",
+                ? "border-panel-caution/50 bg-panel-raised border"
+                : "bg-panel-raised",
             )}
           >
             <span
               className={cn(
                 "mb-1 block text-xs uppercase tracking-wide",
-                point.intent === "caution" ? "text-caution" : "text-ink-subtle",
+                point.intent === "caution" ? "text-panel-caution" : "text-panel-subtle",
               )}
             >
               {INTENT_LABEL[point.intent]}
             </span>
-            <span className="text-ink">{point.text}</span>
+            <span className="text-panel-ink">{point.text}</span>
           </li>
         ))}
       </ul>
@@ -233,7 +233,7 @@ function Points({ points }: { readonly points: Suggestions["discussionPoints"] }
 function Sources({ sources }: { readonly sources: Suggestions["sources"] }) {
   if (sources.length === 0) {
     return (
-      <p className="text-ink-subtle text-xs">
+      <p className="text-panel-subtle text-xs">
         Nothing in the knowledge base matched this closely, so the suggestions above are
         more tentative than usual.
       </p>
@@ -246,7 +246,7 @@ function Sources({ sources }: { readonly sources: Suggestions["sources"] }) {
         {sources.map((source) => (
           <li
             key={`${source.title}-${source.source}`}
-            className="text-ink-subtle text-xs"
+            className="text-panel-subtle text-xs"
           >
             {source.title} — {source.source}
           </li>

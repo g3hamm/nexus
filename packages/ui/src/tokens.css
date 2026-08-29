@@ -62,6 +62,31 @@
   --color-volunteer-bubble: oklch(94% 0.028 155);
   --color-volunteer-ink: oklch(26% 0.03 155);
 
+  /* ── The volunteer's panel ──────────────────────────────────────────────
+   *
+   * A dark slab beside the conversation, in both colour schemes.
+   *
+   * The panel is not more of the page: it is the volunteer's instrument board
+   * while the other half is a person. Nothing in the layout said so, and a
+   * suggestion the volunteer is meant to weigh looked exactly like the
+   * message they are meant to answer.
+   *
+   * Ink rather than black, and the canvas warmth rather than white, so the
+   * inversion stays inside the palette instead of introducing two colours the
+   * product does not otherwise contain. Text sits at 94% against 26%, which
+   * is real contrast rather than a fashionable grey-on-grey — this panel
+   * carries the longest prose in the product and is read under pressure.
+   */
+  --color-panel: oklch(26% 0.016 260);
+  --color-panel-raised: oklch(31% 0.017 260);
+  --color-panel-line: oklch(40% 0.018 260);
+  --color-panel-ink: oklch(94% 0.008 85);
+  --color-panel-muted: oklch(79% 0.01 85);
+  --color-panel-subtle: oklch(64% 0.01 85);
+  --color-panel-accent: oklch(74% 0.08 155);
+  --color-panel-caution: oklch(80% 0.09 75);
+  --color-panel-danger: oklch(70% 0.13 25);
+
   /* ── Status. Danger is the only saturated colour in the system. ─────── */
   --color-positive: oklch(60% 0.07 150);
   --color-caution: oklch(72% 0.09 75);
@@ -137,6 +162,22 @@
     --color-seeker-ink: oklch(93% 0.008 85);
     --color-volunteer-bubble: oklch(31% 0.034 155);
     --color-volunteer-ink: oklch(94% 0.02 155);
+
+    /* Darker than the canvas here, not lighter. In a dark scheme a slab
+     * cannot announce itself by being dark, so it recedes instead — still
+     * a different material from the conversation, and still not competing
+     * with `surface-raised`. The text on it does not move. */
+    --color-panel: oklch(15.5% 0.014 260);
+    --color-panel-raised: oklch(20% 0.014 260);
+    --color-panel-line: oklch(28% 0.014 260);
+
+    /* Darker than the canvas here, not lighter. In a dark scheme a slab
+   * cannot announce itself by being dark, so it recedes instead — still
+   * a different material from the conversation, and still not competing
+   * with `surface-raised`. The text on it does not move. */
+    --color-panel: oklch(15.5% 0.014 260);
+    --color-panel-raised: oklch(20% 0.014 260);
+    --color-panel-line: oklch(28% 0.014 260);
 
     --color-positive: oklch(72% 0.08 150);
     --color-caution: oklch(80% 0.09 75);

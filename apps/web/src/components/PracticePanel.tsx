@@ -80,14 +80,14 @@ export function PracticePanel({
   }
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-5">
-      <header className="border-line border-b pb-4">
-        <p className="text-ink-subtle text-xs uppercase tracking-wide">
+    <div className="text-panel-ink flex h-full flex-col overflow-y-auto p-5">
+      <header className="border-panel-line border-b pb-4">
+        <p className="text-panel-subtle text-xs uppercase tracking-wide">
           {academyModule ? "Academy exercise" : "Practice"}
         </p>
-        <h2 className="text-ink mt-1 font-serif text-lg">{title}</h2>
+        <h2 className="text-panel-ink mt-1 font-serif text-lg">{title}</h2>
         {academyModule ? (
-          <p className="text-ink-muted mt-1 text-sm leading-relaxed">
+          <p className="text-panel-muted mt-1 text-sm leading-relaxed">
             From{" "}
             <Link
               href={`/volunteer/academy/${academyModule.id}`}
@@ -98,7 +98,7 @@ export function PracticePanel({
             . Your feedback will be marked against it.
           </p>
         ) : null}
-        <p className="text-ink-subtle mt-2 text-sm leading-relaxed">
+        <p className="text-panel-subtle mt-2 text-sm leading-relaxed">
           Nobody is on the other end. Nothing here is reviewed, flagged, or seen by anyone
           but you.
         </p>
@@ -108,11 +108,11 @@ export function PracticePanel({
         <Debrief debrief={debrief} academyModule={academyModule} />
       ) : (
         <div className="mt-5">
-          <p className="text-ink-muted text-sm leading-relaxed">
+          <p className="text-panel-muted text-sm leading-relaxed">
             Take it as far as it goes. When you are finished — or when you are stuck,
             which is also worth reading about — ask for feedback.
           </p>
-          {error ? <p className="text-danger mt-3 text-sm">{error}</p> : null}
+          {error ? <p className="text-panel-danger mt-3 text-sm">{error}</p> : null}
           <button
             type="button"
             onClick={() => void finish()}
@@ -139,7 +139,7 @@ function Debrief({
 
   return (
     <div className="mt-5 space-y-6">
-      <p className="text-ink text-sm leading-relaxed">{debrief.summary}</p>
+      <p className="text-panel-ink text-sm leading-relaxed">{debrief.summary}</p>
 
       {/* Harms first and never folded into "things to work on". Softening one
           into a growth point is exactly how it gets skimmed past. */}
@@ -148,10 +148,10 @@ function Debrief({
       <NoteList title="What to work on" notes={debrief.growth} />
       <NoteList title="Openings you did not take" notes={debrief.missed} />
 
-      <section className="border-line border-t pt-4">
-        <h3 className="text-ink font-serif">{readiness.label}</h3>
-        <p className="text-ink-muted mt-1 text-sm leading-relaxed">{readiness.note}</p>
-        <p className="text-ink-subtle mt-3 text-xs leading-relaxed">
+      <section className="border-panel-line border-t pt-4">
+        <h3 className="text-panel-ink font-serif">{readiness.label}</h3>
+        <p className="text-panel-muted mt-1 text-sm leading-relaxed">{readiness.note}</p>
+        <p className="text-panel-subtle mt-3 text-xs leading-relaxed">
           One conversation is thin evidence, and this is a reading rather than a verdict.
           Nobody else is shown it.
         </p>
@@ -164,7 +164,7 @@ function Debrief({
               ? `/volunteer/academy/${academyModule.id}`
               : "/volunteer/practice"
           }
-          className="text-ink-muted mt-4 inline-block text-sm underline underline-offset-2"
+          className="text-panel-muted hover:text-panel-ink mt-4 inline-block text-sm underline underline-offset-2"
         >
           {academyModule ? `Back to ${academyModule.title}` : "Try another one"}
         </Link>
@@ -189,8 +189,8 @@ function NoteList({
       <h3
         className={
           emphasis
-            ? "text-danger font-serif text-sm"
-            : "text-ink-muted font-serif text-sm"
+            ? "text-panel-danger font-serif text-sm"
+            : "text-panel-muted font-serif text-sm"
         }
       >
         {title}
@@ -198,16 +198,16 @@ function NoteList({
       <ul className="mt-2 space-y-3">
         {notes.map((note) => (
           <li key={note.point} className="text-sm">
-            <p className="text-ink leading-relaxed">{note.point}</p>
+            <p className="text-panel-ink leading-relaxed">{note.point}</p>
             {note.quote ? (
               <blockquote
                 dir="auto"
-                className="border-line-strong text-ink-muted mt-1.5 border-l-2 pl-3 italic leading-relaxed"
+                className="border-panel-line text-panel-muted mt-1.5 border-l-2 pl-3 italic leading-relaxed"
               >
                 {note.quote}
               </blockquote>
             ) : null}
-            <p className="text-ink-subtle mt-1 leading-relaxed">{note.why}</p>
+            <p className="text-panel-subtle mt-1 leading-relaxed">{note.why}</p>
           </li>
         ))}
       </ul>

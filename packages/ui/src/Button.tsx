@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn.js";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  readonly variant?: "primary" | "quiet" | "ghost" | "danger";
+  readonly variant?: "primary" | "quiet" | "ghost" | "ghost-panel" | "danger";
   readonly size?: "sm" | "md" | "lg";
   readonly busy?: boolean;
   readonly children?: ReactNode;
@@ -14,6 +14,11 @@ const VARIANTS: Record<NonNullable<ButtonProps["variant"]>, string> = {
   quiet:
     "bg-surface text-ink border border-line hover:border-line-strong hover:bg-surface-raised",
   ghost: "bg-transparent text-ink-muted hover:text-ink hover:bg-surface-sunken",
+  // `ghost`, for the volunteer's dark panel. Its own variant rather than a
+  // className override on `ghost`: overriding would leave both colours on the
+  // element and let stylesheet order decide, which is not a decision.
+  "ghost-panel":
+    "bg-transparent text-panel-muted hover:text-panel-ink hover:bg-panel-raised",
   danger: "bg-danger text-white hover:opacity-90",
 };
 
