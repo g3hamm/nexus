@@ -45,8 +45,10 @@ export default async function HomePage() {
           <SeekerEntry />
         </div>
 
+        {/* "No name" was true until the name became required. A reassurance
+            that is no longer accurate is worse than none. */}
         <p className="text-ink-subtle mt-8 text-center text-sm">
-          No account. No name. Nothing to sign up for.
+          No account. No email. Nothing to sign up for.
         </p>
 
       </div>

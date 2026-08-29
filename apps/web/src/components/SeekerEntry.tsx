@@ -12,18 +12,21 @@ import { Button, field } from "@nexus/ui";
  * talking. Waiting for a volunteer happens behind their message, not in front
  * of it.
  *
- * The name field is the only thing here that is not the message, and it earns
- * its place three times over: a volunteer can address a person instead of a
- * language, someone holding two conversations can tell them apart, and a name
- * nobody would give in earnest says something useful before anyone has spent
- * twenty minutes finding out.
+ * The name is asked for and required, which is a deliberate reversal.
  *
- * It gates nothing. Autofocus stays on the message, Enter still sends from the
- * message, and the button is enabled on the message alone — so someone who has
- * worked up to typing one sentence is never stopped by a form field. The hint
- * says "any name" rather than "your name" deliberately: for a seeker somewhere
- * this conversation is dangerous, being nudged toward their real one would be
- * the worst thing this page could do.
+ * The argument against was friction in front of someone in distress. The
+ * argument that won is that this is not a crisis line — it is a place to come
+ * and ask about Christ, and somebody with the composure to write a paragraph
+ * about what they believe has the composure to type one word first. What the
+ * ministry gets back is worth the word: a volunteer addresses a person rather
+ * than a language, two open conversations can be told apart, and a name nobody
+ * would give in earnest says something useful before anyone has spent twenty
+ * minutes finding out.
+ *
+ * "Any name you like" rather than "your name", and that wording is not
+ * softness. For a seeker somewhere this conversation is dangerous, being
+ * nudged toward their real name would be the worst thing this page could do.
+ * Nothing here verifies it, and nothing should.
  */
 export function SeekerEntry() {
   const router = useRouter();
@@ -35,7 +38,8 @@ export function SeekerEntry() {
   async function start(event?: FormEvent) {
     event?.preventDefault();
     const message = text.trim();
-    if (!message || busy) return;
+    const called = name.trim();
+    if (!message || !called || busy) return;
 
     setBusy(true);
     setError(null);
@@ -44,10 +48,7 @@ export function SeekerEntry() {
       const response = await fetch("/api/seeker/start", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          firstMessage: message,
-          ...(name.trim() ? { name: name.trim() } : {}),
-        }),
+        body: JSON.stringify({ firstMessage: message, name: called }),
       });
 
       if (!response.ok) throw new Error("start failed");
@@ -74,19 +75,21 @@ export function SeekerEntry() {
 
   return (
     <form onSubmit={start} className="w-full">
-      <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
-        <label htmlFor="seeker-name" className="text-ink-muted text-sm">
+      <div className="mb-4">
+        <label htmlFor="seeker-name" className="text-ink-muted mb-1.5 block text-sm">
           What can we call you?
         </label>
         <input
           id="seeker-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          required
           maxLength={40}
           autoComplete="off"
+          autoFocus
           dir="auto"
-          placeholder="Optional — any name you like"
-          className={field("sm", "min-w-0 flex-1")}
+          placeholder="Any name you like"
+          className={field("md")}
         />
       </div>
 
@@ -99,7 +102,6 @@ export function SeekerEntry() {
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKeyDown}
         rows={4}
-        autoFocus
         maxLength={4000}
         placeholder="Write here…"
         className={field("lg", "shadow-soft resize-none p-5 text-lg")}
@@ -115,7 +117,7 @@ export function SeekerEntry() {
         type="submit"
         size="lg"
         busy={busy}
-        disabled={text.trim().length === 0}
+        disabled={text.trim().length === 0 || name.trim().length === 0}
         className="mt-4 w-full"
       >
         {busy ? "Connecting…" : "Start talking"}

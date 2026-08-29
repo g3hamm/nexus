@@ -26,7 +26,13 @@ export interface CreateConversationInput {
   readonly seekerLanguage: LanguageCode;
   readonly modality: Modality;
   readonly retainUntil: Date | null;
-  /** What they asked to be called. Always optional; never verified. */
+  /**
+   * What they asked to be called. Never verified.
+   *
+   * Still optional on the port, and deliberately so: the seeker's entry point
+   * requires it, but a practice session has nobody to ask, and every
+   * conversation that began before the field existed has none either.
+   */
   readonly seekerName?: string | undefined;
 }
 

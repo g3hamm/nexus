@@ -37,12 +37,15 @@ export interface Conversation {
   readonly id: ConversationId;
   readonly seekerId: SeekerId;
   /**
-   * What the seeker asked to be called, or null.
+   * What the seeker asked to be called.
    *
-   * Optional, never verified, and explicitly not an identity — the question is
-   * "what can we call you", not "who are you". It exists so a volunteer can
-   * address a person rather than a language, and so someone holding two
-   * conversations can tell them apart.
+   * Asked for at the door and never verified — the question is "what can we
+   * call you", not "who are you". It exists so a volunteer can address a
+   * person rather than a language, and so someone holding two conversations
+   * can tell them apart.
+   *
+   * Null only where there is nobody to ask: practice sessions, and
+   * conversations that began before the field existed.
    *
    * Encrypted at rest under the conversation's own key, like everything else
    * anyone types here. A name is the single most identifying thing a seeker

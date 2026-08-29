@@ -58,7 +58,7 @@ describe("a seeker arriving", () => {
   });
 
   it("has a conversation and a room before answering any questions", async () => {
-    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa");
+    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa", "Sara");
 
     expect(conversation.status).toBe("waiting");
     expect(conversation.seekerLanguage).toBe("fa");
@@ -67,13 +67,13 @@ describe("a seeker arriving", () => {
   });
 
   it("sets a retention window so transcripts do not live forever", async () => {
-    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa");
+    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa", "Sara");
     expect(conversation.retainUntil).not.toBeNull();
     expect(conversation.retainUntil!.getTime()).toBeGreaterThan(Date.now());
   });
 
   it("records the start in the audit log without storing any identity", async () => {
-    await h.service.startForSeeker(asSeekerId("skr_1"), "fa");
+    await h.service.startForSeeker(asSeekerId("skr_1"), "fa", "Sara");
 
     const entry = h.audit.entries.find((e) => e.action === "conversation.started");
     expect(entry).toBeDefined();
@@ -83,7 +83,7 @@ describe("a seeker arriving", () => {
   });
 
   it("can speak before anyone has been matched", async () => {
-    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa");
+    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa", "Sara");
 
     const { message } = await h.service.send({
       conversationId: conversation.id,
@@ -107,7 +107,7 @@ describe("matching a volunteer", () => {
   });
 
   it("marks translation as required when the two speak different languages", async () => {
-    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa");
+    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa", "Sara");
     const claimed = await h.service.claimForVolunteer(conversation.id, fakeVolunteer());
 
     expect(claimed?.status).toBe("active");
@@ -116,7 +116,7 @@ describe("matching a volunteer", () => {
   });
 
   it("skips translation entirely when they share a language", async () => {
-    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "en");
+    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "en", "Tyler");
     const claimed = await h.service.claimForVolunteer(conversation.id, fakeVolunteer());
 
     expect(claimed?.translationRequired).toBe(false);
@@ -132,8 +132,29 @@ describe("matching a volunteer", () => {
     expect(h.llm.calls).toHaveLength(0);
   });
 
+  // The name is asked for at the door and stored with the conversation, so a
+  // volunteer sees a person rather than a language before they pick it up.
+  it("keeps the name the seeker gave", async () => {
+    const { conversation } = await h.service.startForSeeker(
+      asSeekerId("skr_named"),
+      "es",
+      "Marisol",
+    );
+
+    expect(conversation.seekerName).toBe("Marisol");
+  });
+
+  // The audit log is the one table not encrypted per conversation, and it
+  // outlives the transcript it describes.
+  it("never writes the name into the audit log", async () => {
+    await h.service.startForSeeker(asSeekerId("skr_named"), "es", "Marisol");
+
+    const entry = h.audit.entries.find((e) => e.action === "conversation.started");
+    expect(JSON.stringify(entry?.detail)).not.toContain("Marisol");
+  });
+
   it("lets exactly one of two simultaneous volunteers win", async () => {
-    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa");
+    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa", "Sara");
 
     const [first, second] = await Promise.all([
       h.service.claimForVolunteer(conversation.id, fakeVolunteer()),
@@ -148,7 +169,7 @@ describe("matching a volunteer", () => {
   });
 
   it("translates what the seeker said while they were waiting", async () => {
-    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa");
+    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa", "Sara");
 
     await h.service.send({
       conversationId: conversation.id,
@@ -177,7 +198,7 @@ describe("a translated conversation", () => {
   });
 
   async function matched() {
-    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa");
+    const { conversation } = await h.service.startForSeeker(asSeekerId("skr_1"), "fa", "Sara");
     return (await h.service.claimForVolunteer(conversation.id, fakeVolunteer()))!;
   }
 

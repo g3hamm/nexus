@@ -15,16 +15,22 @@ const bodySchema = z.object({
   firstMessage: z.string().min(1).max(4000).optional(),
   /** From `Accept-Language`, as a starting guess. */
   language: languageCodeSchema.optional(),
-  /** What they would like to be called. Optional, and never verified. */
-  name: seekerNameSchema.optional(),
+  /**
+   * What they would like to be called. Required, and never verified.
+   *
+   * Enforced here as well as in the form, because a required field in a form
+   * is a suggestion to anything that is not a browser.
+   */
+  name: seekerNameSchema,
 });
 
 /**
  * A seeker arrives.
  *
- * This is the whole onboarding flow. No account, no email, no language
- * dropdown — their language is inferred from what they typed, and they can
- * correct it afterwards if we guessed wrong.
+ * This is the whole onboarding flow: a name to be called by, and what is on
+ * their mind. No account, no email, no language dropdown — their language is
+ * inferred from what they typed, and they can correct it afterwards if we
+ * guessed wrong.
  */
 export async function POST(request: NextRequest) {
   try {
