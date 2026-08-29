@@ -107,6 +107,19 @@ export interface ConversationRepository {
   findPurgeable(now: Date, limit: number): Promise<readonly ConversationId[]>;
 
   /**
+   * Live conversations that have been silent past their idle limit.
+   *
+   * The limit differs by status — see `idleLimitFor` — because a conversation
+   * nobody has picked up is waiting on a rota rather than on a person, and
+   * closing it on the same three-hour clock would break the promise the front
+   * door makes to a seeker who writes at midnight.
+   *
+   * Bounded like `findPurgeable`, and for the same reason: a sweep that has
+   * not run in a week must not try to close a week of conversations at once.
+   */
+  findIdle(now: Date, limit: number): Promise<readonly ConversationId[]>;
+
+  /**
    * Destroys conversations and everything belonging to them. Returns the
    * number removed.
    *
@@ -134,6 +147,15 @@ export interface MessageRepository {
    * for the same language rather than accumulating duplicates.
    */
   addRendering(id: MessageId, rendering: Rendering): Promise<Message>;
+  /**
+   * When anything was last said here, or null in a conversation with no
+   * messages yet.
+   *
+   * Reads one indexed row rather than a transcript, because this is asked on
+   * every page load and every poll to decide whether the conversation has
+   * gone quiet long enough to close.
+   */
+  lastSentAt(conversationId: ConversationId): Promise<Date | null>;
 }
 
 export interface CreatePracticeInput {
@@ -274,6 +296,14 @@ export type AuditAction =
   | "conversation.started"
   | "conversation.matched"
   | "conversation.ended"
+  /**
+   * Closed by the platform after a long silence, rather than by a person.
+   *
+   * Its own action because "the seeker stopped replying" and "the volunteer
+   * said goodbye" are different facts, and an administrator reading a
+   * conversation back should be able to tell which one happened.
+   */
+  | "conversation.expired"
   | "conversation.viewed"
   | "conversation.exported"
   | "conversation.purged"

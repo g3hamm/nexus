@@ -13,6 +13,7 @@ import { ConversationService } from "@/server/conversation-service";
 import { ModerationService } from "@/server/moderation-service";
 import { PracticeService } from "@/server/practice-service";
 import { countryFor } from "@/server/geo";
+import { ExpiryService } from "@/server/expiry-service";
 import { errorResponse, ok } from "@/server/http";
 import { enforceRateLimit } from "@/server/rate-limit";
 import { seekerSession, staffSession } from "@/server/session";
@@ -46,30 +47,37 @@ const sendSchema = z.object({
  */
 async function participantFor(conversationId: string) {
   const c = container();
-  const conversation = await c.conversations.findById(asConversationId(conversationId));
-  if (!conversation) throw NexusError.notFound("Conversation", conversationId);
+  const found = await c.conversations.findById(asConversationId(conversationId));
+  if (!found) throw NexusError.notFound("Conversation", conversationId);
 
   const seeker = await seekerSession();
-  if (seeker && seeker.subject === conversation.seekerId) {
-    return {
-      conversation,
-      role: "seeker" as const,
-      id: null,
-      language: seeker.language ?? conversation.seekerLanguage,
-    };
-  }
+  const staff = seeker ? null : await staffSession();
 
-  const staff = await staffSession();
-  if (staff && conversation.volunteerId === staff.subject) {
-    return {
-      conversation,
-      role: "volunteer" as const,
-      id: staff.subject,
-      language: conversation.volunteerLanguage ?? "en",
-    };
-  }
+  const participant =
+    seeker && seeker.subject === found.seekerId
+      ? {
+          role: "seeker" as const,
+          id: null,
+          language: seeker.language ?? found.seekerLanguage,
+        }
+      : staff && found.volunteerId === staff.subject
+        ? {
+            role: "volunteer" as const,
+            id: staff.subject,
+            language: found.volunteerLanguage ?? "en",
+          }
+        : null;
 
-  throw NexusError.forbidden("You are not part of this conversation");
+  if (!participant) throw NexusError.forbidden("You are not part of this conversation");
+
+  // Only after membership is established, so nobody can close somebody else's
+  // conversation by poking at its id. A conversation past its link expiry is
+  // reported as missing rather than forbidden: whether that id was ever real
+  // is not something a dead link should still be answering.
+  const conversation = await new ExpiryService(c).resolve(found);
+  if (!conversation) throw NexusError.notFound("Conversation", conversationId);
+
+  return { conversation, ...participant };
 }
 
 /** The transcript, in the reader's language. */

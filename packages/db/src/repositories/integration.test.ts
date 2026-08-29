@@ -289,7 +289,9 @@ describeIfDb("repositories against real Postgres", () => {
         authorRole: "volunteer",
         authorId: helper.id,
         originalLanguage: "en",
-        renderings: [{ language: "en", text: "unique-practice-phrase", source: "original" }],
+        renderings: [
+          { language: "en", text: "unique-practice-phrase", source: "original" },
+        ],
       });
 
       const raw = await db.execute(
@@ -418,7 +420,9 @@ describeIfDb("repositories against real Postgres", () => {
 
     it("leaves crisis unset on a conversation that never escalated", async () => {
       const conversation = await newConversation();
-      expect((await conversations().findById(conversation.id))?.crisisRaisedAt).toBeNull();
+      expect(
+        (await conversations().findById(conversation.id))?.crisisRaisedAt,
+      ).toBeNull();
     });
 
     // Two escalations landing at once must not race into two different
@@ -528,6 +532,102 @@ describeIfDb("repositories against real Postgres", () => {
       const [read] = await messages().listForConversation(conversation.id);
       expect(read?.renderings).toHaveLength(2);
       expect(read?.renderings.find((r) => r.language === "en")?.text).toBe("Hi there");
+    });
+  });
+
+  describe("going quiet", () => {
+    const HOUR = 3_600_000;
+
+    /** Backdates a conversation, which is the only way to age one in a test. */
+    async function aged(hours: number, over: { status?: "waiting" | "active" } = {}) {
+      const conversation = await newConversation();
+      await db.execute(sql`
+        update conversations
+        set started_at = now() - interval '${sql.raw(String(hours))} hours',
+            status = ${over.status ?? "waiting"}
+        where id = ${conversation.id}
+      `);
+      return conversation;
+    }
+
+    it("finds a conversation nobody picked up after twelve hours, not before", async () => {
+      const fresh = await aged(11);
+      const stale = await aged(13);
+
+      const idle = await conversations().findIdle(new Date(), 50);
+      expect(idle).toContain(stale.id);
+      expect(idle).not.toContain(fresh.id);
+    });
+
+    it("finds one somebody is in after three hours", async () => {
+      const fresh = await aged(2, { status: "active" });
+      const stale = await aged(4, { status: "active" });
+
+      const idle = await conversations().findIdle(new Date(), 50);
+      expect(idle).toContain(stale.id);
+      expect(idle).not.toContain(fresh.id);
+    });
+
+    // The clock runs from the last thing anybody said. A long conversation
+    // that is still going must not be closed for having started yesterday.
+    it("measures from the last message, not from the start", async () => {
+      const long = await aged(20, { status: "active" });
+      await messages().append({
+        conversationId: long.id,
+        authorRole: "seeker",
+        authorId: null,
+        originalLanguage: "fa",
+        renderings: [{ language: "fa", text: "هنوز اینجا هستم", source: "original" }],
+      });
+
+      expect(await conversations().findIdle(new Date(), 50)).not.toContain(long.id);
+    });
+
+    it("leaves a conversation held for review alone", async () => {
+      const held = await aged(30);
+      await conversations().markUnderReview(held.id);
+      expect(await conversations().findIdle(new Date(), 50)).not.toContain(held.id);
+    });
+
+    it("leaves an ended one alone — it has already been closed once", async () => {
+      const done = await aged(30);
+      await conversations().end(done.id, "ended");
+      expect(await conversations().findIdle(new Date(), 50)).not.toContain(done.id);
+    });
+
+    it("respects the batch limit", async () => {
+      await aged(30);
+      await aged(30);
+      expect(await conversations().findIdle(new Date(), 1)).toHaveLength(1);
+    });
+
+    // The queue and the sweep read the same predicate, so a volunteer coming
+    // on at breakfast is never handed a conversation that expired overnight
+    // and would end the moment they opened it.
+    it("keeps an expired conversation out of the volunteer queue", async () => {
+      const stale = await aged(13);
+      const fresh = await aged(1);
+
+      const waiting = (await conversations().findWaiting(50)).map((c) => c.id);
+      expect(waiting).toContain(fresh.id);
+      expect(waiting).not.toContain(stale.id);
+    });
+
+    it("answers when anything was last said, without reading the transcript", async () => {
+      const conversation = await newConversation();
+      expect(await messages().lastSentAt(conversation.id)).toBeNull();
+
+      await messages().append({
+        conversationId: conversation.id,
+        authorRole: "seeker",
+        authorId: null,
+        originalLanguage: "fa",
+        renderings: [{ language: "fa", text: "سلام", source: "original" }],
+      });
+
+      const at = await messages().lastSentAt(conversation.id);
+      expect(at).toBeInstanceOf(Date);
+      expect(Date.now() - at!.getTime()).toBeLessThan(60 * HOUR);
     });
   });
 

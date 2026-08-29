@@ -1,3 +1,4 @@
+import { ACTIVE_IDLE_MS, WAITING_IDLE_MS } from "@nexus/core";
 import type {
   AcademyModuleBrief,
   AlertChannel,
@@ -184,6 +185,24 @@ export class FakeConversationRepository implements ConversationRepository {
     this.rows.set(id, { ...existing, crisisRaisedAt: at });
   }
 
+  /**
+   * Idle measured from `startedAt` alone.
+   *
+   * The real query takes the later of that and the last message; here a test
+   * that wants a conversation to look stale moves `startedAt` back, which is
+   * the same thing from the caller's side and keeps the fakes from having to
+   * know about each other.
+   */
+  async findIdle(now: Date, limit: number): Promise<readonly ConversationId[]> {
+    const idle: ConversationId[] = [];
+    for (const c of this.rows.values()) {
+      if (c.status !== "waiting" && c.status !== "active") continue;
+      const limitMs = c.status === "waiting" ? WAITING_IDLE_MS : ACTIVE_IDLE_MS;
+      if (now.getTime() - c.startedAt.getTime() >= limitMs) idle.push(c.id);
+    }
+    return idle.slice(0, limit);
+  }
+
   async findPurgeable(now: Date, limit: number): Promise<readonly ConversationId[]> {
     return [...this.rows.values()]
       .filter(
@@ -232,6 +251,13 @@ export class FakeMessageRepository implements MessageRepository {
 
   async findById(id: MessageId): Promise<Message | null> {
     return this.rows.find((m) => m.id === id) ?? null;
+  }
+
+  async lastSentAt(conversationId: ConversationId): Promise<Date | null> {
+    const times = this.rows
+      .filter((m) => m.conversationId === conversationId)
+      .map((m) => m.sentAt.getTime());
+    return times.length > 0 ? new Date(Math.max(...times)) : null;
   }
 
   async listForConversation(

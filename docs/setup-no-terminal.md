@@ -355,6 +355,41 @@ Whatever you set up, they are tried in the order that gives a seeker the best
 answer: API.Bible first, then your own translations, then the bundled English.
 A bad afternoon at anyone else's end cannot take scripture off the screen.
 
+## How a conversation ends, and when its link stops working
+
+Nobody has to do anything for this. It is worth knowing because people will
+ask, and because the numbers are a policy decision your ministry may want to
+revisit.
+
+A conversation ends in one of four ways: somebody ends it, an administrator
+terminates it, or **it goes quiet for long enough**. That last one is the
+common case — real conversations rarely end with a goodbye, they just stop.
+
+- **Three hours of silence** in a conversation somebody is in, and it closes.
+- **Twelve hours** for one still waiting for a volunteer, because the front
+  door promises a seeker that what they wrote will be waiting for whoever
+  comes on next, and closing it overnight would make that a lie.
+- **An hour after it closes**, the link stops working. Not immediately — the
+  last thing said should still be on screen when either person looks back —
+  but not forever either.
+- **A day**, instead of an hour, if the conversation reached a crisis. The
+  card with that person's helpline numbers is the one thing on the screen
+  they might genuinely need again in the morning.
+
+After that the URL is dead for everybody, seeker and volunteer alike. Opening
+it sends the seeker back to the front door, where they can start again, and
+the volunteer back to their queue. The transcript itself is a separate
+question on a separate clock — see the retention section.
+
+The check happens every time somebody opens a conversation, not on a schedule,
+so a link is dead exactly when the rule says it is rather than whenever a job
+last ran. The nightly job only tidies up: it closes abandoned conversations so
+they leave the volunteer queue and start their retention countdown.
+
+**To change any of this**, the numbers are in one file:
+`packages/core/src/domain/expiry.ts`. The comment at the top explains what
+each one is protecting.
+
 ## If a page says the deployment is newer than its database
 
 You will see: _"This deployment is newer than its database. Re-run

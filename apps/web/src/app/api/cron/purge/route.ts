@@ -4,6 +4,7 @@ import { NexusError } from "@nexus/core";
 import { PostgresRateLimiter } from "@nexus/db";
 import { container } from "@/server/container";
 import { errorResponse, ok } from "@/server/http";
+import { ExpiryService } from "@/server/expiry-service";
 import { RetentionService } from "@/server/retention-service";
 
 export const runtime = "nodejs";
@@ -23,6 +24,18 @@ export async function GET(request: NextRequest) {
     authorize(request);
 
     const c = container();
+
+    // Before the purge, not after. Closing abandoned conversations is what
+    // puts them on a retention clock in the first place — a conversation
+    // nobody ever ended has no `ended_at`, is never purgeable, and would sit
+    // in the volunteer queue and in the database indefinitely. The links are
+    // already dead by now; every read checks for itself. This is what makes
+    // the database agree.
+    const closed = await new ExpiryService(c).sweep();
+    if (closed > 0) {
+      console.log(`[nexus] closed ${closed} conversation(s) that had gone quiet`);
+    }
+
     const result = await new RetentionService(c).purgeExpired();
 
     // Rate-limit counters are transient. Sweeping them here keeps the table
@@ -45,7 +58,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return ok(result);
+    return ok({ ...result, closed });
   } catch (error) {
     return errorResponse(error);
   }

@@ -10,9 +10,14 @@ import type {
   LanguageCode,
   VolunteerId,
 } from "@nexus/core";
-import { asConversationId, sameLanguage } from "@nexus/core";
+import {
+  ACTIVE_IDLE_MS,
+  WAITING_IDLE_MS,
+  asConversationId,
+  sameLanguage,
+} from "@nexus/core";
 import type { NexusDatabase } from "../client.js";
-import { conversations, moderationFlags } from "../schema.js";
+import { conversations, messages, moderationFlags } from "../schema.js";
 import { toConversation } from "./mappers.js";
 
 export class DrizzleConversationRepository implements ConversationRepository {
@@ -185,6 +190,11 @@ export class DrizzleConversationRepository implements ConversationRepository {
           // cannot reach this query anyway, but a volunteer looking for
           // someone who needs help must never be handed an exercise.
           isNull(conversations.practiceScenario),
+          // Nor somebody who left twelve hours ago. The sweep closes these,
+          // but it runs nightly and the queue is read constantly; without
+          // this a volunteer coming on at breakfast is handed conversations
+          // that expired in the night and end the moment they open them.
+          notIdle(),
         ),
       )
       // Oldest first: nobody should be overtaken in the queue.
@@ -318,6 +328,36 @@ export class DrizzleConversationRepository implements ConversationRepository {
    *   - Nor does a null `retainUntil`, which is what raising a flag sets and
    *     what "keep indefinitely" means.
    */
+  /**
+   * Live conversations that have gone quiet past their limit.
+   *
+   * The idle clock runs from the last thing anybody said, falling back to
+   * when the conversation opened — a seeker whose very first message failed
+   * to send should not sit in the queue forever on the strength of having
+   * arrived.
+   *
+   * The limits are inlined here as intervals rather than passed in, because
+   * this has to be one indexed query rather than a transcript read per live
+   * conversation. `expiry.ts` holds the same two numbers and is what the rest
+   * of the app reasons with; the test below is what keeps them honest.
+   */
+  async findIdle(now: Date, limit: number): Promise<readonly ConversationId[]> {
+    const rows = await this.#db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(
+        and(
+          inArray(conversations.status, ["waiting", "active"]),
+          sql`not (${notIdle(now)})`,
+        ),
+      )
+      // Oldest first, so a delayed sweep works through the backlog in order.
+      .orderBy(asc(conversations.startedAt))
+      .limit(limit);
+
+    return rows.map((row) => asConversationId(row.id));
+  }
+
   async findPurgeable(now: Date, limit: number): Promise<readonly ConversationId[]> {
     const rows = await this.#db
       .select({ id: conversations.id })
@@ -378,4 +418,37 @@ export class DrizzleConversationRepository implements ConversationRepository {
       .limit(1);
     return rows[0] ?? null;
   }
+}
+
+/**
+ * True for a conversation that has not yet gone quiet past its limit.
+ *
+ * One fragment, used by the queue and by the sweep, so the two can never
+ * disagree about which conversations are still alive — the queue offering a
+ * volunteer a conversation the sweep is about to close is exactly the bug
+ * this shape rules out.
+ *
+ * The clock runs from the last thing anybody said, falling back to when the
+ * conversation opened: a seeker whose very first message never landed should
+ * not hold a place in the queue on the strength of having arrived. The two
+ * limits mirror `expiry.ts`, which is what the rest of the app reasons with.
+ */
+function notIdle(now?: Date) {
+  const at = now ? sql`${now}::timestamptz` : sql`now()`;
+  const waiting = sql.raw(String(WAITING_IDLE_MS / 3_600_000));
+  const active = sql.raw(String(ACTIVE_IDLE_MS / 3_600_000));
+
+  return sql`greatest(
+    ${conversations.startedAt},
+    coalesce(
+      (select max(${messages.sentAt}) from ${messages}
+       where ${messages.conversationId} = ${conversations.id}),
+      ${conversations.startedAt}
+    )
+  ) >= ${at} - (
+    case ${conversations.status}
+      when 'waiting' then interval '${waiting} hours'
+      else interval '${active} hours'
+    end
+  )`;
 }

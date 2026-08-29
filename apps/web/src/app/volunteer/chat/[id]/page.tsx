@@ -7,6 +7,7 @@ import { EnablementSidebar } from "@/components/EnablementSidebar";
 import { PracticePanel } from "@/components/PracticePanel";
 import { VolunteerWorkspace } from "@/components/VolunteerWorkspace";
 import { container } from "@/server/container";
+import { ExpiryService } from "@/server/expiry-service";
 import { staffSession } from "@/server/session";
 
 export const dynamic = "force-dynamic";
@@ -25,11 +26,19 @@ export default async function VolunteerChatPage({
   // An admin session is not a volunteer session; see requireVolunteer.
   if (session?.role !== "volunteer") redirect("/volunteer/login");
 
-  const conversation = await container().conversations.findById(asConversationId(id));
-  if (!conversation) notFound();
+  const c = container();
+  const found = await c.conversations.findById(asConversationId(id));
+  if (!found) notFound();
   // A volunteer's session grants access to their own conversations and no
   // others. Anything else would make the audit log a fiction.
-  if (conversation.volunteerId !== session.subject) redirect("/volunteer");
+  if (found.volunteerId !== session.subject) redirect("/volunteer");
+
+  // The same clock as the seeker's side, deliberately. A volunteer's laptop
+  // is no safer a place for an old transcript than a seeker's phone, and a
+  // link that only one of the two people can still open is not a closed
+  // conversation.
+  const conversation = await new ExpiryService(c).resolve(found);
+  if (!conversation) redirect("/volunteer");
 
   // A practice session swaps the sidebar rather than adding a panel. The
   // enablement suggestions are genuinely useful during practice — learning to

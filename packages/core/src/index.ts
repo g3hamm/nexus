@@ -13,6 +13,7 @@ export * from "./domain/ids.js";
 export * from "./domain/language.js";
 export * from "./domain/participants.js";
 export * from "./domain/conversation.js";
+export * from "./domain/expiry.js";
 export * from "./domain/message.js";
 export * from "./domain/moderation.js";
 export * from "./domain/crisis.js";

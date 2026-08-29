@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, max } from "drizzle-orm";
 import type {
   AppendMessageInput,
   ConversationCrypto,
@@ -105,6 +105,18 @@ export class DrizzleMessageRepository implements MessageRepository {
       .update(messages)
       .set({ flagged: true })
       .where(inArray(messages.id, [...ids]));
+  }
+
+  async lastSentAt(conversationId: ConversationId): Promise<Date | null> {
+    // One indexed row, not a transcript. This is asked on every page load and
+    // every poll, and reading a conversation to find out when it last moved
+    // would decrypt the whole thing to look at a timestamp.
+    const rows = await this.#db
+      .select({ at: max(messages.sentAt) })
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+
+    return rows[0]?.at ?? null;
   }
 
   async addRendering(id: MessageId, rendering: Rendering): Promise<Message> {
