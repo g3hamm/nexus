@@ -1,4 +1,5 @@
 import type {
+  AcademyModuleBrief,
   AlertChannel,
   AppendMessageInput,
   Coverage,
@@ -537,6 +538,8 @@ export class FailingAlertChannel implements AlertChannel {
 export class StubPracticePartner implements PracticePartner {
   readonly seen: PracticeExchange[][] = [];
   readonly debriefedIn: string[] = [];
+  /** The Academy module each debrief was marked against, or null for none. */
+  readonly debriefedAgainst: (AcademyModuleBrief | null)[] = [];
   #turns: PracticeTurn[] = [];
   #fail = false;
 
@@ -567,8 +570,10 @@ export class StubPracticePartner implements PracticePartner {
     _scenario: PracticeScenario,
     _exchanges: readonly PracticeExchange[],
     language: string,
+    module?: AcademyModuleBrief,
   ): Promise<PracticeDebrief> {
     this.debriefedIn.push(language);
+    this.debriefedAgainst.push(module ?? null);
     return {
       summary: "You stayed with her.",
       strengths: [],

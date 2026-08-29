@@ -479,14 +479,25 @@ afternoon of real conversations.
 
 # The Apologetics Academy
 
-Beside **Practice** there is an **Academy** — the reading that goes with the
-rehearsing. It is visible to volunteers only. Seekers never see it, and nothing
-in it appears in a conversation.
+Beside **Practice** there is an **Academy** — the same training, organised as
+modules. It is visible to volunteers only. Seekers never see it, and nothing in
+it appears in a conversation.
 
-**Almost all of it is empty on purpose.** What ships is the outline: four
-tracks and twenty-four lessons, each with a title, a summary, and a label
-saying whether it is written, being written, or only planned. Two lessons are
-finished, and both are about method rather than doctrine — how to tell a
+A module is not an article. Each one has something to read and a conversation
+to have: the volunteer reads it, then starts an exercise against a simulated
+seeker who has not read any of it and will not be impressed that they just did.
+When they finish, the feedback is told which module they came from and marks
+them against what it was trying to teach — so "you did the thing that module
+warned you about, here is where" is a note they can actually get.
+
+**The reading is mostly empty on purpose, and the exercises are not.** What
+ships is four tracks and twenty-four modules, each with a title, a summary, and
+a label saying whether the reading is written, being written, or only planned.
+Two are written. **Eleven already have a working exercise**, including modules
+whose reading nobody has written yet — those are still worth doing, and the
+page says so.
+
+The two written modules are about method rather than doctrine — how to tell a
 philosophical question from a grieving one, and when to stop arguing. Nexus
 should not be shipping your ministry a position on hell or sexuality that your
 leadership did not choose.
@@ -494,15 +505,17 @@ leadership did not choose.
 **The curriculum is yours to write.** It lives in one file in the code —
 `packages/academy/src/curriculum.ts` — and the comment at the top of that file
 explains what to change. Your apologetics lead does not need to understand the
-rest of the system: they write the lesson, mark it published, and it appears on
-the next deploy. The page is honest about the gap in the meantime, and tells
-volunteers how many lessons are actually written.
+rest of the system: they write the module, mark it published, and it appears on
+the next deploy. Two fields are worth their attention beyond the reading itself.
+`exercises` names the practice scenarios a volunteer can start from that module.
+`teaches` is what the feedback afterwards is asked to look for, so it should be
+behaviours somebody can be seen doing or failing to do, not a restatement of
+the summary.
 
-Two things carry through from the knowledge base. Each written lesson names its
-source, because a volunteer about to repeat an argument to a stranger in
-another country should know whose argument it is. And lessons name the practice
-scenarios that exercise them, so the reading and the rehearsing point at each
-other.
+Each written module also names its source, because a volunteer about to repeat
+an argument to a stranger in another country should know whose argument it is.
 
-Nothing here costs anything to run. The Academy makes no AI request, reads
-nothing from the database, and is the same for every volunteer.
+**What it costs.** The Academy's own pages cost nothing — no AI request, no
+database read, the same for every volunteer. The exercises cost exactly what
+Practice costs, because they are Practice: every message is an AI request, and
+a session is perhaps a dozen of them plus the feedback at the end.

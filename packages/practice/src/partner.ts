@@ -1,4 +1,5 @@
 import type {
+  AcademyModuleBrief,
   LanguageCode,
   LlmMessage,
   LlmProvider,
@@ -49,10 +50,11 @@ export class LlmPracticePartner implements PracticePartner {
     scenario: PracticeScenario,
     exchanges: readonly PracticeExchange[],
     language: LanguageCode,
+    module?: AcademyModuleBrief,
   ): Promise<PracticeDebrief> {
     const result = await this.#llm.completeStructured({
       task: "practice_debrief",
-      system: buildDebriefPrompt(scenario, language),
+      system: buildDebriefPrompt(scenario, language, module),
       messages: [{ role: "user", content: formatExchanges(exchanges) }],
       schema: practiceDebriefSchema,
       schemaName: "PracticeDebrief",

@@ -1,4 +1,4 @@
-import type { PracticeExchange, PracticeScenario } from "@nexus/core";
+import type { AcademyModuleBrief, PracticeExchange, PracticeScenario } from "@nexus/core";
 
 /**
  * The simulated seeker's instructions.
@@ -72,7 +72,25 @@ Set it to true on any turn where this person has said something that a careful r
 export function buildDebriefPrompt(
   scenario: PracticeScenario,
   language: string,
+  module?: AcademyModuleBrief,
 ): string {
+  // An exercise started from an Academy module is being marked against two
+  // things: whether the conversation went well, and whether the reading
+  // landed. The second is the more useful of the two to the volunteer, and
+  // it is the whole reason a module is a module rather than a page.
+  const moduleSection = module
+    ? `
+
+## What they had just read
+
+They started this from the Academy module **${module.title}** — ${module.summary}
+
+That module is trying to make them able to:
+${(module.teaches ?? []).map((t) => `- ${t}`).join("\n")}
+
+Say plainly whether it landed. Where they did one of those things, name it as a strength and quote it. Where they did the opposite, say so — somebody who has just read about a mistake and then made it needs to be told, and is in the best possible position to hear it.`
+    : "";
+
   return `You are reviewing a practice conversation with a volunteer on Nexus, where people anywhere in the world talk with Christian volunteers about faith. This was an exercise. The person they were talking to was simulated. The volunteer knows that.
 
 You are writing to the volunteer, not about them. Address them as "you".
@@ -86,7 +104,7 @@ Write everything in ${language}.
 It was built to test:
 ${scenario.competencies.map((c) => `- ${c}`).join("\n")}
 
-Judge the conversation against those first, and against the general marks of doing this well below.
+Judge the conversation against those first, and against the general marks of doing this well below.${moduleSection}
 
 ## What doing this well looks like
 

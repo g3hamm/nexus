@@ -1,3 +1,4 @@
+import type { AcademyModuleBrief } from "../domain/academy.js";
 import type { LanguageCode } from "../domain/language.js";
 import type {
   PracticeDebrief,
@@ -40,5 +41,15 @@ export interface PracticePartner {
     exchanges: readonly PracticeExchange[],
     /** The volunteer's own language. Feedback is useless in a second language. */
     language: LanguageCode,
+    /**
+     * The Academy module this exercise was started from, when it was.
+     *
+     * Feedback that knows what somebody was trying to learn is worth a great
+     * deal more than feedback that does not: "you did the thing that module
+     * warned you about, here" is actionable in a way that a general note on
+     * listening is not. Absent when the volunteer came from the practice list
+     * rather than from a module, which is a normal way to arrive.
+     */
+    module?: AcademyModuleBrief,
   ): Promise<PracticeDebrief>;
 }

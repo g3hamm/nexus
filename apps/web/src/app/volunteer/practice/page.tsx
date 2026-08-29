@@ -29,11 +29,13 @@ export default async function PracticePage() {
           are all part of this work, and none of them can be practised in English.
         </p>
         <p className="text-ink-subtle mt-3 text-sm leading-relaxed">
-          The reading that goes with this is in the{" "}
+          This is the whole list, unattached. Most of these are also the exercise for a
+          module in the{" "}
           <Link href="/volunteer/academy" className="underline underline-offset-2">
             Apologetics Academy
           </Link>
-          , and several lessons name the scenarios below.
+          , where you read first and the feedback afterwards is marked against what you
+          had just read.
         </p>
       </header>
 

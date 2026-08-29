@@ -1,7 +1,7 @@
 /**
- * A deliberately tiny markdown reader for lesson bodies.
+ * A deliberately tiny markdown reader for module bodies.
  *
- * Lessons are written by an apologetics lead, not an engineer, so the source
+ * Modules are written by an apologetics lead, not an engineer, so the source
  * format has to be something a person can type. But rendering arbitrary
  * markdown means either shipping a parser that emits HTML — which then has to
  * be sanitised, forever, correctly — or pulling in a dependency for the sake
@@ -24,14 +24,14 @@
  * the page rather than losing them.
  */
 
-/** A run of text. Lessons need no inline formatting beyond these two. */
+/** A run of text. Modules need no inline formatting beyond these two. */
 export interface InlineSpan {
   readonly text: string;
   readonly bold: boolean;
   readonly italic: boolean;
 }
 
-export type LessonBlock =
+export type ProseBlock =
   | {
       readonly type: "heading";
       readonly level: 2 | 3;
@@ -46,7 +46,7 @@ export type LessonBlock =
  *
  * Unmatched markers stay literal — a stray asterisk is far more likely to be
  * someone's punctuation than a formatting mistake, and swallowing it would
- * silently change what the lesson says.
+ * silently change what the module says.
  */
 export function parseInline(line: string): readonly InlineSpan[] {
   const spans: InlineSpan[] = [];
@@ -67,15 +67,15 @@ export function parseInline(line: string): readonly InlineSpan[] {
 }
 
 /**
- * Parses a lesson body into blocks.
+ * Parses a module body into blocks.
  *
  * Lines are joined until a blank line or a new construct, so a lead can wrap
  * their source at whatever width they like without it changing the page. That
  * includes list items, which is the case people actually hit: an item long
  * enough to wrap is exactly the item worth writing.
  */
-export function parseLesson(body: string): readonly LessonBlock[] {
-  const blocks: LessonBlock[] = [];
+export function parseModuleBody(body: string): readonly ProseBlock[] {
+  const blocks: ProseBlock[] = [];
   let mode: "none" | "paragraph" | "list" | "quote" = "none";
   let paragraph: string[] = [];
   let items: string[][] = [];

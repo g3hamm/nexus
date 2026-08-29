@@ -1,10 +1,10 @@
-import type { InlineSpan, LessonBlock } from "@nexus/academy";
+import type { InlineSpan, ProseBlock } from "@nexus/academy";
 
 /**
- * Renders a parsed lesson.
+ * Renders a parsed module.
  *
  * The parser hands over plain data rather than HTML, so this is ordinary JSX
- * and there is no `dangerouslySetInnerHTML` anywhere in the Academy. A lesson
+ * and there is no `dangerouslySetInnerHTML` anywhere in the Academy. A module
  * written by an apologetics lead cannot inject markup into a volunteer's page,
  * however the file reaches the repository.
  */
@@ -26,7 +26,7 @@ function Spans({ spans }: { readonly spans: readonly InlineSpan[] }) {
   );
 }
 
-export function LessonProse({ blocks }: { readonly blocks: readonly LessonBlock[] }) {
+export function ModuleProse({ blocks }: { readonly blocks: readonly ProseBlock[] }) {
   return (
     <div className="space-y-5">
       {blocks.map((block, i) => {

@@ -4,24 +4,33 @@ import type { AcademyTrack } from "@nexus/core";
  * The Apologetics Academy curriculum.
  *
  * **This is a placeholder, and the page says so.** The outline below is a
- * credible shape for volunteer training and the two written lessons prove the
+ * credible shape for volunteer training and the two written modules prove the
  * whole path works — but the ministry running Nexus owns the curriculum, and
- * almost every lesson here is deliberately unwritten. Filling them in is the
- * apologetics lead's job, and this file is the only thing they have to touch.
+ * almost every module's reading here is deliberately unwritten. Writing them
+ * is the apologetics lead's job, and this file is the only thing they touch.
  *
- * To write a lesson: change its `status` to `"published"`, add a `body` and a
+ * To write a module: change its `status` to `"published"`, add a `body` and a
  * `source`, and give `minutes` an honest estimate. To add one: copy an entry.
  * To reorder: move it. Nothing else in the codebase needs to change, and the
  * page picks it up on the next deploy.
+ *
+ * `exercises` is what turns a module from reading into learning: the practice
+ * scenarios a volunteer can start straight from the module, with a simulated
+ * seeker who has not read it. `teaches` is what the debrief afterwards is
+ * asked to look for, so write behaviours somebody can be seen doing or
+ * failing to do — not a restatement of the summary. Both are worth filling in
+ * even for a module nobody has written yet: an unwritten module with a real
+ * exercise still teaches something, and eleven of these already have one.
  *
  * Two rules worth keeping:
  *
  *   1. `source` is shown to the volunteer. Someone about to repeat an argument
  *      to a stranger in another country should know whose argument it is.
- *   2. `status` is shown too. A training library that hides its own gaps
- *      teaches volunteers to trust it further than it has earned.
+ *   2. `status` is shown too, and describes the reading only. A training
+ *      library that hides its own gaps teaches volunteers to trust it further
+ *      than it has earned.
  *
- * The two lessons written here are about method rather than doctrine, on
+ * The two modules written here are about method rather than doctrine, on
  * purpose. Nexus should not be shipping a position on hell, sexuality, or the
  * age of the earth that a ministry did not choose; it can reasonably ship the
  * observation that people stop talking when they feel argued at.
@@ -31,7 +40,7 @@ export const ACADEMY_TRACKS: readonly AcademyTrack[] = [
     id: "foundations",
     title: "Foundations",
     summary: "What this work is and is not, before any particular question comes up.",
-    lessons: [
+    modules: [
       {
         id: "what-this-is-for",
         title: "What apologetics is for here",
@@ -47,8 +56,14 @@ export const ACADEMY_TRACKS: readonly AcademyTrack[] = [
         status: "published",
         minutes: 6,
         source: "Nexus starter curriculum — replace with your ministry's own material",
-        practiceScenarioIds: ["grief-mother", "deconstructing"],
-        body: `## The failure this lesson is about
+        teaches: [
+          "Finding out which question was asked before answering it",
+          "Asking about the person rather than the theology",
+          "Saying less than you want to when someone is grieving",
+          "Letting a silence sit instead of filling it",
+        ],
+        exercises: ["grief-mother", "deconstructing"],
+        body: `## The failure this module is about
 
 Someone writes: *if God is good, why did my sister die?*
 
@@ -141,14 +156,14 @@ happens to have a person attached.`,
     title: "The hard questions",
     summary:
       "The objections that actually arrive, and what Christians have historically said about them.",
-    lessons: [
+    modules: [
       {
         id: "suffering",
         title: "Why does God allow suffering?",
         summary:
           "The most common question, and the one most often answered as though it were abstract.",
         status: "planned",
-        practiceScenarioIds: ["grief-mother"],
+        exercises: ["grief-mother"],
       },
       {
         id: "hiddenness",
@@ -162,7 +177,7 @@ happens to have a person attached.`,
         summary:
           "Manuscripts, dating, and what the honest version of this argument does and does not establish.",
         status: "planned",
-        practiceScenarioIds: ["hostile-atheist"],
+        exercises: ["hostile-atheist"],
       },
       {
         id: "science",
@@ -189,7 +204,7 @@ happens to have a person attached.`,
         summary:
           "Shame presented as a doctrinal question. Answering only the doctrine misses it.",
         status: "planned",
-        practiceScenarioIds: ["deconstructing", "prosperity-wound"],
+        exercises: ["deconstructing", "prosperity-wound"],
       },
     ],
   },
@@ -199,7 +214,7 @@ happens to have a person attached.`,
     title: "Across cultures",
     summary:
       "Nexus is an international chat. Most of the people you meet are not from your country, your church, or your century of argument.",
-    lessons: [
+    modules: [
       {
         id: "honour-and-shame",
         title: "Honour and shame, guilt and innocence",
@@ -213,7 +228,7 @@ happens to have a person attached.`,
         summary:
           "Common ground, real differences, and the cost of the conversation on their side of it.",
         status: "planned",
-        practiceScenarioIds: ["hidden-convert"],
+        exercises: ["hidden-convert"],
       },
       {
         id: "dharmic-seekers",
@@ -228,7 +243,7 @@ happens to have a person attached.`,
         summary:
           "People who did not leave for lack of information. They were there, and something happened.",
         status: "planned",
-        practiceScenarioIds: ["deconstructing"],
+        exercises: ["deconstructing"],
       },
       {
         id: "belief-is-dangerous",
@@ -236,7 +251,7 @@ happens to have a person attached.`,
         summary:
           "What you must not ask, what you must not urge, and what safety actually requires of you.",
         status: "planned",
-        practiceScenarioIds: ["hidden-convert", "told-to-leave"],
+        exercises: ["hidden-convert", "told-to-leave"],
       },
       {
         id: "prosperity-wound",
@@ -244,7 +259,7 @@ happens to have a person attached.`,
         summary:
           "People whose only exposure to Christianity took their money and promised them a result.",
         status: "planned",
-        practiceScenarioIds: ["prosperity-wound"],
+        exercises: ["prosperity-wound"],
       },
     ],
   },
@@ -254,7 +269,7 @@ happens to have a person attached.`,
     title: "The craft",
     summary:
       "The parts of this work that are skill rather than content, and that only get better with practice.",
-    lessons: [
+    modules: [
       {
         id: "when-not-to-argue",
         title: "When not to argue",
@@ -263,7 +278,14 @@ happens to have a person attached.`,
         status: "published",
         minutes: 5,
         source: "Nexus starter curriculum — replace with your ministry's own material",
-        practiceScenarioIds: ["hostile-atheist", "provocateur", "at-risk"],
+        teaches: [
+          "Recognising the moments when arguing is the wrong move",
+          'Saying "I don\'t know" plainly rather than bluffing',
+          'Granting a point without a "but" straight after it',
+          "Declining bait without naming it as bait",
+          "Dropping apologetics the moment someone discloses risk",
+        ],
+        exercises: ["hostile-atheist", "provocateur", "at-risk"],
         body: `## Winning is not the unit of success
 
 You will meet people who are better read than you are. You will meet people
@@ -339,7 +361,7 @@ you feel the pull to score a point, and do something else with it.`,
         summary:
           "Counselling, deliverance, money, and the promises nobody here is in a position to keep.",
         status: "planned",
-        practiceScenarioIds: ["asking-for-help"],
+        exercises: ["asking-for-help"],
       },
       {
         id: "crisis",
@@ -347,7 +369,7 @@ you feel the pull to score a point, and do something else with it.`,
         summary:
           "The reading behind the crisis pathway. The pathway itself already runs whether or not you have read this.",
         status: "planned",
-        practiceScenarioIds: ["at-risk"],
+        exercises: ["at-risk"],
       },
       {
         id: "ending-well",

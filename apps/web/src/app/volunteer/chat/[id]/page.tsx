@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { asConversationId, endonym, isPractice } from "@nexus/core";
+import { findAcademyModule } from "@nexus/academy";
 import { findScenario } from "@nexus/practice";
 import { ChatWindow } from "@/components/ChatWindow";
 import { EnablementSidebar } from "@/components/EnablementSidebar";
@@ -12,10 +13,13 @@ export const dynamic = "force-dynamic";
 
 export default async function VolunteerChatPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ module?: string }>;
 }) {
   const { id } = await params;
+  const { module: moduleId } = await searchParams;
 
   const session = await staffSession();
   // An admin session is not a volunteer session; see requireVolunteer.
@@ -35,6 +39,13 @@ export default async function VolunteerChatPage({
     ? findScenario(conversation.practiceScenario ?? "")
     : null;
 
+  // An exercise started from an Academy module carries the module in the URL,
+  // so the panel can offer the way back and the debrief can be marked against
+  // what the volunteer had just read. Trusted no further than that: the id is
+  // re-checked against the scenario server-side before it steers anything.
+  const academyModule =
+    scenario && moduleId ? (findAcademyModule(moduleId)?.module ?? null) : null;
+
   return (
     <VolunteerWorkspace
       panelLabel={scenario ? "Practice" : "Alongside you"}
@@ -47,7 +58,13 @@ export default async function VolunteerChatPage({
       }
       panel={
         scenario ? (
-          <PracticePanel conversationId={id} title={scenario.title} />
+          <PracticePanel
+            conversationId={id}
+            title={scenario.title}
+            academyModule={
+              academyModule ? { id: academyModule.id, title: academyModule.title } : null
+            }
+          />
         ) : (
           <EnablementSidebar
             conversationId={id}

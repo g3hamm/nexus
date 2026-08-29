@@ -20,6 +20,11 @@ const READINESS: Record<PracticeReadiness, { label: string; note: string }> = {
   },
 };
 
+export interface AcademyOrigin {
+  readonly id: string;
+  readonly title: string;
+}
+
 /**
  * The practice frame around a training conversation.
  *
@@ -34,9 +39,12 @@ const READINESS: Record<PracticeReadiness, { label: string; note: string }> = {
 export function PracticePanel({
   conversationId,
   title,
+  academyModule = null,
 }: {
   readonly conversationId: string;
   readonly title: string;
+  /** The Academy module this exercise was started from, if it was. */
+  readonly academyModule?: AcademyOrigin | null;
 }) {
   const [debrief, setDebrief] = useState<PracticeDebrief | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,6 +56,11 @@ export function PracticePanel({
     try {
       const response = await fetch(`/api/practice/${conversationId}/debrief`, {
         method: "POST",
+        headers: { "content-type": "application/json" },
+        // What the volunteer had just read. The server checks it against the
+        // scenario before it steers the feedback, so a stale or wrong value
+        // is dropped rather than believed.
+        body: JSON.stringify(academyModule ? { academyModule: academyModule.id } : {}),
       });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as {
@@ -69,21 +82,35 @@ export function PracticePanel({
   return (
     <div className="flex h-full flex-col overflow-y-auto p-5">
       <header className="border-line border-b pb-4">
-        <p className="text-ink-subtle text-xs tracking-wide uppercase">Practice</p>
+        <p className="text-ink-subtle text-xs uppercase tracking-wide">
+          {academyModule ? "Academy exercise" : "Practice"}
+        </p>
         <h2 className="text-ink mt-1 font-serif text-lg">{title}</h2>
+        {academyModule ? (
+          <p className="text-ink-muted mt-1 text-sm leading-relaxed">
+            From{" "}
+            <Link
+              href={`/volunteer/academy/${academyModule.id}`}
+              className="underline underline-offset-2"
+            >
+              {academyModule.title}
+            </Link>
+            . Your feedback will be marked against it.
+          </p>
+        ) : null}
         <p className="text-ink-subtle mt-2 text-sm leading-relaxed">
-          Nobody is on the other end. Nothing here is reviewed, flagged, or seen
-          by anyone but you.
+          Nobody is on the other end. Nothing here is reviewed, flagged, or seen by anyone
+          but you.
         </p>
       </header>
 
       {debrief ? (
-        <Debrief debrief={debrief} />
+        <Debrief debrief={debrief} academyModule={academyModule} />
       ) : (
         <div className="mt-5">
           <p className="text-ink-muted text-sm leading-relaxed">
-            Take it as far as it goes. When you are finished — or when you are
-            stuck, which is also worth reading about — ask for feedback.
+            Take it as far as it goes. When you are finished — or when you are stuck,
+            which is also worth reading about — ask for feedback.
           </p>
           {error ? <p className="text-danger mt-3 text-sm">{error}</p> : null}
           <button
@@ -101,7 +128,13 @@ export function PracticePanel({
   );
 }
 
-function Debrief({ debrief }: { readonly debrief: PracticeDebrief }) {
+function Debrief({
+  debrief,
+  academyModule,
+}: {
+  readonly debrief: PracticeDebrief;
+  readonly academyModule: AcademyOrigin | null;
+}) {
   const readiness = READINESS[debrief.readiness];
 
   return (
@@ -119,14 +152,21 @@ function Debrief({ debrief }: { readonly debrief: PracticeDebrief }) {
         <h3 className="text-ink font-serif">{readiness.label}</h3>
         <p className="text-ink-muted mt-1 text-sm leading-relaxed">{readiness.note}</p>
         <p className="text-ink-subtle mt-3 text-xs leading-relaxed">
-          One conversation is thin evidence, and this is a reading rather than a
-          verdict. Nobody else is shown it.
+          One conversation is thin evidence, and this is a reading rather than a verdict.
+          Nobody else is shown it.
         </p>
+        {/* Back to where they came from. Somebody who has just been told
+            they made the mistake the module warned about should land on the
+            module, not on a list of other conversations. */}
         <Link
-          href="/volunteer/practice"
+          href={
+            academyModule
+              ? `/volunteer/academy/${academyModule.id}`
+              : "/volunteer/practice"
+          }
           className="text-ink-muted mt-4 inline-block text-sm underline underline-offset-2"
         >
-          Try another one
+          {academyModule ? `Back to ${academyModule.title}` : "Try another one"}
         </Link>
       </section>
     </div>
@@ -162,7 +202,7 @@ function NoteList({
             {note.quote ? (
               <blockquote
                 dir="auto"
-                className="border-line-strong text-ink-muted mt-1.5 border-l-2 pl-3 leading-relaxed italic"
+                className="border-line-strong text-ink-muted mt-1.5 border-l-2 pl-3 italic leading-relaxed"
               >
                 {note.quote}
               </blockquote>

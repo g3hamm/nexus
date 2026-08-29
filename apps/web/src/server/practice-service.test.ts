@@ -86,8 +86,7 @@ describe("PracticeService", () => {
 
     it("keeps a rehearsal for weeks, not the ninety days a real one gets", async () => {
       const conversation = await h.service.start(volunteer, "grief-mother");
-      const days =
-        (conversation.retainUntil!.getTime() - Date.now()) / 86_400_000;
+      const days = (conversation.retainUntil!.getTime() - Date.now()) / 86_400_000;
       expect(days).toBeLessThan(30);
     });
 
@@ -122,10 +121,15 @@ describe("PracticeService", () => {
     // The whole reason the sandbox can live on the real surface: the judge
     // never runs here, so this is how the volunteer sees a crisis for real.
     it("raises the crisis card straight from the partner's own signal", async () => {
-      h.practice.willSay({ text: "hola" }, { text: "no sé si estaré mañana", disclosesRisk: true });
+      h.practice.willSay(
+        { text: "hola" },
+        { text: "no sé si estaré mañana", disclosesRisk: true },
+      );
       const conversation = await h.service.start(volunteer, "at-risk");
 
-      expect((await h.conversations.findById(conversation.id))?.crisisRaisedAt).toBeNull();
+      expect(
+        (await h.conversations.findById(conversation.id))?.crisisRaisedAt,
+      ).toBeNull();
 
       await h.service.respond(conversation.id);
 
@@ -162,8 +166,12 @@ describe("PracticeService", () => {
       expect(typing[0].event.role).toBe("seeker");
 
       // Announced before the message it precedes, or it is pointless.
-      const firstTyping = h.realtime.published.findIndex((p) => p.event.type === "typing");
-      const firstMessage = h.realtime.published.findIndex((p) => p.event.type === "message");
+      const firstTyping = h.realtime.published.findIndex(
+        (p) => p.event.type === "typing",
+      );
+      const firstMessage = h.realtime.published.findIndex(
+        (p) => p.event.type === "message",
+      );
       if (firstMessage !== -1) expect(firstTyping).toBeLessThan(firstMessage);
       expect(conversation.practiceScenario).toBe("grief-mother");
     });
@@ -231,6 +239,31 @@ describe("PracticeService", () => {
       const conversation = await started();
       await h.service.debrief(conversation.id, volunteer);
       expect(h.practice.debriefedIn).toEqual(["en"]);
+    });
+
+    // The whole difference between an Academy module and a page of reading:
+    // somebody who has just read about a mistake and then made it is in the
+    // best possible position to be told so.
+    it("marks the exercise against the module it was started from", async () => {
+      const conversation = await started();
+      await h.service.debrief(conversation.id, volunteer, "listening-first");
+      expect(h.practice.debriefedAgainst[0]?.title).toBe(
+        "Answering the question you were actually asked",
+      );
+    });
+
+    // Carried in the URL, so it is checked rather than trusted. A mismatch
+    // would anchor somebody's feedback to reading they never did, quietly.
+    it("ignores a module that does not set this scenario as an exercise", async () => {
+      const conversation = await started();
+      await h.service.debrief(conversation.id, volunteer, "when-not-to-argue");
+      expect(h.practice.debriefedAgainst[0]).toBeNull();
+    });
+
+    it("marks against nothing when the volunteer came from the practice list", async () => {
+      const conversation = await started();
+      await h.service.debrief(conversation.id, volunteer);
+      expect(h.practice.debriefedAgainst[0]).toBeNull();
     });
 
     it("ends the session", async () => {

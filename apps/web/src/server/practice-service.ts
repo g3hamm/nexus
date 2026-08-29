@@ -9,6 +9,7 @@ import type {
   Volunteer,
 } from "@nexus/core";
 import { NexusError, isPractice, original } from "@nexus/core";
+import { briefForExercise } from "@nexus/academy";
 import { findScenario } from "@nexus/practice";
 import type { Container } from "./container";
 import { ConversationService } from "./conversation-service";
@@ -121,6 +122,15 @@ export class PracticeService {
   async debrief(
     conversationId: ConversationId,
     volunteer: Volunteer,
+    /**
+     * The Academy module this exercise was started from, if it was.
+     *
+     * Carried in the URL rather than stored on the conversation, which keeps
+     * a schema migration out of a feature that does not need one. It is
+     * checked against the scenario before it is used — see `briefForExercise`
+     * — so a wrong or invented id is dropped rather than believed.
+     */
+    academyModuleId?: string,
   ): Promise<PracticeDebrief> {
     const conversation = await this.#c.conversations.findById(conversationId);
     if (!conversation || !isPractice(conversation)) {
@@ -143,10 +153,16 @@ export class PracticeService {
       await this.#c.conversations.end(conversationId, "ended");
     }
 
+    // Feedback that knows what the volunteer was trying to learn is worth far
+    // more than feedback that does not, and this is the whole difference
+    // between an Academy module and a page of reading.
+    const module = briefForExercise(academyModuleId, scenario.id);
+
     const debrief = await this.#c.practice.debrief(
       scenario,
       exchanges,
       volunteer.languages[0] ?? "en",
+      module,
     );
 
     await this.#c.audit.record({
@@ -156,7 +172,11 @@ export class PracticeService {
       conversationId,
       // The readiness band, not the notes. What a coach said about somebody's
       // fumbling first attempt does not belong in a permanent audit trail.
-      detail: { scenario: scenario.id, readiness: debrief.readiness },
+      detail: {
+        scenario: scenario.id,
+        readiness: debrief.readiness,
+        ...(module ? { academyModule: academyModuleId } : {}),
+      },
     });
 
     return debrief;

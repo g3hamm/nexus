@@ -98,6 +98,28 @@ describe("debrief prompt", () => {
     const prompt = buildDebriefPrompt(scenario, "en");
     expect(prompt).toMatch(/empty .*harms.* list is the normal, expected result/i);
   });
+
+  // An exercise started from an Academy module is marked against two things:
+  // whether the conversation went well, and whether the reading landed. The
+  // second is what makes a module a module rather than a page.
+  it("marks against the module when the exercise came from one", () => {
+    const prompt = buildDebriefPrompt(scenario, "en", {
+      title: "When not to argue",
+      summary: "Some of the best moves in this work look like losing.",
+      teaches: ["Saying \"I don't know\" plainly rather than bluffing"],
+    });
+
+    expect(prompt).toContain("When not to argue");
+    expect(prompt).toContain("Saying \"I don't know\" plainly rather than bluffing");
+    // The scenario's own competencies are not displaced by the module's.
+    for (const competency of scenario.competencies) expect(prompt).toContain(competency);
+  });
+
+  // Arriving from the practice list is a normal way to arrive, and the prompt
+  // must not then talk about reading the volunteer never did.
+  it("says nothing about a module when there was none", () => {
+    expect(buildDebriefPrompt(scenario, "en")).not.toMatch(/What they had just read/);
+  });
 });
 
 describe("transcript to model turns", () => {
@@ -163,10 +185,22 @@ describe("schemas", () => {
   it("accepts a debrief with a note that has no quote", () => {
     const debrief = practiceDebriefSchema.parse({
       summary: "You listened well.",
-      strengths: [{ point: "You asked about Diego", quote: "what was he like?", why: "It moved the conversation to him." }],
+      strengths: [
+        {
+          point: "You asked about Diego",
+          quote: "what was he like?",
+          why: "It moved the conversation to him.",
+        },
+      ],
       growth: [],
       harms: [],
-      missed: [{ point: "You never asked whether she still prays", quote: null, why: "It was the question underneath." }],
+      missed: [
+        {
+          point: "You never asked whether she still prays",
+          quote: null,
+          why: "It was the question underneath.",
+        },
+      ],
       readiness: "with_support",
     });
     expect(debrief.missed[0]?.quote).toBeNull();

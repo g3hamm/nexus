@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { NexusError, asConversationId, asVolunteerId } from "@nexus/core";
 import { container } from "@/server/container";
 import { errorResponse, ok } from "@/server/http";
@@ -9,6 +10,15 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 /**
+ * The Academy module the volunteer started this exercise from, if any.
+ *
+ * Optional, and unverifiable here on purpose — the service checks the module
+ * against the scenario before it steers anything. The worst a wrong id could
+ * do is anchor somebody's own private feedback to the wrong reading.
+ */
+const bodySchema = z.object({ academyModule: z.string().max(64).optional() });
+
+/**
  * End a practice session and get the debrief.
  *
  * The debrief is generated here and returned, never stored. It is read once
@@ -18,7 +28,7 @@ export const maxDuration = 120;
  * of this feature.
  */
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -29,9 +39,12 @@ export async function POST(
     const volunteer = await c.volunteers.findById(asVolunteerId(claims.subject));
     if (!volunteer) throw NexusError.notFound("Volunteer", claims.subject);
 
+    const body = bodySchema.safeParse(await request.json().catch(() => ({})));
+
     const debrief = await new PracticeService(c).debrief(
       asConversationId(id),
       volunteer,
+      body.success ? body.data.academyModule : undefined,
     );
 
     return ok({ debrief });
