@@ -5,7 +5,7 @@ import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Button, field } from "@nexus/ui";
 
 /**
- * The entry point. A text box, and one optional line above it.
+ * The entry point. Two questions, asked the same way.
  *
  * The first message is sent with the request that creates the conversation,
  * so the seeker never sees an empty room — they write, and they are already
@@ -22,6 +22,11 @@ import { Button, field } from "@nexus/ui";
  * than a language, two open conversations can be told apart, and a name nobody
  * would give in earnest says something useful before anyone has spent twenty
  * minutes finding out.
+ *
+ * Both fields carry a real label above them and a short line inside them —
+ * the question, then an example of answering it. One field asking outright
+ * and the other hiding its question in a placeholder was never a decision,
+ * just drift, and it read as though the two mattered differently.
  *
  * "Any name you like" rather than "your name", and that wording is not
  * softness. For a seeker somewhere this conversation is dangerous, being
@@ -93,23 +98,23 @@ export function SeekerEntry() {
         />
       </div>
 
-      <label htmlFor="seeker-message" className="sr-only">
-        Write your message in any language
-      </label>
-      <textarea
-        id="seeker-message"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={onKeyDown}
-        rows={4}
-        maxLength={4000}
-        // The question the heading used to ask, moved down to the point of
-        // action. "Write here" told a visitor where to click and nothing
-        // about what for; the actual invitation belongs on the field they
-        // are about to use it in.
-        placeholder="What's on your mind?"
-        className={field("lg", "shadow-soft resize-none p-5 text-lg")}
-      />
+      <div>
+        <label htmlFor="seeker-message" className="text-ink-muted mb-1.5 block text-sm">
+          What&rsquo;s on your mind?
+        </label>
+        <textarea
+          id="seeker-message"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={onKeyDown}
+          rows={3}
+          maxLength={4000}
+          // An example, the same job "Any name you like" does above — not a
+          // second copy of the question the label already asked.
+          placeholder="Take your time."
+          className={field("lg", "shadow-soft resize-none p-5 text-lg")}
+        />
+      </div>
 
       {error ? (
         <p role="alert" className="text-danger mt-3 text-sm">

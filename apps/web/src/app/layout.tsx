@@ -29,8 +29,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         composer and transcript — take `flex-1` and get what is left after the
         footer, instead of measuring themselves against the viewport and
         pushing it off the bottom.
+
+        `h-dvh`, not `min-h-dvh`. A minimum height is not a *definite* one —
+        percentage heights and flex-basis further down the tree cannot resolve
+        against it, so every `h-full` in a conversation view was quietly
+        computing against its own content instead of the viewport. On a short
+        conversation that is invisible; on a long one, the whole page grows to
+        fit every message instead of the transcript scrolling inside a frame
+        that stays put. A real height fixes it at the one place it needs
+        fixing, and costs nothing on ordinary content pages: `body` still has
+        no `overflow` of its own, so a page whose content is genuinely taller
+        than the screen scrolls exactly as it always did.
       */}
-      <body className="bg-canvas text-ink flex min-h-dvh flex-col antialiased">
+      <body className="bg-canvas text-ink flex h-dvh flex-col antialiased">
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         <BrandFooter />
       </body>

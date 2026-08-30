@@ -66,7 +66,7 @@ export function EnablementSidebar({
     <div className="text-panel-ink flex h-full flex-col gap-5 overflow-y-auto p-5">
       <div>
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-panel-ink font-serif text-lg">Alongside you</h2>
+          <h2 className="text-panel-ink font-serif text-lg">Guidance</h2>
           <Button variant="ghost-panel" size="sm" busy={busy} onClick={() => void load()}>
             Update
           </Button>

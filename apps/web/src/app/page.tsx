@@ -34,13 +34,13 @@ export default async function HomePage() {
   const coverage = await coverageState();
 
   return (
-    <main className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6 py-12">
+    <main className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6 py-8 sm:py-12">
       {/* Volunteers arrive here too, and were expected to remember a URL
-          nobody told them. It says "volunteer" rather than "sign in" because
-          the line under the box promises a seeker there is no account to
-          make, and a bare login link two inches above it makes that read
-          like a lie. Small, grey, and out of the way for the same reason
-          every other element on this page had to justify itself.
+          nobody told them. Small, grey, and out of the way for the same
+          reason every other element on this page had to justify itself — the
+          visible text is as short as the rest of the chrome now, with the
+          fuller wording kept for anyone tabbing through by screen reader,
+          who cannot see that it sits apart from the box below.
 
           It points at /volunteer rather than the login page, so somebody
           already signed in lands on their queue instead of a form. No session
@@ -49,29 +49,38 @@ export default async function HomePage() {
           opens all day. */}
       <Link
         href="/volunteer"
+        aria-label="Volunteer sign in"
         className="text-ink-subtle hover:text-ink-muted absolute end-0 top-0 p-5 text-sm transition-colors"
       >
-        Volunteer sign in
+        Sign In
       </Link>
 
       <div className="w-full">
         {/* `min-h` reserves room for the longest translation wrapping onto a
             second line, so a language change mid-cycle cannot shove the
             subtitle and the form down the page while someone is reading. */}
-        <h1 className="text-ink flex min-h-24 items-center justify-center text-balance text-center font-serif text-3xl leading-snug sm:min-h-28 sm:text-4xl">
+        <h1 className="text-ink flex min-h-20 items-center justify-center text-balance text-center font-serif text-3xl leading-snug sm:min-h-24 sm:text-4xl">
           <BelongAnimation />
         </h1>
-        <p className="text-ink-muted mt-4 text-balance text-center text-lg">
+
+        {/* One warm line that is always true, and — beneath it, smaller — the
+            one honest thing that changes: whether anyone can answer right
+            now. Saying that plainly is worth more than a page that reads
+            beautifully at 3am with nobody on shift. See `invitationFor`. */}
+        <p className="text-ink mt-4 text-balance text-center text-lg">
+          Come as you are. Talk with real Christians around the world.
+        </p>
+        <p className="text-ink-subtle mt-1.5 text-balance text-center text-sm">
           {invitationFor(coverage)}
         </p>
 
-        <div className="mt-10">
+        <div className="mt-8">
           <SeekerEntry />
         </div>
 
         {/* "No name" was true until the name became required. A reassurance
             that is no longer accurate is worse than none. */}
-        <p className="text-ink-subtle mt-8 text-center text-sm">
+        <p className="text-ink-subtle mt-6 text-center text-sm">
           No account. No email. Nothing to sign up for.
         </p>
       </div>
@@ -80,19 +89,21 @@ export default async function HomePage() {
 }
 
 /**
- * The sentence under the heading.
+ * The small line under the tagline — the one thing here that changes.
  *
- * "Someone will be here to talk with you" was here unconditionally, and at
- * three in the morning with nobody on shift it was simply false. Someone who
- * has worked themselves up to writing down the worst thing in their life, and
- * is then left watching a spinner that means nothing, has been treated badly
- * by this software.
+ * "Someone will be here to talk with you" used to be the headline itself,
+ * shown unconditionally, and at three in the morning with nobody on shift it
+ * was simply false. Someone who has worked themselves up to writing down the
+ * worst thing in their life, and is then left watching a spinner that means
+ * nothing, has been treated badly by this software. It is smaller and
+ * quieter now, but it still has to be true in all four states below —
+ * tightening the wording is not licence to bring the old promise back.
  *
  * None of these turn anyone away. Writing it down has value even when nobody
  * is on, the message is genuinely waiting for whoever comes on next, and a
  * seeker's session lasts twelve hours — long enough that coming back on the
  * same device really does find the reply. The promise shrinks to fit the
- * truth; the invitation never does.
+ * truth; the invitation above it never does.
  */
 function invitationFor(state: CoverageState | null): string {
   switch (state) {
@@ -102,13 +113,13 @@ function invitationFor(state: CoverageState | null): string {
     // in every failure, which is the only thing worth saying when you do not
     // know. It lasts until the first revalidation, thirty seconds later.
     case null:
-      return "Write in any language. Someone will read this.";
+      return "Write in any language — someone will read it.";
     case "open":
-      return "Write in any language. Someone is here to talk with you.";
+      return "Someone is here now.";
     case "busy":
-      return "Write in any language. Everyone here is with someone right now, and one of them will be with you as soon as they are free.";
+      return "Everyone is with someone else right now, and you're next.";
     case "closed":
-      return "Write in any language. Nobody is here at this hour, but what you write will be waiting for the first person who comes on.";
+      return "No one is on right now, but your message will be waiting.";
   }
 }
 

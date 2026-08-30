@@ -57,7 +57,7 @@ export default async function VolunteerChatPage({
 
   return (
     <VolunteerWorkspace
-      panelLabel={scenario ? "Practice" : "Alongside you"}
+      panelLabel={scenario ? "Practice" : "Guidance"}
       conversation={
         <ChatWindow
           conversationId={id}
