@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { endonym, SEEKER_UI_LANGUAGES } from "@nexus/core";
 import { cn } from "@nexus/ui";
+import { ChevronDownIcon, CORNER_PILL_CLASS } from "./CornerLink";
 import { useUiLanguage } from "./LanguageProvider";
 
 /**
@@ -45,16 +46,17 @@ export function LanguageSwitch() {
   }, [open]);
 
   return (
-    <div ref={root} className="absolute start-0 top-0 p-5">
+    <div ref={root} className="absolute start-5 top-5">
       <button
         type="button"
         onClick={() => setOpen((was) => !was)}
         aria-expanded={open}
         aria-haspopup="menu"
         dir="auto"
-        className="text-ink-subtle hover:text-ink-muted text-sm transition-colors"
+        className={CORNER_PILL_CLASS}
       >
         {endonym(language)}
+        <ChevronDownIcon />
       </button>
 
       {open ? (

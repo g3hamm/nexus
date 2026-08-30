@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { CoverageState } from "@nexus/core";
+import { cn } from "@nexus/ui";
 import { BelongAnimation } from "@/components/BelongAnimation";
+import { ArrowRightIcon, CORNER_PILL_CLASS } from "@/components/CornerLink";
 import { FrontDoorTagline, NoAccountLine } from "@/components/FrontDoorCopy";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
@@ -59,9 +61,10 @@ export default async function HomePage() {
         <Link
           href="/volunteer"
           aria-label="Volunteer sign in"
-          className="text-ink-subtle hover:text-ink-muted absolute end-0 top-0 p-5 text-sm transition-colors"
+          className={cn(CORNER_PILL_CLASS, "absolute end-5 top-5")}
         >
           Sign In
+          <ArrowRightIcon />
         </Link>
 
         <div className="w-full">
