@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import type { LanguageCode } from "@nexus/core";
 import { Button, Card } from "@nexus/ui";
+import { LanguageMultiSelect } from "./LanguageMultiSelect";
 
 const FIELD =
   "rounded-md border border-line bg-surface px-3 text-ink outline-none " +
@@ -11,7 +13,7 @@ export function VolunteerApplyForm() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [languages, setLanguages] = useState("en");
+  const [languages, setLanguages] = useState<LanguageCode[]>(["en"]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,10 +33,7 @@ export function VolunteerApplyForm() {
           email,
           password,
           note,
-          languages: languages
-            .split(",")
-            .map((l) => l.trim())
-            .filter(Boolean),
+          languages,
         }),
       });
 
@@ -96,13 +95,15 @@ export function VolunteerApplyForm() {
           type="password"
           autoComplete="new-password"
         />
-        <Field
-          id="languages"
-          label="Languages you can hold a conversation in"
-          hint="Comma separated, e.g. en, es. This does not limit who you are matched with — everything is translated."
-          value={languages}
-          onChange={setLanguages}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="languages" className="text-ink text-sm font-medium">
+            Languages you can hold a conversation in
+          </label>
+          <p className="text-ink-subtle text-xs">
+            This does not limit who you are matched with — everything is translated.
+          </p>
+          <LanguageMultiSelect id="languages" value={languages} onChange={setLanguages} />
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="note" className="text-ink text-sm font-medium">

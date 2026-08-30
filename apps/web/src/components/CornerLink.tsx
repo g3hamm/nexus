@@ -25,10 +25,21 @@ const ICON_PROPS = {
   className: "size-3.5 shrink-0",
 };
 
-/** "This opens a menu below." Orientation-neutral under RTL — down is down either way. */
-export function ChevronDownIcon() {
+/**
+ * "This opens a menu below." Orientation-neutral under RTL — down is down
+ * either way. Also reused by `LanguageMultiSelect`, which opens the same
+ * kind of list from an ordinary form field rather than a corner pill —
+ * `className` lets a caller outside this pair still fold in its own layout
+ * (e.g. `ml-auto`) without a second copy of this path.
+ */
+export function ChevronDownIcon({ className }: { readonly className?: string } = {}) {
   return (
-    <svg {...ICON_PROPS}>
+    <svg
+      {...ICON_PROPS}
+      className={
+        className ? `${ICON_PROPS.className} ${className}` : ICON_PROPS.className
+      }
+    >
       <path d="M4 6l4 4 4-4" />
     </svg>
   );
