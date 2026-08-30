@@ -1,8 +1,11 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, Spinner } from "@nexus/ui";
+import { Button, Card, Spinner, cn } from "@nexus/ui";
+import { ChevronRightIcon } from "./CornerLink";
 
 interface QueueEntry {
   readonly id: string;
@@ -11,11 +14,49 @@ interface QueueEntry {
   readonly languageName: string;
   readonly waitingSince?: string;
   readonly matchedAt?: string | null;
+  readonly lastMessage?: string | null;
 }
 
 interface QueueResponse {
   readonly waiting: QueueEntry[];
   readonly active: QueueEntry[];
+}
+
+/**
+ * Which of the two speakers' existing colours a row's avatar borrows —
+ * stable per conversation (hashed from its id, not random per render), and
+ * reusing the same seeker/volunteer bubble tokens the chat view already
+ * uses rather than inventing a third palette just for this circle.
+ */
+const AVATAR_TINTS = [
+  { bg: "bg-seeker-bubble", ink: "text-seeker-ink" },
+  { bg: "bg-volunteer-bubble", ink: "text-volunteer-ink" },
+] as const;
+
+function avatarTint(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i)) % AVATAR_TINTS.length;
+  return AVATAR_TINTS[hash] ?? AVATAR_TINTS[0];
+}
+
+function initialFor(name: string | null): string {
+  return name?.trim().charAt(0).toUpperCase() || "?";
+}
+
+function Avatar({ id, name }: { readonly id: string; readonly name: string | null }) {
+  const tint = avatarTint(id);
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-medium",
+        tint.bg,
+        tint.ink,
+      )}
+    >
+      {initialFor(name)}
+    </span>
+  );
 }
 
 export function VolunteerQueue() {
@@ -77,26 +118,33 @@ export function VolunteerQueue() {
           </h2>
           <div className="flex flex-col gap-3">
             {data.active.map((entry) => (
-              <Card key={entry.id} padded={false} className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-ink" dir="auto">
+              <Link
+                key={entry.id}
+                href={`/volunteer/chat/${entry.id}`}
+                className="border-line bg-surface shadow-soft ease-calm flex items-center gap-3 rounded-lg border p-4 transition-colors duration-200 hover:border-line-strong"
+              >
+                <Avatar id={entry.id} name={entry.name} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-ink truncate font-medium" dir="auto">
                       {entry.name ?? "Someone"}
                     </p>
-                    <p className="text-ink-subtle text-sm">
-                      {entry.languageName}
-                      {entry.matchedAt ? ` · since ${timeAgo(entry.matchedAt)}` : ""}
-                    </p>
+                    <span className="bg-positive/15 text-positive shrink-0 rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide">
+                      Active
+                    </span>
                   </div>
-                  <Button
-                    variant="quiet"
-                    size="sm"
-                    onClick={() => router.push(`/volunteer/chat/${entry.id}`)}
-                  >
-                    Open
-                  </Button>
+                  <p className="text-ink-subtle text-sm">
+                    {entry.languageName}
+                    {entry.matchedAt ? ` · since ${timeAgo(entry.matchedAt)}` : ""}
+                  </p>
+                  {entry.lastMessage ? (
+                    <p className="text-ink-muted mt-1 truncate text-sm" dir="auto">
+                      {entry.lastMessage}
+                    </p>
+                  ) : null}
                 </div>
-              </Card>
+                <ChevronRightIcon className="text-ink-subtle" />
+              </Link>
             ))}
           </div>
         </section>
@@ -110,31 +158,40 @@ export function VolunteerQueue() {
         {notice ? <p className="text-ink-muted mb-3 text-sm">{notice}</p> : null}
 
         {data.waiting.length === 0 ? (
-          <Card>
-            <p className="text-ink-muted text-center">Nobody is waiting right now.</p>
+          <Card className="flex flex-col items-center gap-3 py-10 text-center">
+            <Image
+              src="/park-bench.png"
+              alt=""
+              width={160}
+              height={120}
+              className="h-28 w-auto"
+            />
+            <p className="text-ink font-medium">No one is waiting right now.</p>
+            <p className="text-ink-subtle text-sm">
+              We&rsquo;ll notify you here when a new seeker is ready to talk.
+            </p>
           </Card>
         ) : (
           <div className="flex flex-col gap-3">
             {data.waiting.map((entry) => (
-              <Card key={entry.id} padded={false} className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-ink" dir="auto">
-                      {entry.name ?? "Someone"}
-                    </p>
-                    <p className="text-ink-subtle text-sm">
-                      {entry.languageName}
-                      {entry.waitingSince ? ` · waiting ${timeAgo(entry.waitingSince)}` : ""}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    busy={claiming === entry.id}
-                    onClick={() => void claim(entry.id)}
-                  >
-                    Talk with them
-                  </Button>
+              <Card key={entry.id} padded={false} className="flex items-center gap-3 p-4">
+                <Avatar id={entry.id} name={entry.name} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-ink truncate" dir="auto">
+                    {entry.name ?? "Someone"}
+                  </p>
+                  <p className="text-ink-subtle text-sm">
+                    {entry.languageName}
+                    {entry.waitingSince ? ` · waiting ${timeAgo(entry.waitingSince)}` : ""}
+                  </p>
                 </div>
+                <Button
+                  size="sm"
+                  busy={claiming === entry.id}
+                  onClick={() => void claim(entry.id)}
+                >
+                  Talk with them
+                </Button>
               </Card>
             ))}
           </div>

@@ -163,6 +163,14 @@ export interface MessageRepository {
    * gone quiet long enough to close.
    */
   lastSentAt(conversationId: ConversationId): Promise<Date | null>;
+  /**
+   * The single newest message, or null in a conversation with no messages
+   * yet — for a short preview on the volunteer's dashboard.
+   *
+   * Not the same as `listForConversation(id, { limit: 1 })`, which orders
+   * oldest-first and would return the *first* message ever sent.
+   */
+  mostRecentFor(conversationId: ConversationId): Promise<Message | null>;
 }
 
 export interface CreatePracticeInput {

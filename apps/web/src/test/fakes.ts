@@ -267,6 +267,14 @@ export class FakeMessageRepository implements MessageRepository {
     return times.length > 0 ? new Date(Math.max(...times)) : null;
   }
 
+  async mostRecentFor(conversationId: ConversationId): Promise<Message | null> {
+    const found = this.rows.filter((m) => m.conversationId === conversationId);
+    return found.reduce<Message | null>(
+      (latest, m) => (!latest || m.sentAt > latest.sentAt ? m : latest),
+      null,
+    );
+  }
+
   async listForConversation(
     conversationId: ConversationId,
     options: { after?: Date; limit?: number } = {},

@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, max } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, max } from "drizzle-orm";
 import type {
   AppendMessageInput,
   ConversationCrypto,
@@ -118,6 +118,21 @@ export class DrizzleMessageRepository implements MessageRepository {
       .where(eq(messages.conversationId, conversationId));
 
     return rows[0]?.at ?? null;
+  }
+
+  async mostRecentFor(conversationId: ConversationId): Promise<Message | null> {
+    const rows = await this.#db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(desc(messages.sentAt))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) return null;
+
+    const key = await keyFor(this.#db, conversationId);
+    return toMessage(row, await this.#open(row, key));
   }
 
   async addRendering(id: MessageId, rendering: Rendering): Promise<Message> {

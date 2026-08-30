@@ -67,3 +67,21 @@ export function ArrowRightIcon() {
     </svg>
   );
 }
+
+/**
+ * "This whole row leads somewhere." Trailing hint on a list item that's
+ * clickable in full, not just a labelled button inside it — used on the
+ * volunteer dashboard's conversation rows.
+ */
+export function ChevronRightIcon({ className }: { readonly className?: string } = {}) {
+  return (
+    <svg
+      {...ICON_PROPS}
+      className={
+        className ? `${ICON_PROPS.className} ${className}` : ICON_PROPS.className
+      }
+    >
+      <path d="M6 4l4 4-4 4" />
+    </svg>
+  );
+}
