@@ -28,9 +28,10 @@
  *     phone in bright sun or a dark room.
  *   - One accent colour, used sparingly, and it is a muted sage rather than a
  *     saturated brand blue. Urgency is the wrong feeling for this product.
- *     One scoped exception: Practice's own colour, below, used only on the
- *     volunteer dashboard's Practice card to keep two different kinds of
- *     action from reading as the same one.
+ *     One scoped exception: purple, on the volunteer's dashboard only — the
+ *     Practice card, and a live conversation's status. Volunteers are the
+ *     one audience meant to be encouraged rather than merely kept calm.
+ *     Every seeker-facing surface still carries the single sage accent.
  *   - No red anywhere except genuine danger. A red badge on a message is a
  *     threat; this is not a support-ticket queue.
  *   - Type is large by default. A lot of readers are on small screens in a
@@ -56,38 +57,38 @@
   /* ── Accent: muted sage. Calm, not corporate, not liturgical. ───────── */
   --color-accent: oklch(58% 0.062 155);
   --color-accent-hover: oklch(52% 0.068 155);
-  --color-accent-soft: oklch(85% 0.07 155);
   --color-accent-ink: oklch(100% 0 0);
-  /*
-   * Ink for text sitting directly on `--color-accent-soft` — the volunteer
-   * dashboard's Academy card. Fixed, not themed: see the practice colours
-   * below for why that card (and this one) stay one fixed light tint in
-   * both colour schemes, which means the ink on it has to stay fixed too.
-   */
-  --color-accent-soft-ink: oklch(28% 0.015 260);
 
   /*
-   * ── Practice's own colour — the one deliberate exception to "one accent
-   * colour" above. ──────────────────────────────────────────────────────
+   * ── The volunteer dashboard's two promo cards ─────────────────────────
    *
-   * Practice is rehearsal, not a real conversation, and sharing the sage
-   * accent would blur that distinction on the volunteer dashboard, where
-   * the Academy and Practice cards sit side by side and need to read as
-   * two different kinds of action at a glance. Scoped to the Practice
-   * promo card alone — nowhere else in the product uses this hue.
+   * Academy (sage) and Practice (purple) sit side by side and have to read
+   * as two different kinds of action at a glance — learning something
+   * versus rehearsing it. That is the whole reason purple exists in a
+   * product whose rule is one accent colour.
    *
-   * Both this and `--color-accent-soft` stay one fixed light tint
-   * regardless of the site's own colour scheme, the same way the
-   * volunteer's dark panel above stays dark "in both colour schemes": the
-   * illustrations on these two cards are baked two-tone art (black line
-   * work on a cream fill) that assumes a light surface behind it and has
-   * no sensible dark-mode equivalent. Fixed cards need fixed ink, hence
-   * `--color-practice-soft-ink` alongside it — neither token is redefined
-   * in the dark-theme blocks below, on purpose.
+   * Every token in this group is FIXED: not one of them is redefined in
+   * the dark blocks below, the same way the volunteer's dark panel stays
+   * dark in both colour schemes. The illustrations on these cards are
+   * baked line art on a tinted fill, drawn for a light surface, with no
+   * sensible dark-mode equivalent — so the cards stay light, and anything
+   * sitting on a card has to stay fixed along with it.
+   *
+   *   -soft       the card itself
+   *   -soft-ink   body copy on it
+   *   -deep       the eyebrow, and the fill behind a white button label
+   *
+   * The -deep pair sits at 45% lightness because white text on it has to
+   * stay legible. `--color-accent` above is tuned for a different job and
+   * flips with the theme, so it is not a substitute here.
    */
-  --color-practice: oklch(58% 0.09 300);
-  --color-practice-soft: oklch(85% 0.09 300);
+  --color-accent-soft: oklch(94% 0.045 155);
+  --color-accent-soft-ink: oklch(28% 0.015 260);
+  --color-accent-deep: oklch(45% 0.075 155);
+
+  --color-practice-soft: oklch(94% 0.055 300);
   --color-practice-soft-ink: oklch(30% 0.06 300);
+  --color-practice-deep: oklch(45% 0.13 300);
 
   /* ── The two speakers, distinguished by warmth rather than hue ──────── */
   --color-seeker-bubble: oklch(96% 0.012 85);
@@ -124,6 +125,17 @@
   --color-positive: oklch(60% 0.07 150);
   --color-caution: oklch(72% 0.09 75);
   --color-danger: oklch(56% 0.14 25);
+
+  /*
+   * A live conversation, on the volunteer's dashboard.
+   *
+   * Purple rather than the positive green: "active" here is not a health
+   * check, it is which of several conversations is open and yours, and the
+   * dashboard already speaks purple. Unlike the promo-card purples above,
+   * this one DOES follow the theme — the rows it sits on are ordinary
+   * surfaces that invert, so a fixed dark purple would vanish into them.
+   */
+  --color-active: oklch(52% 0.13 300);
 
   /* ── Type ───────────────────────────────────────────────────────────── */
   /*
@@ -188,7 +200,7 @@
 
     --color-accent: oklch(72% 0.08 155);
     --color-accent-hover: oklch(78% 0.084 155);
-    /* --color-accent-soft is NOT redefined here — see its definition above. */
+    /* The promo-card family is NOT redefined here — see it above. */
     --color-accent-ink: oklch(18% 0.02 155);
 
     --color-seeker-bubble: oklch(28% 0.012 260);
@@ -215,6 +227,7 @@
     --color-positive: oklch(72% 0.08 150);
     --color-caution: oklch(80% 0.09 75);
     --color-danger: oklch(70% 0.13 25);
+    --color-active: oklch(80% 0.09 300);
 
     --shadow-soft: 0 1px 2px oklch(0% 0 0 / 0.2), 0 4px 16px oklch(0% 0 0 / 0.24);
     --shadow-lifted: 0 2px 4px oklch(0% 0 0 / 0.24), 0 12px 32px oklch(0% 0 0 / 0.32);
@@ -236,7 +249,7 @@
 
   --color-accent: oklch(72% 0.08 155);
   --color-accent-hover: oklch(78% 0.084 155);
-  /* --color-accent-soft is NOT redefined here — see its definition above. */
+  /* The promo-card family is NOT redefined here — see it above. */
   --color-accent-ink: oklch(18% 0.02 155);
 
   --color-seeker-bubble: oklch(28% 0.012 260);
@@ -247,6 +260,7 @@
   --color-positive: oklch(72% 0.08 150);
   --color-caution: oklch(80% 0.09 75);
   --color-danger: oklch(70% 0.13 25);
+  --color-active: oklch(80% 0.09 300);
 
   --shadow-soft: 0 1px 2px oklch(0% 0 0 / 0.2), 0 4px 16px oklch(0% 0 0 / 0.24);
   --shadow-lifted: 0 2px 4px oklch(0% 0 0 / 0.24), 0 12px 32px oklch(0% 0 0 / 0.32);

@@ -30,9 +30,11 @@ export function VolunteerTip() {
   const tip = TIPS[dayOfYear(new Date()) % TIPS.length] ?? TIPS[0];
 
   return (
-    <div className="bg-surface-sunken flex items-center gap-3 rounded-lg px-4 py-3">
-      <Image src="/tip.png" alt="" width={32} height={32} className="size-8 shrink-0" />
-      <p className="text-ink-muted text-sm">{tip}</p>
+    <div className="bg-surface-sunken mx-auto flex w-full max-w-4xl items-center gap-3 rounded-lg px-5 py-4">
+      <Image src="/tip.png" alt="" width={28} height={28} className="size-7 shrink-0" />
+      <p className="text-ink-muted">
+        <span className="font-medium">Tip:</span> {tip}
+      </p>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Button, Card, Spinner, cn } from "@nexus/ui";
 import { ChevronRightIcon } from "./CornerLink";
 
@@ -49,7 +49,7 @@ function Avatar({ id, name }: { readonly id: string; readonly name: string | nul
     <span
       aria-hidden="true"
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-medium",
+        "flex size-12 shrink-0 items-center justify-center rounded-full font-medium",
         tint.bg,
         tint.ink,
       )}
@@ -59,7 +59,15 @@ function Avatar({ id, name }: { readonly id: string; readonly name: string | nul
   );
 }
 
-export function VolunteerQueue() {
+function SectionHeading({ children }: { readonly children: ReactNode }) {
+  return (
+    <h2 className="text-ink-subtle mb-3 text-sm font-medium uppercase tracking-wide">
+      {children}
+    </h2>
+  );
+}
+
+export function VolunteerQueue({ children }: { readonly children?: ReactNode }) {
   const router = useRouter();
   const [data, setData] = useState<QueueResponse | null>(null);
   const [claiming, setClaiming] = useState<string | null>(null);
@@ -101,111 +109,121 @@ export function VolunteerQueue() {
     setClaiming(null);
   }
 
-  if (!data) {
-    return (
-      <div className="flex justify-center py-12">
-        <Spinner className="text-ink-subtle" />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-8">
-      {data.active.length > 0 ? (
+    <div className="flex flex-col gap-10">
+      {/* The spinner covers only this section, never the whole component.
+          `children` — the promo cards — are static and belong to the page
+          whether or not a queue fetch has landed yet, and blanking them on
+          every load made the page jump. */}
+      {data === null ? (
+        <div className="flex justify-center py-12">
+          <Spinner className="text-ink-subtle" />
+        </div>
+      ) : data.active.length > 0 ? (
         <section>
-          <h2 className="text-ink-subtle mb-3 text-sm font-medium uppercase tracking-wide">
-            Your conversations
-          </h2>
-          <div className="flex flex-col gap-3">
+          <SectionHeading>Your conversations</SectionHeading>
+          {/* One card with hairline rules between rows rather than a stack
+              of separate cards: these are one list, and reading them as a
+              list is what a volunteer with four conversations needs. */}
+          <Card padded={false} className="divide-line divide-y overflow-hidden">
             {data.active.map((entry) => (
               <Link
                 key={entry.id}
                 href={`/volunteer/chat/${entry.id}`}
-                className="border-line bg-surface shadow-soft ease-calm flex items-center gap-3 rounded-lg border p-4 transition-colors duration-200 hover:border-line-strong"
+                className="hover:bg-surface-sunken ease-calm flex items-center gap-4 p-5 transition-colors duration-200"
               >
                 <Avatar id={entry.id} name={entry.name} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-ink truncate font-medium" dir="auto">
-                      {entry.name ?? "Someone"}
-                    </p>
-                    <span className="bg-positive/15 text-positive shrink-0 rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide">
-                      Active
-                    </span>
-                  </div>
-                  <p className="text-ink-subtle text-sm">
+                  <p className="text-ink truncate text-lg font-semibold" dir="auto">
+                    {entry.name ?? "Someone"}
+                  </p>
+                  <p className="text-ink-subtle truncate text-sm">
                     {entry.languageName}
-                    {entry.matchedAt ? ` · since ${timeAgo(entry.matchedAt)}` : ""}
+                    {entry.matchedAt ? ` · ${timeAgo(entry.matchedAt)}` : ""}
                   </p>
                   {entry.lastMessage ? (
-                    <p className="text-ink-muted mt-1 truncate text-sm" dir="auto">
+                    <p className="text-ink-muted mt-1 truncate" dir="auto">
                       {entry.lastMessage}
                     </p>
                   ) : null}
                 </div>
-                <ChevronRightIcon className="text-ink-subtle" />
+                <span className="bg-active/15 text-active hidden shrink-0 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider sm:inline-block">
+                  Active
+                </span>
+                <ChevronRightIcon className="text-ink-subtle size-5" />
               </Link>
             ))}
-          </div>
+          </Card>
         </section>
       ) : null}
 
-      <section>
-        <h2 className="text-ink-subtle mb-3 text-sm font-medium uppercase tracking-wide">
-          Waiting to talk
-        </h2>
+      {children}
 
-        {notice ? <p className="text-ink-muted mb-3 text-sm">{notice}</p> : null}
+      {data === null ? null : (
+        <section>
+          <SectionHeading>Waiting to talk</SectionHeading>
 
-        {data.waiting.length === 0 ? (
-          <Card className="flex flex-col items-center gap-3 py-10 text-center">
-            <Image
-              src="/park-bench.png"
-              alt=""
-              width={160}
-              height={120}
-              className="h-28 w-auto"
-            />
-            <p className="text-ink font-medium">No one is waiting right now.</p>
-            <p className="text-ink-subtle text-sm">
-              We&rsquo;ll notify you here when a new seeker is ready to talk.
-            </p>
-          </Card>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {data.waiting.map((entry) => (
-              <Card key={entry.id} padded={false} className="flex items-center gap-3 p-4">
-                <Avatar id={entry.id} name={entry.name} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-ink truncate" dir="auto">
-                    {entry.name ?? "Someone"}
-                  </p>
-                  <p className="text-ink-subtle text-sm">
-                    {entry.languageName}
-                    {entry.waitingSince ? ` · waiting ${timeAgo(entry.waitingSince)}` : ""}
-                  </p>
+          {notice ? <p className="text-ink-muted mb-3 text-sm">{notice}</p> : null}
+
+          {data.waiting.length === 0 ? (
+            <Card className="flex flex-col items-center gap-3 py-10 text-center">
+              <Image
+                src="/park-bench.png"
+                alt=""
+                width={160}
+                height={120}
+                className="h-28 w-auto"
+              />
+              <p className="text-ink font-medium">No one is waiting right now.</p>
+              <p className="text-ink-subtle text-sm">
+                We&rsquo;ll notify you here when a new seeker is ready to talk.
+              </p>
+            </Card>
+          ) : (
+            <Card padded={false} className="divide-line divide-y overflow-hidden">
+              {data.waiting.map((entry) => (
+                <div key={entry.id} className="flex items-center gap-4 p-5">
+                  <Avatar id={entry.id} name={entry.name} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-ink truncate text-lg font-semibold" dir="auto">
+                      {entry.name ?? "Someone"}
+                    </p>
+                    <p className="text-ink-subtle truncate text-sm">
+                      {entry.languageName}
+                      {entry.waitingSince ? ` · ${timeAgo(entry.waitingSince)}` : ""}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    busy={claiming === entry.id}
+                    onClick={() => void claim(entry.id)}
+                  >
+                    Talk with them
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  busy={claiming === entry.id}
-                  onClick={() => void claim(entry.id)}
-                >
-                  Talk with them
-                </Button>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+              ))}
+            </Card>
+          )}
+        </section>
+      )}
     </div>
   );
 }
 
+/**
+ * Compact by design — "51h ago" rather than "since 51 hours".
+ *
+ * This shares one line with a language name in a list read at a glance,
+ * where the rough order of the figure matters far more than the figure,
+ * and where anything longer truncated away the message preview beside it
+ * on a phone. The waiting rows say "3m ago" too rather than "waiting 3m":
+ * the section heading above them already supplies that word.
+ */
 function timeAgo(iso: string): string {
   const seconds = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-  if (seconds < 60) return "less than a minute";
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
   const hours = Math.floor(minutes / 60);
-  return `${hours} hour${hours === 1 ? "" : "s"}`;
+
+  if (seconds < 60) return "just now";
+  return hours < 1 ? `${minutes}m ago` : `${hours}h ago`;
 }
