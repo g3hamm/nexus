@@ -24,6 +24,8 @@ export type LlmTask =
   | "translation"
   | "language_detection"
   | "enablement"
+  /** Verses only, run automatically and often — see `EnablementEngine.suggestVerses`. */
+  | "enablement_verses"
   | "moderation"
   | "knowledge_synthesis"
   /** Playing the difficult seeker in a volunteer's practice session. */

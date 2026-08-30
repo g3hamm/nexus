@@ -7,6 +7,7 @@ import type {
   BibleProvider,
   ConversationCrypto,
   ConversationRepository,
+  EnablementCacheRepository,
   EnablementEngine,
   FlagRepository,
   Judge,
@@ -27,6 +28,7 @@ import {
   DrizzleAdminRepository,
   DrizzleAuditLog,
   DrizzleConversationRepository,
+  DrizzleEnablementCacheRepository,
   DrizzleFlagRepository,
   DrizzleMessageRepository,
   DrizzleVolunteerRepository,
@@ -70,6 +72,7 @@ export interface Container {
   readonly volunteers: VolunteerRepository;
   readonly admins: AdminRepository;
   readonly flags: FlagRepository;
+  readonly enablementCache: EnablementCacheRepository;
   readonly audit: AuditLog;
   readonly llm: LlmProvider;
   readonly translator: Translator;
@@ -186,6 +189,9 @@ export function container(): Container {
   const volunteers = memo(() => new DrizzleVolunteerRepository(db()));
   const admins = memo(() => new DrizzleAdminRepository(db()));
   const flags = memo(() => new DrizzleFlagRepository(db(), crypto()));
+  const enablementCache = memo(
+    () => new DrizzleEnablementCacheRepository(db(), crypto()),
+  );
   const audit = memo(() => new DrizzleAuditLog(db()));
   const translator = memo(() => new LlmTranslator(llm()));
   const sessions = memo(() => new SessionSigner(config.NEXUS_SESSION_SECRET));
@@ -226,6 +232,9 @@ export function container(): Container {
     },
     get flags() {
       return flags();
+    },
+    get enablementCache() {
+      return enablementCache();
     },
     get audit() {
       return audit();

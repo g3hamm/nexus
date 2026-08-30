@@ -14,12 +14,19 @@ import type {
   OperationalAlert,
   ConversationWindow,
   AdminId,
+  CachedFullSuggestions,
+  CachedVerseSuggestions,
+  EnablementCacheEntry,
+  EnablementCacheRepository,
+  EnablementEngine,
+  EnablementSuggestions,
   FlagId,
   FlagRepository,
   Judge,
   ModerationFlag,
   ModerationScheduler,
   ModerationVerdict,
+  SuggestedVerse,
   VolunteerRepository,
   Conversation,
   ConversationId,
@@ -370,6 +377,42 @@ export class FakeFlagRepository implements FlagRepository {
   }
 }
 
+export class FakeEnablementCacheRepository implements EnablementCacheRepository {
+  readonly rows = new Map<ConversationId, EnablementCacheEntry>();
+
+  async find(conversationId: ConversationId): Promise<EnablementCacheEntry> {
+    return this.rows.get(conversationId) ?? { full: null, verses: null };
+  }
+
+  async writeFull(
+    conversationId: ConversationId,
+    suggestions: EnablementSuggestions,
+    messageCount: number,
+  ): Promise<void> {
+    const full: CachedFullSuggestions = {
+      verses: suggestions.verses,
+      discussionPoints: suggestions.discussionPoints,
+      understanding: suggestions.understanding,
+      sources: suggestions.sources,
+      generatedAt: suggestions.generatedAt,
+      messageCount,
+    };
+    const existing = this.rows.get(conversationId) ?? { full: null, verses: null };
+    this.rows.set(conversationId, { ...existing, full });
+  }
+
+  async writeVerses(
+    conversationId: ConversationId,
+    verses: readonly SuggestedVerse[],
+    generatedAt: Date,
+    messageCount: number,
+  ): Promise<void> {
+    const entry: CachedVerseSuggestions = { verses, generatedAt, messageCount };
+    const existing = this.rows.get(conversationId) ?? { full: null, verses: null };
+    this.rows.set(conversationId, { ...existing, verses: entry });
+  }
+}
+
 export class FakeVolunteerRepository implements VolunteerRepository {
   readonly rows = new Map<string, Volunteer>();
 
@@ -506,6 +549,40 @@ export class StubJudge implements Judge {
   async review(window: ConversationWindow): Promise<ModerationVerdict> {
     this.reviews.push(window);
     return this.#verdict;
+  }
+}
+
+export class StubEnablementEngine implements EnablementEngine {
+  readonly name = "stub";
+  readonly suggestCalls: ConversationWindow[] = [];
+  readonly suggestVersesCalls: ConversationWindow[] = [];
+  #suggestions: EnablementSuggestions = {
+    verses: [],
+    discussionPoints: [],
+    understanding: { summary: "", apparentNeed: "", cautions: [], confidence: 0 },
+    sources: [],
+    generatedAt: new Date(),
+  };
+  #verses: readonly SuggestedVerse[] = [];
+
+  willSuggest(suggestions: Partial<EnablementSuggestions>): this {
+    this.#suggestions = { ...this.#suggestions, ...suggestions };
+    return this;
+  }
+
+  willSuggestVerses(verses: readonly SuggestedVerse[]): this {
+    this.#verses = verses;
+    return this;
+  }
+
+  async suggest(window: ConversationWindow): Promise<EnablementSuggestions> {
+    this.suggestCalls.push(window);
+    return this.#suggestions;
+  }
+
+  async suggestVerses(window: ConversationWindow): Promise<readonly SuggestedVerse[]> {
+    this.suggestVersesCalls.push(window);
+    return this.#verses;
   }
 }
 

@@ -22,7 +22,12 @@ import type { ConversationId } from "../domain/ids.js";
 export interface EncryptionContext {
   readonly conversationId: ConversationId;
   /** Bumped if the key hierarchy is ever rotated wholesale. */
-  readonly purpose: "message" | "seeker_metadata" | "flag_evidence";
+  readonly purpose:
+    | "message"
+    | "seeker_metadata"
+    | "flag_evidence"
+    | "enablement_full"
+    | "enablement_verses";
 }
 
 export interface CipherText {

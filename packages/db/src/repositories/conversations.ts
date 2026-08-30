@@ -408,16 +408,6 @@ export class DrizzleConversationRepository implements ConversationRepository {
 
     return deleted.length;
   }
-
-  /** Internal: the wrapped data key for a conversation, for message crypto. */
-  async keyFor(id: ConversationId): Promise<{ wrapped: string; keyId: string } | null> {
-    const rows = await this.#db
-      .select({ wrapped: conversations.wrappedKey, keyId: conversations.keyId })
-      .from(conversations)
-      .where(eq(conversations.id, id))
-      .limit(1);
-    return rows[0] ?? null;
-  }
 }
 
 /**

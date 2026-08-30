@@ -129,9 +129,16 @@ These are things that look done and are not:
    citations is a sidebar that improvises theology.
 5. `@nexus/moderation` — the judge. Ship it before the sidebar: the platform
    needs to be watching conversations before it starts shaping them.
-6. ~~`@nexus/enablement` — the sidebar.~~ **Built.** Refreshes only when the
-   volunteer asks, to control both cost and the panel changing under someone
-   mid-thought.
+6. ~~`@nexus/enablement` — the sidebar.~~ **Built**, and now cached rather
+   than regenerated on every visit. The full analysis (Understanding,
+   discussion points) only regenerates on the very first look at a
+   conversation or when the volunteer clicks Update — both to control cost
+   and to stop the panel changing under someone mid-thought. Verses are the
+   deliberate exception: they refresh automatically after every new seeker
+   message, on a much cheaper model (`enablement_verses`, Haiku), so the
+   scripture suggestions stay current without ever touching the expensive
+   path. Verses can also be dragged from the panel into the message box for
+   a quick inline mention.
 7. ~~`@nexus/bible` — lookup and detection, then the hover interaction.~~
    **Built.** Detection covers English, Spanish, Portuguese and French; adding
    a language means a native speaker supplying the book names and the

@@ -10,6 +10,7 @@ import {
 } from "@nexus/core";
 import { container } from "@/server/container";
 import { ConversationService } from "@/server/conversation-service";
+import { EnablementCacheService } from "@/server/enablement-cache-service";
 import { ModerationService } from "@/server/moderation-service";
 import { PracticeService } from "@/server/practice-service";
 import { countryFor } from "@/server/geo";
@@ -222,7 +223,7 @@ export async function POST(
       language: parsed.data.language ?? participant.language,
     });
 
-    // Both of these run after the response is sent, never in front of it.
+    // Everything below runs after the response is sent, never in front of it.
     //
     // In a real conversation the judge looks, and the scheduler means most
     // sends do no work at all — nobody should watch a spinner while a second
@@ -233,7 +234,20 @@ export async function POST(
         await new PracticeService(c).respond(participant.conversation.id);
         return;
       }
-      await new ModerationService(c).reviewIfDue(participant.conversation.id);
+      // Independent model calls, run together rather than one after the
+      // other, both still bounded by this route's own maxDuration. Verses
+      // refresh only for a seeker's own message — nothing new for the
+      // volunteer's suggestions to react to in their own reply. A practice
+      // conversation never reaches here at all: its simulated seeker turns
+      // are produced by `PracticeService` calling `ConversationService.send`
+      // directly, never through this route, so the branch above already
+      // excludes it without needing to check again.
+      await Promise.all([
+        new ModerationService(c).reviewIfDue(participant.conversation.id),
+        participant.role === "seeker"
+          ? new EnablementCacheService(c).refreshVerses(participant.conversation.id)
+          : Promise.resolve(),
+      ]);
     });
 
     return ok(

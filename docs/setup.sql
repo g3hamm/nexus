@@ -445,5 +445,47 @@ WHERE NOT EXISTS (
   SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = '9eb641c932bc46effd2f38f9ee698c175ce3524ade880bc8eb93bad0086ed03e'
 );
 
+-- ── Migration 0008_mushy_swarm ───────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS "enablement_cache" (
+	"conversation_id" uuid PRIMARY KEY NOT NULL,
+	"full_ciphertext" text,
+	"full_iv" text,
+	"full_auth_tag" text,
+	"full_algorithm" text,
+	"full_key_id" text,
+	"full_cipher_version" smallint,
+	"full_generated_at" timestamp with time zone,
+	"full_message_count" integer,
+	"verses_ciphertext" text,
+	"verses_iv" text,
+	"verses_auth_tag" text,
+	"verses_algorithm" text,
+	"verses_key_id" text,
+	"verses_cipher_version" smallint,
+	"verses_generated_at" timestamp with time zone,
+	"verses_message_count" integer
+);
+
+DO $$ BEGIN
+  ALTER TABLE "enablement_cache" ADD CONSTRAINT "enablement_cache_conversation_id_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object OR duplicate_column THEN NULL;
+END $$;
+
+-- Record this migration as applied, so a later `pnpm db:migrate` skips
+-- it rather than failing on tables that already exist.
+CREATE SCHEMA IF NOT EXISTS drizzle;
+CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+  id SERIAL PRIMARY KEY,
+  hash text NOT NULL,
+  created_at bigint
+);
+
+INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+SELECT '0a471429e6dc08f79d4fc6cc29f7638c3cc2d89fbb10430923b579cd8e8a2449', 1788121517008
+WHERE NOT EXISTS (
+  SELECT 1 FROM drizzle.__drizzle_migrations WHERE hash = '0a471429e6dc08f79d4fc6cc29f7638c3cc2d89fbb10430923b579cd8e8a2449'
+);
+
 -- ── Done ───────────────────────────────────────────────────────────────
 -- You should see eight tables under 'public' in the Neon Tables view.

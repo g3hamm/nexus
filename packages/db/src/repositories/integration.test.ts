@@ -6,8 +6,10 @@ import { asSeekerId, type ModerationVerdict } from "@nexus/core";
 import { EnvelopeCrypto, LocalKeyManagement } from "@nexus/crypto";
 import type { NexusDatabase } from "../client.js";
 import { createTestDatabase, testDatabaseUrl, type TestDatabase } from "../testing.js";
+import type { EnablementSuggestions } from "@nexus/core";
 import { DrizzleAdminRepository } from "./admins.js";
 import { DrizzleConversationRepository } from "./conversations.js";
+import { DrizzleEnablementCacheRepository } from "./enablement-cache.js";
 import { DrizzleFlagRepository } from "./flags.js";
 import { DrizzleMessageRepository } from "./messages.js";
 import { DrizzleVolunteerRepository } from "./volunteers.js";
@@ -738,6 +740,142 @@ describeIfDb("repositories against real Postgres", () => {
         sql.raw("select rationale_ciphertext from moderation_flags"),
       );
       expect(JSON.stringify(raw)).not.toContain("pressed for a decision");
+    });
+  });
+
+  describe("enablement cache", () => {
+    const suggestions = (rationale: string): EnablementSuggestions => ({
+      verses: [
+        {
+          reference: { book: "Ps", chapter: 13, verse: 1, endVerse: null },
+          rationale,
+          preview: null,
+        },
+      ],
+      discussionPoints: [{ text: "Ask what happened.", intent: "question" }],
+      understanding: {
+        summary: "Grieving.",
+        apparentNeed: "To be heard.",
+        cautions: [],
+        confidence: 0.6,
+      },
+      sources: [],
+      generatedAt: new Date(),
+    });
+
+    it("writes and reads back both tiers", async () => {
+      const conversation = await newConversation();
+      const cache = new DrizzleEnablementCacheRepository(db, crypto);
+
+      await cache.writeFull(conversation.id, suggestions("full tier"), 4);
+      await cache.writeVerses(
+        conversation.id,
+        [
+          {
+            reference: { book: "Jn", chapter: 3, verse: 16, endVerse: null },
+            rationale: "verses tier",
+            preview: null,
+          },
+        ],
+        new Date(),
+        5,
+      );
+
+      const found = await cache.find(conversation.id);
+      expect(found.full?.discussionPoints[0]?.text).toBe("Ask what happened.");
+      expect(found.full?.messageCount).toBe(4);
+      expect(found.verses?.verses[0]?.rationale).toBe("verses tier");
+      expect(found.verses?.messageCount).toBe(5);
+    });
+
+    it("returns both tiers as null for a conversation with neither cached", async () => {
+      const conversation = await newConversation();
+      const cache = new DrizzleEnablementCacheRepository(db, crypto);
+
+      expect(await cache.find(conversation.id)).toEqual({ full: null, verses: null });
+    });
+
+    // THE regression this design exists to prevent: either tier can be the
+    // first writer, so a plain UPDATE against a row that doesn't exist yet
+    // would silently affect nothing.
+    it("upserts: writing verses first, then full, does not lose either", async () => {
+      const conversation = await newConversation();
+      const cache = new DrizzleEnablementCacheRepository(db, crypto);
+
+      await cache.writeVerses(
+        conversation.id,
+        [
+          {
+            reference: { book: "Jn", chapter: 3, verse: 16, endVerse: null },
+            rationale: "verses landed first",
+            preview: null,
+          },
+        ],
+        new Date(),
+        1,
+      );
+      await cache.writeFull(conversation.id, suggestions("full landed second"), 3);
+
+      const found = await cache.find(conversation.id);
+      expect(found.verses?.verses[0]?.rationale).toBe("verses landed first");
+      expect(found.full?.verses[0]?.rationale).toBe("full landed second");
+    });
+
+    // The other direction: a later verses write must not touch the full
+    // tier's own columns, proving the two upserts are genuinely independent.
+    it("a later verses write leaves an existing full tier untouched", async () => {
+      const conversation = await newConversation();
+      const cache = new DrizzleEnablementCacheRepository(db, crypto);
+
+      await cache.writeFull(conversation.id, suggestions("still here"), 2);
+      await cache.writeVerses(
+        conversation.id,
+        [
+          {
+            reference: { book: "Jn", chapter: 3, verse: 16, endVerse: null },
+            rationale: "new verses",
+            preview: null,
+          },
+        ],
+        new Date(),
+        3,
+      );
+
+      const found = await cache.find(conversation.id);
+      expect(found.full?.verses[0]?.rationale).toBe("still here");
+      expect(found.full?.messageCount).toBe(2);
+      expect(found.verses?.verses[0]?.rationale).toBe("new verses");
+    });
+
+    it("encrypts both tiers — the raw columns hold no plaintext", async () => {
+      const conversation = await newConversation();
+      const cache = new DrizzleEnablementCacheRepository(db, crypto);
+
+      await cache.writeFull(
+        conversation.id,
+        suggestions("she said God stopped listening after her son died"),
+        4,
+      );
+
+      const raw = await db.execute(
+        sql.raw("select full_ciphertext, verses_ciphertext from enablement_cache"),
+      );
+      expect(JSON.stringify(raw)).not.toContain("stopped listening");
+    });
+
+    it("purges and cascades, same as messages and flags", async () => {
+      const conversation = await newConversation(new Date(Date.now() - 86_400_000));
+      await conversations().end(conversation.id, "ended");
+      const cache = new DrizzleEnablementCacheRepository(db, crypto);
+      await cache.writeFull(conversation.id, suggestions("about to be purged"), 1);
+
+      expect(await conversations().purge([conversation.id])).toBe(1);
+
+      const left = await db.execute(
+        sql.raw("select count(*)::int as n from enablement_cache"),
+      );
+      const rows = (left as unknown as { rows?: { n: number }[] }).rows ?? [];
+      expect(rows[0]?.n).toBe(0);
     });
   });
 

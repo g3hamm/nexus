@@ -9,6 +9,13 @@ import type {
 import type { LanguageCode } from "../domain/language.js";
 import type { Coverage } from "../domain/coverage.js";
 import type { Conversation, Modality } from "../domain/conversation.js";
+import type {
+  DiscussionPoint,
+  EnablementSuggestions,
+  SeekerUnderstanding,
+  SuggestedVerse,
+} from "./enablement.js";
+import type { RetrievedChunk } from "./knowledge.js";
 import type { Message, Rendering } from "../domain/message.js";
 import type { ModerationFlag, ModerationVerdict } from "../domain/moderation.js";
 import type { Admin, ParticipantRole, Volunteer } from "../domain/participants.js";
@@ -282,6 +289,53 @@ export interface FlagRepository {
     adminId: AdminId,
     status: "upheld" | "dismissed",
     note: string,
+  ): Promise<void>;
+}
+
+/**
+ * What survives a page reload for the volunteer's sidebar.
+ *
+ * Two independent tiers, cached and read separately: `full` is the
+ * expensive, high-effort analysis (verses, discussion points, and the
+ * seeker-understanding read), generated once and then only again on
+ * request. `verses` is the cheap, frequent tier, regenerated after every
+ * new seeker message on a much smaller model. Keeping them apart is what
+ * lets the cheap path update often without ever touching — or racing
+ * against — the expensive one.
+ */
+export interface CachedFullSuggestions {
+  readonly verses: readonly SuggestedVerse[];
+  readonly discussionPoints: readonly DiscussionPoint[];
+  readonly understanding: SeekerUnderstanding;
+  readonly sources: readonly RetrievedChunk[];
+  readonly generatedAt: Date;
+  /** Messages considered in this generation's window, not the conversation's total. */
+  readonly messageCount: number;
+}
+
+export interface CachedVerseSuggestions {
+  readonly verses: readonly SuggestedVerse[];
+  readonly generatedAt: Date;
+  readonly messageCount: number;
+}
+
+export interface EnablementCacheEntry {
+  readonly full: CachedFullSuggestions | null;
+  readonly verses: CachedVerseSuggestions | null;
+}
+
+export interface EnablementCacheRepository {
+  find(conversationId: ConversationId): Promise<EnablementCacheEntry>;
+  writeFull(
+    conversationId: ConversationId,
+    suggestions: EnablementSuggestions,
+    messageCount: number,
+  ): Promise<void>;
+  writeVerses(
+    conversationId: ConversationId,
+    verses: readonly SuggestedVerse[],
+    generatedAt: Date,
+    messageCount: number,
   ): Promise<void>;
 }
 

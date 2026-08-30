@@ -9,7 +9,7 @@ import type {
 import { asChunkId, asConversationId, asDocumentId, asMessageId } from "@nexus/core";
 import { FakeLlmProvider } from "@nexus/llm";
 import { LlmEnablementEngine } from "./engine.js";
-import { buildEnablementPrompt } from "./prompts.js";
+import { buildEnablementPrompt, buildVersesPrompt } from "./prompts.js";
 
 let seq = 0;
 
@@ -228,6 +228,73 @@ describe("LlmEnablementEngine", () => {
   });
 });
 
+describe("LlmEnablementEngine.suggestVerses", () => {
+  const versesOnly = { verses: suggestions.verses };
+
+  it("returns nothing for an empty conversation without calling anything", async () => {
+    const llm = new FakeLlmProvider();
+    const knowledge = new StubKnowledge();
+
+    const result = await new LlmEnablementEngine(llm, knowledge).suggestVerses(
+      windowOf(),
+    );
+
+    expect(result).toHaveLength(0);
+    expect(llm.calls).toHaveLength(0);
+    expect(knowledge.queries).toHaveLength(0);
+  });
+
+  it("calls the enablement_verses task, not enablement", async () => {
+    const llm = new FakeLlmProvider().on({
+      task: "enablement_verses",
+      value: versesOnly,
+    });
+
+    await new LlmEnablementEngine(llm, new StubKnowledge()).suggestVerses(
+      windowOf(message("seeker", "God does not listen")),
+    );
+
+    expect(llm.calls).toHaveLength(1);
+    expect(llm.calls[0]?.task).toBe("enablement_verses");
+  });
+
+  it("carries the rationale and reference through, same as the full suggest()", async () => {
+    const llm = new FakeLlmProvider().on({
+      task: "enablement_verses",
+      value: versesOnly,
+    });
+
+    const result = await new LlmEnablementEngine(llm, new StubKnowledge()).suggestVerses(
+      windowOf(message("seeker", "God does not listen")),
+    );
+
+    expect(result[0]?.rationale).toContain("psalm of that complaint");
+    expect(result[0]?.reference.book).toBe("Ps");
+  });
+
+  it("retrieves on what the seeker said, same as the full suggest()", async () => {
+    const llm = new FakeLlmProvider().on({
+      task: "enablement_verses",
+      value: versesOnly,
+    });
+    const knowledge = new StubKnowledge();
+
+    await new LlmEnablementEngine(llm, knowledge).suggestVerses(
+      windowOf(
+        message("volunteer", "Tell me what happened."),
+        message(
+          "seeker",
+          "Mi hijo murió y Dios no escuchó",
+          "My son died and God did not listen",
+        ),
+      ),
+    );
+
+    expect(knowledge.queries).toHaveLength(1);
+    expect(knowledge.queries[0]).toContain("My son died");
+  });
+});
+
 describe("the enablement prompt", () => {
   it("is byte-identical across builds so the cache can hit", () => {
     expect(buildEnablementPrompt()).toBe(buildEnablementPrompt());
@@ -249,5 +316,28 @@ describe("the enablement prompt", () => {
 
   it("carries the doctrine profile", () => {
     expect(buildEnablementPrompt()).toMatch(/Historic Creedal Christianity/);
+  });
+});
+
+describe("the verses-only prompt", () => {
+  it("is byte-identical across builds so the cache can hit", () => {
+    expect(buildVersesPrompt()).toBe(buildVersesPrompt());
+  });
+
+  it("shares the same hard rules as the full prompt", () => {
+    const prompt = buildVersesPrompt();
+    expect(prompt).toMatch(/Never suggest pressuring/);
+    expect(prompt).toMatch(/immigration help/);
+    expect(prompt).toMatch(/stop suggesting apologetics/);
+  });
+
+  it("does not ask for discussion points or a read on the seeker", () => {
+    const prompt = buildVersesPrompt();
+    expect(prompt).not.toMatch(/discussionPoints/);
+    expect(prompt).not.toMatch(/\*\*understanding\*\*/);
+  });
+
+  it("carries the doctrine profile", () => {
+    expect(buildVersesPrompt()).toMatch(/Historic Creedal Christianity/);
   });
 });

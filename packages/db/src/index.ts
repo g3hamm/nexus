@@ -12,6 +12,7 @@ export { DrizzleConversationRepository } from "./repositories/conversations.js";
 export { DrizzleMessageRepository } from "./repositories/messages.js";
 export { DrizzleVolunteerRepository } from "./repositories/volunteers.js";
 export { DrizzleFlagRepository } from "./repositories/flags.js";
+export { DrizzleEnablementCacheRepository } from "./repositories/enablement-cache.js";
 export { DrizzleAuditLog } from "./repositories/audit.js";
 export { DrizzleAdminRepository } from "./repositories/admins.js";
 export {

@@ -11,7 +11,8 @@ import type {
 } from "@nexus/core";
 import { NexusError } from "@nexus/core";
 import type { NexusDatabase } from "../client.js";
-import { conversations, messages } from "../schema.js";
+import { messages } from "../schema.js";
+import { keyFor } from "./data-key.js";
 import { toMessage } from "./mappers.js";
 
 /**
@@ -36,7 +37,7 @@ export class DrizzleMessageRepository implements MessageRepository {
       throw NexusError.validation("A message must have at least one rendering");
     }
 
-    const key = await this.#keyFor(input.conversationId);
+    const key = await keyFor(this.#db, input.conversationId);
     const sealed = await this.#crypto.encrypt(JSON.stringify(input.renderings), key, {
       conversationId: input.conversationId,
       purpose: "message",
@@ -72,7 +73,7 @@ export class DrizzleMessageRepository implements MessageRepository {
     const row = rows[0];
     if (!row) return null;
 
-    const key = await this.#keyFor(row.conversationId as ConversationId);
+    const key = await keyFor(this.#db, row.conversationId as ConversationId);
     return toMessage(row, await this.#open(row, key));
   }
 
@@ -93,7 +94,7 @@ export class DrizzleMessageRepository implements MessageRepository {
     if (rows.length === 0) return [];
 
     // One key lookup and one unwrap for the whole transcript, not one per row.
-    const key = await this.#keyFor(conversationId);
+    const key = await keyFor(this.#db, conversationId);
     return Promise.all(
       rows.map(async (row) => toMessage(row, await this.#open(row, key))),
     );
@@ -129,7 +130,7 @@ export class DrizzleMessageRepository implements MessageRepository {
     if (!row) throw NexusError.notFound("Message", id);
 
     const conversationId = row.conversationId as ConversationId;
-    const key = await this.#keyFor(conversationId);
+    const key = await keyFor(this.#db, conversationId);
     const current = await this.#open(row, key);
 
     // Replace rather than append, so re-running a backfill is idempotent.
@@ -159,18 +160,6 @@ export class DrizzleMessageRepository implements MessageRepository {
     const updatedRow = updated[0];
     if (!updatedRow) throw NexusError.notFound("Message", id);
     return toMessage(updatedRow, next);
-  }
-
-  async #keyFor(conversationId: ConversationId): Promise<WrappedDataKey> {
-    const rows = await this.#db
-      .select({ wrapped: conversations.wrappedKey, keyId: conversations.keyId })
-      .from(conversations)
-      .where(eq(conversations.id, conversationId))
-      .limit(1);
-
-    const row = rows[0];
-    if (!row) throw NexusError.notFound("Conversation", conversationId);
-    return { wrapped: row.wrapped, keyId: row.keyId };
   }
 
   async #open(

@@ -1,10 +1,12 @@
-import { NexusError, asConversationId, formatReference } from "@nexus/core";
 import { container } from "@/server/container";
+import { EnablementCacheService } from "@/server/enablement-cache-service";
 import { errorResponse, ok } from "@/server/http";
-import { staffSession } from "@/server/session";
+import { requireMatchedVolunteer, toWire } from "./shared";
 
 export const runtime = "nodejs";
-// Retrieval plus a careful model call. Comfortably longer than a chat turn.
+// The bootstrap path is retrieval plus a careful model call, comfortably
+// longer than a chat turn. A cache hit is a single fast DB read — this
+// covers the slow path, not the common one.
 export const maxDuration = 60;
 
 /**
@@ -14,6 +16,12 @@ export const maxDuration = 60;
  * with. A seeker must never be able to fetch this — being shown the notes
  * someone is keeping about you mid-conversation would be a small betrayal of
  * what this is supposed to be.
+ *
+ * Prefers the cache. The first ever call for a conversation bootstraps it —
+ * the one expensive path here — and every call after that, including one
+ * from a volunteer who left and came back, reads what is already stored
+ * instead of generating it again. Regenerating on request is what
+ * `POST .../refresh` is for.
  */
 export async function GET(
   _request: Request,
@@ -21,48 +29,13 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    const claims = await staffSession();
-    if (!claims) throw NexusError.unauthorized("Sign in to continue");
+    const conversation = await requireMatchedVolunteer(id);
 
-    const c = container();
-    const conversation = await c.conversations.findById(asConversationId(id));
-    if (!conversation) throw NexusError.notFound("Conversation", id);
-    if (conversation.volunteerId !== claims.subject) {
-      throw NexusError.forbidden("You are not part of this conversation");
-    }
+    const suggestions = await new EnablementCacheService(container()).getSuggestions(
+      conversation.id,
+    );
 
-    const messages = await c.messages.listForConversation(conversation.id, {
-      limit: 20,
-    });
-
-    // Nothing said yet, so nothing worth spending a model call on.
-    if (messages.length === 0) {
-      return ok({ ready: false, verses: [], discussionPoints: [], sources: [] });
-    }
-
-    const suggestions = await c.enablement.suggest({
-      conversationId: conversation.id,
-      messages,
-      volunteerLanguage: conversation.volunteerLanguage ?? "en",
-      seekerLanguage: conversation.seekerLanguage,
-    });
-
-    return ok({
-      ready: true,
-      verses: suggestions.verses.map((v) => ({
-        reference: formatReference(v.reference),
-        rationale: v.rationale,
-        preview: v.preview,
-      })),
-      discussionPoints: suggestions.discussionPoints,
-      understanding: suggestions.understanding,
-      sources: suggestions.sources.map((s) => ({
-        title: s.chunk.title,
-        source: s.chunk.source,
-        score: Math.round(s.score * 100) / 100,
-      })),
-      generatedAt: suggestions.generatedAt.toISOString(),
-    });
+    return ok(toWire(suggestions));
   } catch (error) {
     return errorResponse(error);
   }

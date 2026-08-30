@@ -70,4 +70,14 @@ export interface EnablementEngine {
     window: ConversationWindow,
     signal?: AbortSignal,
   ): Promise<EnablementSuggestions>;
+  /**
+   * Verses only, meant to run automatically after every new seeker message —
+   * a much smaller call than `suggest`, on a much cheaper model, so it can
+   * run far more often without either the cost or the latency of the full
+   * analysis. See the enablement-cache design for how the two are merged.
+   */
+  suggestVerses(
+    window: ConversationWindow,
+    signal?: AbortSignal,
+  ): Promise<readonly SuggestedVerse[]>;
 }

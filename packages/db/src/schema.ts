@@ -262,6 +262,47 @@ export const moderationFlags = pgTable(
   ],
 );
 
+/**
+ * What survives a page reload for the volunteer's sidebar.
+ *
+ * Two independent tiers in one row, rather than one shared blob, because
+ * they update on entirely different cadences: `full` (verses, discussion
+ * points, and the seeker-understanding read) is generated once and then
+ * only again on request; `verses` alone regenerates automatically after
+ * every new seeker message, on a much cheaper model. Keeping their columns
+ * separate — each tier's write only ever sets its own columns via
+ * `onConflictDoUpdate` — means the frequent, cheap write can never race
+ * against or clobber the rare, expensive one.
+ *
+ * Both tiers mirror `messages`' own encryption-envelope shape: this is
+ * content derived from a real conversation and is exactly as sensitive as
+ * the transcript itself, encrypted under the same conversation data key.
+ */
+export const enablementCache = pgTable("enablement_cache", {
+  conversationId: uuid("conversation_id")
+    .primaryKey()
+    .references(() => conversations.id, { onDelete: "cascade" }),
+
+  fullCiphertext: text("full_ciphertext"),
+  fullIv: text("full_iv"),
+  fullAuthTag: text("full_auth_tag"),
+  fullAlgorithm: text("full_algorithm"),
+  fullKeyId: text("full_key_id"),
+  fullCipherVersion: smallint("full_cipher_version"),
+  fullGeneratedAt: timestamp("full_generated_at", { withTimezone: true }),
+  /** Messages considered in this generation's window, not the conversation's total. */
+  fullMessageCount: integer("full_message_count"),
+
+  versesCiphertext: text("verses_ciphertext"),
+  versesIv: text("verses_iv"),
+  versesAuthTag: text("verses_auth_tag"),
+  versesAlgorithm: text("verses_algorithm"),
+  versesKeyId: text("verses_key_id"),
+  versesCipherVersion: smallint("verses_cipher_version"),
+  versesGeneratedAt: timestamp("verses_generated_at", { withTimezone: true }),
+  versesMessageCount: integer("verses_message_count"),
+});
+
 // ── Scripture ───────────────────────────────────────────────────────────────
 
 /**
@@ -421,6 +462,7 @@ export const schema = {
   conversations,
   messages,
   moderationFlags,
+  enablementCache,
   auditLog,
   knowledgeDocuments,
   knowledgeChunks,

@@ -10,9 +10,13 @@ import type { LlmEffort, LlmModelRouter, LlmTask } from "@nexus/core";
  * reasoning about it cost roughly four times as much and several seconds of
  * latency in the middle of a live conversation.
  *
- * Everything else stays on Opus. Deciding whether someone is at risk, and
- * deciding what to put in front of a volunteer talking to a grieving stranger,
- * are not places to save money.
+ * Everything else stays on Opus, with one deliberate second exception:
+ * `enablement_verses` — a handful of scripture suggestions, regenerated
+ * automatically after every seeker message rather than on request. Judging
+ * *what a volunteer should understand* about someone stays on the careful
+ * model; suggesting *which verses might fit* is closer to translation's
+ * mechanical end of the spectrum, and running it on Opus at the cadence this
+ * feature needs would turn "every message" into a cost nobody chose.
  *
  * Every task is still overridable by environment variable, in one place rather
  * than scattered through feature code.
@@ -26,6 +30,8 @@ const TASK_MODELS: Record<LlmTask, string> = {
   translation: TRANSLATION_MODEL,
   language_detection: TRANSLATION_MODEL,
   enablement: DEFAULT_MODEL,
+  // Cheap and frequent on purpose — see the doc comment on the task itself.
+  enablement_verses: TRANSLATION_MODEL,
   moderation: DEFAULT_MODEL,
   knowledge_synthesis: DEFAULT_MODEL,
   practice: DEFAULT_MODEL,
@@ -73,6 +79,7 @@ const ENV_KEYS: Record<LlmTask, string> = {
   translation: "NEXUS_MODEL_TRANSLATION",
   language_detection: "NEXUS_MODEL_LANGUAGE_DETECTION",
   enablement: "NEXUS_MODEL_ENABLEMENT",
+  enablement_verses: "NEXUS_MODEL_ENABLEMENT_VERSES",
   moderation: "NEXUS_MODEL_MODERATION",
   knowledge_synthesis: "NEXUS_MODEL_KNOWLEDGE",
   practice: "NEXUS_MODEL_PRACTICE",
@@ -97,6 +104,8 @@ export const TASK_DEFAULTS: Record<
   translation: { effort: "low", maxTokens: 4000 },
   language_detection: { effort: "low", maxTokens: 256 },
   enablement: { effort: "high", maxTokens: 8000 },
+  // A handful of verses and a one-line reason each — not the full analysis.
+  enablement_verses: { effort: "low", maxTokens: 1200 },
   moderation: { effort: "high", maxTokens: 4000 },
   knowledge_synthesis: { effort: "medium", maxTokens: 8000 },
   // In the latency path of a live exercise, and short: one message from a

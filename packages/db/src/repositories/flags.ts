@@ -12,11 +12,11 @@ import type {
   ModerationVerdict,
   FlagSubject,
   MessageId,
-  WrappedDataKey,
 } from "@nexus/core";
-import { NexusError, asFlagId, asConversationId } from "@nexus/core";
+import { asFlagId, asConversationId } from "@nexus/core";
 import type { NexusDatabase } from "../client.js";
-import { conversations, moderationFlags } from "../schema.js";
+import { moderationFlags } from "../schema.js";
+import { keyFor } from "./data-key.js";
 
 export class DrizzleFlagRepository implements FlagRepository {
   readonly #db: NexusDatabase;
@@ -31,7 +31,7 @@ export class DrizzleFlagRepository implements FlagRepository {
     conversationId: ConversationId,
     verdict: ModerationVerdict,
   ): Promise<ModerationFlag> {
-    const key = await this.#keyFor(conversationId);
+    const key = await keyFor(this.#db, conversationId);
     // The rationale quotes the conversation, so it is encrypted with the same
     // conversation key — under a distinct purpose, so a message ciphertext and
     // a rationale ciphertext can never be swapped for one another.
@@ -134,20 +134,9 @@ export class DrizzleFlagRepository implements FlagRepository {
       .where(eq(moderationFlags.id, id));
   }
 
-  async #keyFor(conversationId: ConversationId): Promise<WrappedDataKey> {
-    const rows = await this.#db
-      .select({ wrapped: conversations.wrappedKey, keyId: conversations.keyId })
-      .from(conversations)
-      .where(eq(conversations.id, conversationId))
-      .limit(1);
-    const row = rows[0];
-    if (!row) throw NexusError.notFound("Conversation", conversationId);
-    return { wrapped: row.wrapped, keyId: row.keyId };
-  }
-
   async #openRationale(row: typeof moderationFlags.$inferSelect): Promise<string> {
     const conversationId = asConversationId(row.conversationId);
-    const key = await this.#keyFor(conversationId);
+    const key = await keyFor(this.#db, conversationId);
     return this.#crypto.decrypt(
       {
         ciphertext: row.rationaleCiphertext,
