@@ -14,7 +14,12 @@
 export const CORNER_PILL_CLASS =
   "border-line hover:border-line-strong text-ink-subtle hover:text-ink-muted inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors";
 
-const ICON_PROPS = {
+/**
+ * The one icon style this app uses everywhere a small inline mark is
+ * needed — exported so a third place (the sidebar's drag handle) can build
+ * on it instead of hand-copying these seven properties again.
+ */
+export const ICON_PROPS = {
   viewBox: "0 0 16 16",
   fill: "none",
   stroke: "currentColor",

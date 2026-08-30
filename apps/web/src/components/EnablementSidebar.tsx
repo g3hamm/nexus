@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Spinner, cn } from "@nexus/ui";
+import { ICON_PROPS } from "./CornerLink";
 
 type Intent = "question" | "bridge" | "clarification" | "caution" | "encouragement";
 
@@ -24,12 +25,23 @@ interface Suggestions {
 }
 
 /**
+ * How often to quietly check for verses regenerated in the background.
+ *
+ * A plain GET here is a cache read once a full analysis already exists —
+ * not a model call — which is what makes polling it cheap enough to skip
+ * building a live bridge to the conversation's own poll for this.
+ */
+const POLL_MS = 15_000;
+
+/**
  * The volunteer's sidebar.
  *
- * Refreshes only when asked. An auto-refreshing panel would cost a model call
- * every time anyone typed, and — worse — would keep changing what it says
- * underneath someone who is mid-thought. The volunteer decides when they want
- * another look.
+ * The full analysis — Understanding, discussion points — only regenerates
+ * on the very first look at a conversation, or when the volunteer clicks
+ * Update below. Verses are the one exception: they refresh automatically on
+ * the server after every new seeker message (see `EnablementCacheService`),
+ * cheaply, on a much smaller model, and this component's own poll just
+ * notices that happened rather than causing it.
  */
 export function EnablementSidebar({
   conversationId,
@@ -39,22 +51,49 @@ export function EnablementSidebar({
   readonly seekerLanguage: string;
 }) {
   const [data, setData] = useState<Suggestions | null>(null);
-  const [busy, setBusy] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Shared by the mount fetch, the poll, and Update: the first fetch for a
+  // conversation can be a genuine multi-second model call, and without this
+  // the poll firing mid-bootstrap would kick off a second one right behind it.
+  const inFlight = useRef(false);
 
   const load = useCallback(async () => {
-    setBusy(true);
-    setError(null);
+    if (inFlight.current) return;
+    inFlight.current = true;
     try {
       const response = await fetch(`/api/conversations/${conversationId}/suggestions`, {
         cache: "no-store",
       });
       if (!response.ok) throw new Error("failed");
       setData((await response.json()) as Suggestions);
+      setError(null);
     } catch {
       setError("Could not load suggestions.");
     } finally {
-      setBusy(false);
+      inFlight.current = false;
+      setLoading(false);
+    }
+  }, [conversationId]);
+
+  const forceRefresh = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setRefreshing(true);
+    try {
+      const response = await fetch(
+        `/api/conversations/${conversationId}/suggestions/refresh`,
+        { method: "POST" },
+      );
+      if (!response.ok) throw new Error("failed");
+      setData((await response.json()) as Suggestions);
+      setError(null);
+    } catch {
+      setError("Could not load suggestions.");
+    } finally {
+      inFlight.current = false;
+      setRefreshing(false);
     }
   }, [conversationId]);
 
@@ -62,12 +101,23 @@ export function EnablementSidebar({
     void load();
   }, [load]);
 
+  // The quiet background check described above.
+  useEffect(() => {
+    const interval = setInterval(() => void load(), POLL_MS);
+    return () => clearInterval(interval);
+  }, [load]);
+
   return (
     <div className="text-panel-ink flex h-full flex-col gap-5 overflow-y-auto p-5">
       <div>
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-panel-ink font-serif text-lg">Guidance</h2>
-          <Button variant="ghost-panel" size="sm" busy={busy} onClick={() => void load()}>
+          <Button
+            variant="ghost-panel"
+            size="sm"
+            busy={refreshing}
+            onClick={() => void forceRefresh()}
+          >
             Update
           </Button>
         </div>
@@ -78,7 +128,7 @@ export function EnablementSidebar({
 
       {error ? (
         <p className="text-panel-caution text-sm">{error}</p>
-      ) : busy && !data ? (
+      ) : loading && !data ? (
         <div className="flex justify-center py-8">
           <Spinner className="text-panel-subtle" />
         </div>
@@ -162,6 +212,13 @@ function Understanding({
   );
 }
 
+/**
+ * Draggable onto the composer for a quick mention — dropped as plain text,
+ * the reference on its own already renders inline and hoverable once sent
+ * (see `ScriptureText`), so nothing here needs to format it specially.
+ * Desktop only by nature: on a phone the conversation and this panel are
+ * two separate swipe pages, never both on screen to drag between.
+ */
 function Verses({ verses }: { readonly verses: Suggestions["verses"] }) {
   if (verses.length === 0) return null;
 
@@ -169,8 +226,19 @@ function Verses({ verses }: { readonly verses: Suggestions["verses"] }) {
     <Section title="Scripture">
       <ul className="space-y-3">
         {verses.map((verse) => (
-          <li key={verse.reference} className="bg-panel-raised rounded-md p-3">
-            <p className="text-panel-ink font-medium">{verse.reference}</p>
+          <li
+            key={verse.reference}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData("text/plain", verse.reference);
+              e.dataTransfer.effectAllowed = "copy";
+            }}
+            className="bg-panel-raised cursor-grab rounded-md p-3 active:cursor-grabbing"
+          >
+            <div className="flex items-center gap-1.5">
+              <DragHandleIcon className="text-panel-subtle" />
+              <p className="text-panel-ink font-medium">{verse.reference}</p>
+            </div>
             {verse.preview ? (
               <p className="border-panel-line text-panel-muted mt-1 border-l-2 pl-3 text-sm italic">
                 {verse.preview}
@@ -181,6 +249,31 @@ function Verses({ verses }: { readonly verses: Suggestions["verses"] }) {
         ))}
       </ul>
     </Section>
+  );
+}
+
+function DragHandleIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      {...ICON_PROPS}
+      aria-hidden="true"
+      className={
+        className ? `${ICON_PROPS.className} ${className}` : ICON_PROPS.className
+      }
+    >
+      {[4, 8, 12].flatMap((y) =>
+        [5, 10].map((x) => (
+          <circle
+            key={`${x}-${y}`}
+            cx={x}
+            cy={y}
+            r={1}
+            fill="currentColor"
+            stroke="none"
+          />
+        )),
+      )}
+    </svg>
   );
 }
 

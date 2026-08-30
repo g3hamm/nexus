@@ -1,7 +1,16 @@
 "use client";
 
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useRef,
+  useState,
+  type DragEvent,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { Button, field } from "@nexus/ui";
+
+/** Matches the server's own `sendSchema` cap — see `messages/route.ts`. */
+const MAX_LENGTH = 4000;
 
 export function Composer({
   onSend,
@@ -17,6 +26,7 @@ export function Composer({
 }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   async function submit(event?: FormEvent) {
     event?.preventDefault();
@@ -43,12 +53,40 @@ export function Composer({
     }
   }
 
+  /**
+   * A verse dragged from the volunteer sidebar, inserted at the cursor
+   * rather than appended — there may already be something half-typed on
+   * either side of where it belongs. The native `maxLength` attribute only
+   * constrains typing and pasting, not a state update from a drop, so this
+   * clamps explicitly to the same limit the server enforces.
+   */
+  function onDrop(event: DragEvent<HTMLTextAreaElement>) {
+    const dropped = event.dataTransfer.getData("text/plain");
+    if (!dropped) return;
+    // Stops the textarea's own native drop handling, which would otherwise
+    // insert the same text a second time right behind this one.
+    event.preventDefault();
+
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? text.length;
+    const next = (text.slice(0, start) + dropped + text.slice(end)).slice(0, MAX_LENGTH);
+    setText(next);
+    if (next.trim().length > 0) onTyping?.();
+
+    const caret = Math.min(start + dropped.length, MAX_LENGTH);
+    // After the paint that actually shows the new value — setting it any
+    // earlier moves the caret against the textarea's still-stale content.
+    requestAnimationFrame(() => el?.setSelectionRange(caret, caret));
+  }
+
   return (
     <form onSubmit={submit} className="flex items-end gap-3">
       <label htmlFor="composer" className="sr-only">
         Write a message
       </label>
       <textarea
+        ref={textareaRef}
         id="composer"
         value={text}
         onChange={(e) => {
@@ -59,8 +97,10 @@ export function Composer({
           if (e.target.value.trim().length > 0) onTyping?.();
         }}
         onKeyDown={onKeyDown}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={onDrop}
         rows={1}
-        maxLength={4000}
+        maxLength={MAX_LENGTH}
         disabled={disabled}
         placeholder={placeholder}
         className={field("lg", "max-h-40 min-h-12 flex-1 resize-none")}
