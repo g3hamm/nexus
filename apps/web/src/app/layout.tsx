@@ -37,12 +37,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         conversation that is invisible; on a long one, the whole page grows to
         fit every message instead of the transcript scrolling inside a frame
         that stays put. A real height fixes it at the one place it needs
-        fixing, and costs nothing on ordinary content pages: `body` still has
-        no `overflow` of its own, so a page whose content is genuinely taller
-        than the screen scrolls exactly as it always did.
+        fixing — but it also means `body` no longer has room to grow for a
+        page that is legitimately taller than the screen, so the wrapper
+        below carries its own `overflow-y-auto`: without it, that page's
+        content doesn't get its own scrollbar, it visibly spills out of its
+        allotted box while the footer — a flex sibling positioned against
+        that box's *allocated* height, not its overflowing content — ends up
+        stranded in the middle of the page it was meant to sit under.
       */}
       <body className="bg-canvas text-ink flex h-dvh flex-col antialiased">
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
         <BrandFooter />
       </body>
     </html>
