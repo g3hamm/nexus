@@ -31,6 +31,10 @@ export default async function SeekerChatPage({
   const conversation = await new ExpiryService(c).resolve(found);
   if (!conversation) redirect("/");
 
+  // Unlike the volunteer's page, the seeker's other person isn't known yet
+  // when this renders — nobody may have claimed the conversation. Their name
+  // arrives over the same live poll that already flips `matched`, in
+  // `useConversation`, rather than as a prop fixed at page load.
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ChatWindow conversationId={id} viewerRole="seeker" />

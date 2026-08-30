@@ -18,15 +18,35 @@ import { useConversation } from "./useConversation";
 export function ChatWindow({
   conversationId,
   viewerRole,
-  peerName,
+  seekerName,
 }: {
   readonly conversationId: string;
   readonly viewerRole: "seeker" | "volunteer";
-  /** What the other person asked to be called, when they said. */
-  readonly peerName?: string | null | undefined;
+  /**
+   * What the seeker asked to be called, for the volunteer's header.
+   *
+   * Only meaningful for `viewerRole === "volunteer"`: a seeker is attached to
+   * a conversation from the moment it exists, so this is fixed at page load
+   * and never needs to change underneath anyone. The seeker's own header has
+   * no equivalent prop — nobody may have claimed the conversation yet when
+   * their page first renders, so the volunteer's name instead comes from
+   * `useConversation`'s live `peerName`, which can appear or change while the
+   * page is already open.
+   */
+  readonly seekerName?: string | null | undefined;
 }) {
-  const { messages, matched, status, loading, crisis, coverage, peerTyping, notifyTyping, send } =
-    useConversation(conversationId, viewerRole);
+  const {
+    messages,
+    matched,
+    status,
+    peerName,
+    loading,
+    crisis,
+    coverage,
+    peerTyping,
+    notifyTyping,
+    send,
+  } = useConversation(conversationId, viewerRole);
   const sentPending = useRef(false);
 
   // Deliver the message typed on the landing page, now that a conversation
@@ -52,13 +72,19 @@ export function ChatWindow({
     // already shorter than the viewport, and a viewport-height child would
     // push the composer off the bottom of it.
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-4 py-4 sm:px-6">
-      <header className="border-line flex items-center justify-between border-b pb-4">
-        <span className="text-ink font-serif text-lg" dir="auto">
-          {viewerRole === "volunteer" ? (peerName ?? "Someone") : "Nexus"}
-        </span>
-        {viewerRole === "seeker" ? (
-          <WaitingIndicator matched={matched} ended={ended} coverage={coverage} />
-        ) : null}
+      <header className="border-line flex items-center border-b pb-4">
+        {viewerRole === "volunteer" ? (
+          <span className="text-ink font-serif text-lg" dir="auto">
+            {seekerName ?? "Someone"}
+          </span>
+        ) : (
+          <WaitingIndicator
+            peerName={peerName}
+            matched={matched}
+            ended={ended}
+            coverage={coverage}
+          />
+        )}
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto py-6">
@@ -140,20 +166,32 @@ function TypingIndicator() {
  * just typed. The spinner is reserved for a search that is really running.
  */
 function WaitingIndicator({
+  peerName,
   matched,
   ended,
   coverage,
 }: {
+  /** The volunteer's first name, once one has picked up the conversation. */
+  readonly peerName?: string | null | undefined;
   readonly matched: boolean;
   readonly ended: boolean;
   readonly coverage: CoverageState | null;
 }) {
-  if (ended) return null;
+  // Presence has nothing left to report once it's over, but the header
+  // shouldn't just go blank — who the seeker was talking to is still worth
+  // showing on a transcript they can come back and read for the next hour.
+  if (ended) {
+    return (
+      <span className="text-ink-muted text-sm" dir="auto">
+        {peerName ?? "Someone"}
+      </span>
+    );
+  }
   if (matched) {
     return (
       <span className="text-ink-muted flex items-center gap-2 text-sm">
         <span aria-hidden="true" className="bg-positive size-2 rounded-full" />
-        Someone is here with you
+        <span dir="auto">{peerName ?? "Someone"}</span> is here with you
       </span>
     );
   }
@@ -191,8 +229,7 @@ function WaitingIndicator({
 function NobodyOnNote({ showHelpline }: { readonly showHelpline: boolean }) {
   return (
     <p className="text-ink-subtle mb-3 text-sm leading-relaxed">
-      What you write is saved. Come back on this device and you will find any
-      reply.
+      What you write is saved. Come back on this device and you will find any reply.
       {showHelpline ? (
         <>
           {" "}

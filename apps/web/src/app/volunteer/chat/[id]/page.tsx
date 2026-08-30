@@ -62,7 +62,7 @@ export default async function VolunteerChatPage({
         <ChatWindow
           conversationId={id}
           viewerRole="volunteer"
-          peerName={scenario ? null : conversation.seekerName}
+          seekerName={scenario ? null : conversation.seekerName}
         />
       }
       panel={

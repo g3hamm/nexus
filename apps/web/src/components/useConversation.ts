@@ -30,7 +30,13 @@ export interface CrisisState {
 
 interface TranscriptResponse {
   readonly messages: TranscriptEntry[];
-  readonly conversation: { id: string; status: string; matched: boolean };
+  readonly conversation: {
+    id: string;
+    status: string;
+    matched: boolean;
+    /** The other person's first name — a volunteer's, from a seeker's side. */
+    peerName?: string | null;
+  };
   readonly crisis?: CrisisState;
   readonly coverage?: { state: CoverageState } | null;
 }
@@ -97,6 +103,7 @@ export function useConversation(
   const [messages, setMessages] = useState<TranscriptEntry[]>([]);
   const [matched, setMatched] = useState(false);
   const [status, setStatus] = useState<string>("waiting");
+  const [peerName, setPeerName] = useState<string | null>(null);
   const [crisis, setCrisis] = useState<CrisisState>({ active: false });
   const [coverage, setCoverage] = useState<CoverageState | null>(null);
   const [peerTyping, setPeerTyping] = useState(false);
@@ -128,6 +135,7 @@ export function useConversation(
       const data = (await response.json()) as TranscriptResponse;
       setMatched(data.conversation.matched);
       setStatus(data.conversation.status);
+      setPeerName(data.conversation.peerName ?? null);
       // Latches on. An incremental poll that arrives without it — an older
       // deploy, a truncated response — must not take the numbers away from
       // someone who is currently looking at them.
@@ -292,6 +300,7 @@ export function useConversation(
     messages,
     matched,
     status,
+    peerName,
     connected,
     loading,
     crisis,

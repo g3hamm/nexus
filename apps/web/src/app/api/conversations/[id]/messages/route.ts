@@ -15,6 +15,7 @@ import { PracticeService } from "@/server/practice-service";
 import { countryFor } from "@/server/geo";
 import { ExpiryService } from "@/server/expiry-service";
 import { errorResponse, ok } from "@/server/http";
+import { firstName } from "@/server/names";
 import { enforceRateLimit } from "@/server/rate-limit";
 import { seekerSession, staffSession } from "@/server/session";
 
@@ -105,6 +106,7 @@ export async function GET(
         id: participant.conversation.id,
         status: participant.conversation.status,
         matched: participant.conversation.volunteerId !== null,
+        peerName: await peerNameFor(participant),
       },
       crisis: crisisFor(participant, request),
       coverage: await coverageFor(participant),
@@ -138,6 +140,28 @@ async function coverageFor(participant: Awaited<ReturnType<typeof participantFor
     console.error("[nexus] coverage lookup failed", { error });
     return null;
   }
+}
+
+/**
+ * The volunteer's first name, from a seeker's side, once one exists.
+ *
+ * Only computed for a seeker, and only once matched: a volunteer already
+ * knows the seeker's chosen name from the page itself (fixed for the life of
+ * the conversation, since a seeker is attached at creation), but the seeker
+ * has no volunteer to name until one claims the conversation — which can
+ * happen while this page is already open. Carried on the same poll that
+ * already flips `matched` live, rather than fixed at page load, so the name
+ * appears the moment someone picks the conversation up instead of only after
+ * a reload.
+ */
+async function peerNameFor(participant: Awaited<ReturnType<typeof participantFor>>) {
+  if (participant.role !== "seeker") return null;
+  if (participant.conversation.volunteerId === null) return null;
+
+  const volunteer = await container().volunteers.findById(
+    participant.conversation.volunteerId,
+  );
+  return volunteer ? firstName(volunteer.displayName) : null;
 }
 
 /**
