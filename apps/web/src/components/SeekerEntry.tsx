@@ -100,7 +100,7 @@ export function SeekerEntry() {
           autoFocus
           dir="auto"
           placeholder={strings.namePlaceholder}
-          className={field("md")}
+          className={field("md", "text-lg")}
         />
       </div>
 
