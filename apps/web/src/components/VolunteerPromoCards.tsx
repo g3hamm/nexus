@@ -24,14 +24,24 @@ function PromoCard({ href, eyebrow, title, description, cta, image, tint }: Prom
     >
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium uppercase tracking-wide opacity-70">{eyebrow}</p>
-        <h3 className="font-serif text-lg">{title}</h3>
+        {/* min-h reserves room for two lines at this font size — "Practice
+            with an AI Seeker" wraps, "Apologetics Academy" doesn't, and
+            without this the shorter title left the two cards' descriptions
+            and CTAs sitting at different heights side by side. */}
+        <h3 className="font-serif min-h-14 text-lg leading-snug">{title}</h3>
         <p className="mt-1 text-sm opacity-80">{description}</p>
         <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium">
           {cta}
           <ArrowRightIcon />
         </span>
       </div>
-      <Image src={image} alt="" width={96} height={96} className="size-20 shrink-0 sm:size-24" />
+      <Image
+        src={image}
+        alt=""
+        width={144}
+        height={144}
+        className="size-28 shrink-0 sm:size-36"
+      />
     </Link>
   );
 }
