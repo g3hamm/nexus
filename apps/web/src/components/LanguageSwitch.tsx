@@ -46,7 +46,7 @@ export function LanguageSwitch() {
   }, [open]);
 
   return (
-    <div ref={root} className="absolute start-5 top-5">
+    <div ref={root} className="fixed start-5 top-5">
       <button
         type="button"
         onClick={() => setOpen((was) => !was)}

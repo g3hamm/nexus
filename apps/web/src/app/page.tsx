@@ -43,7 +43,7 @@ export default async function HomePage() {
 
   return (
     <LanguageProvider>
-      <main className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6 py-8 sm:py-12">
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6 py-8 sm:py-12">
         <LanguageSwitch />
 
         {/* Volunteers arrive here too, and were expected to remember a URL
@@ -61,7 +61,7 @@ export default async function HomePage() {
         <Link
           href="/volunteer"
           aria-label="Volunteer sign in"
-          className={cn(CORNER_PILL_CLASS, "absolute end-5 top-5")}
+          className={cn(CORNER_PILL_CLASS, "fixed end-5 top-5")}
         >
           Sign In
           <ArrowRightIcon />
