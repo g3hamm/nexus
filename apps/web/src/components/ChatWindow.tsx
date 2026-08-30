@@ -191,7 +191,14 @@ function WaitingIndicator({
     return (
       <span className="text-ink-muted flex items-center gap-2 text-sm">
         <span aria-hidden="true" className="bg-positive size-2 rounded-full" />
-        <span dir="auto">{peerName ?? "Someone"}</span> is here with you
+        {/* The name and the trailing text share one flex item on purpose:
+            `gap-2` is sized for the dot-to-text gap, and reusing it as the
+            word-space between the name and "is" made that one gap twice as
+            wide as an ordinary space. Keeping both inside a single span lets
+            them flow as normal inline text, with only one `gap-2` in play. */}
+        <span>
+          <span dir="auto">{peerName ?? "Someone"}</span> is here with you
+        </span>
       </span>
     );
   }
