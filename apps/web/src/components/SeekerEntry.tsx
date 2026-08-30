@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Button, field } from "@nexus/ui";
+import { useUiLanguage } from "./LanguageProvider";
 
 /**
  * The entry point. Two questions, asked the same way.
@@ -35,6 +36,7 @@ import { Button, field } from "@nexus/ui";
  */
 export function SeekerEntry() {
   const router = useRouter();
+  const { strings } = useUiLanguage();
   const [text, setText] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -64,7 +66,7 @@ export function SeekerEntry() {
       sessionStorage.setItem(`nexus:pending:${conversationId}`, message);
       router.push(`/chat/${conversationId}`);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(strings.startError);
       setBusy(false);
     }
   }
@@ -81,8 +83,12 @@ export function SeekerEntry() {
   return (
     <form onSubmit={start} className="w-full">
       <div className="mb-4">
-        <label htmlFor="seeker-name" className="text-ink-muted mb-1.5 block text-sm">
-          What can we call you?
+        <label
+          htmlFor="seeker-name"
+          dir="auto"
+          className="text-ink-muted mb-1.5 block text-sm"
+        >
+          {strings.nameLabel}
         </label>
         <input
           id="seeker-name"
@@ -93,14 +99,18 @@ export function SeekerEntry() {
           autoComplete="off"
           autoFocus
           dir="auto"
-          placeholder="Any name you like"
+          placeholder={strings.namePlaceholder}
           className={field("md")}
         />
       </div>
 
       <div>
-        <label htmlFor="seeker-message" className="text-ink-muted mb-1.5 block text-sm">
-          What&rsquo;s on your mind?
+        <label
+          htmlFor="seeker-message"
+          dir="auto"
+          className="text-ink-muted mb-1.5 block text-sm"
+        >
+          {strings.messageLabel}
         </label>
         <textarea
           id="seeker-message"
@@ -109,15 +119,16 @@ export function SeekerEntry() {
           onKeyDown={onKeyDown}
           rows={3}
           maxLength={4000}
-          // An example, the same job "Any name you like" does above — not a
-          // second copy of the question the label already asked.
-          placeholder="Take your time."
+          dir="auto"
+          // An example, the same job the name field's placeholder does above
+          // — not a second copy of the question the label already asked.
+          placeholder={strings.messagePlaceholder}
           className={field("lg", "shadow-soft resize-none p-5 text-lg")}
         />
       </div>
 
       {error ? (
-        <p role="alert" className="text-danger mt-3 text-sm">
+        <p role="alert" dir="auto" className="text-danger mt-3 text-sm">
           {error}
         </p>
       ) : null}
@@ -129,7 +140,7 @@ export function SeekerEntry() {
         disabled={text.trim().length === 0 || name.trim().length === 0}
         className="mt-4 w-full"
       >
-        {busy ? "Connecting…" : "Start talking"}
+        <span dir="auto">{strings.startButton}</span>
       </Button>
     </form>
   );

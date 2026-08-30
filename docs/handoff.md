@@ -25,6 +25,12 @@ overturn.
 - Honest coverage. The front door and the waiting screen never promise a
   volunteer who is not there, and admins see the state of the rota on the page
   they already check.
+- A language switcher on the front door for someone who cannot read the form
+  at all — endonym-labelled, detected from the browser rather than geo-IP, and
+  purely cosmetic: it relabels the page and nothing else, so the actual
+  conversation still detects language from the message as it always has.
+  Twenty languages, matching the crisis card's list; unreviewed first-pass
+  translations in `packages/core/src/domain/seeker-ui-strings.ts`.
 - A volunteer training sandbox: nine deliberately difficult simulated seekers,
   eight of them writing in a language the volunteer does not read, running on
   the real conversation surface, with an honest debrief afterwards. See ADR 9.

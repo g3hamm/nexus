@@ -390,6 +390,32 @@ they leave the volunteer queue and start their retention countdown.
 `packages/core/src/domain/expiry.ts`. The comment at the top explains what
 each one is protecting.
 
+## The language switcher on the front door
+
+A small button in the top corner shows the page's own language — "français",
+"العربية", whatever the visitor's phone or browser is already set to. Tapping
+it opens a short list of other languages, each written in its own script, and
+picking one relabels "What can we call you?" and everything else on the page.
+
+This exists for someone who cannot read the Latin alphabet at all, and so has
+no way to know what the English form is even asking. It changes nothing about
+the actual conversation — the seeker still writes their real message in
+whatever language they want, and Nexus still detects that from the message
+itself, exactly as it always has. This only makes the empty form in front of
+them readable.
+
+Nothing is stored. No account, no cookie tied to a person, no record that a
+particular visitor prefers a particular language — just a note in that
+browser saying which of the built-in translations to show next time, the same
+kind of thing any phone already remembers about its own display language.
+
+**Twenty languages are built in**, the same twenty as the crisis card's
+helpline text. **They are a first pass, not reviewed by a native speaker of
+each one.** If something reads stiffly or wrong to someone who actually
+speaks the language, it lives in one file —
+`packages/core/src/domain/seeker-ui-strings.ts` — as one small block of text
+per language, easy to open and correct without touching anything else.
+
 ## If a page says the deployment is newer than its database
 
 You will see: _"This deployment is newer than its database. Re-run
