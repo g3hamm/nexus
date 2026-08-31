@@ -1,1 +1,17 @@
 @import "@nexus/ui/tokens.css";
+
+/*
+ * The app shell's height, and the one place it is decided.
+ *
+ * `100dvh` until `AppHeight` has measured the window, which is both the
+ * pre-hydration value and the permanent one if scripting is off — it is
+ * correct almost everywhere. The variable exists for iOS Safari, which can
+ * restore a page still laid out against the viewport it had when it left;
+ * see `AppHeight` for what that looks like on screen.
+ *
+ * Not a Tailwind utility on `body`, because the fallback is the whole point
+ * and a utility cannot express one.
+ */
+body {
+  height: var(--app-height, 100dvh);
+}

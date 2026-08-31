@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AppHeight } from "@/components/AppHeight";
 import { BrandFooter } from "@/components/BrandFooter";
 import "./globals.css";
 
@@ -30,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         footer, instead of measuring themselves against the viewport and
         pushing it off the bottom.
 
-        `h-dvh`, not `min-h-dvh`. A minimum height is not a *definite* one —
+        A definite height, not `min-h-dvh`. A minimum height is not a *definite* one —
         percentage heights and flex-basis further down the tree cannot resolve
         against it, so every `h-full` in a conversation view was quietly
         computing against its own content instead of the viewport. On a short
@@ -44,8 +45,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         allotted box while the footer — a flex sibling positioned against
         that box's *allocated* height, not its overflowing content — ends up
         stranded in the middle of the page it was meant to sit under.
+
+        The height itself lives in `globals.css` rather than as a utility
+        here, because it needs a fallback a utility cannot express: `100dvh`
+        normally, overridden by a measured pixel value on iOS Safari, which
+        can restore a page still laid out against the viewport it had when
+        it left. That produced exactly the stranded footer described above,
+        from the other direction — a `body` shorter than the screen rather
+        than content taller than its box. See `AppHeight`.
       */}
-      <body className="bg-canvas text-ink flex h-dvh flex-col antialiased">
+      <body className="bg-canvas text-ink flex flex-col antialiased">
+        <AppHeight />
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
         <BrandFooter />
       </body>
