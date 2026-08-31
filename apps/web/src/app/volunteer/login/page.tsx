@@ -6,7 +6,13 @@ import { staffSession } from "@/server/session";
 export const dynamic = "force-dynamic";
 
 export default async function VolunteerLoginPage() {
-  if (await staffSession()) redirect("/volunteer");
+  // Specifically a volunteer, matching the guard on the pages this sends
+  // them to. Bouncing on any staff session at all was a redirect loop: an
+  // administrator has a session, so this sent them to /volunteer, which
+  // requires the volunteer role and sent them straight back here. One
+  // browser holds one staff role at a time — see `requireVolunteer` — so an
+  // admin arriving here wants the sign-in form, not a round trip.
+  if ((await staffSession())?.role === "volunteer") redirect("/volunteer");
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-16">
