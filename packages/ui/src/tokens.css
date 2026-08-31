@@ -179,6 +179,12 @@
 /**
  * Dark theme.
  *
+ * CURRENTLY INERT. The app stamps `data-theme="light"` on `<html>`, which is
+ * exactly what the guard below is built to lose to, so none of this matches
+ * today — editing these values changes nothing until dark mode is switched
+ * back on. The off switch, and how to undo it, is in `apps/web/src/app/
+ * layout.tsx`. Kept whole rather than deleted, on purpose.
+ *
  * Three states: an explicit choice stamps data-theme, and the default
  * "system" setting stamps nothing — so the media query is guarded to lose to
  * an explicit light choice, and the attribute selector repeats the values so

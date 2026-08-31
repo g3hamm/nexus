@@ -15,3 +15,20 @@
 body {
   height: var(--app-height, 100dvh);
 }
+
+/*
+ * Part of the light-only switch — see `layout.tsx` for the whole of it.
+ *
+ * The `color-scheme` meta tag alone tells the browser what we prefer; this
+ * tells the rendering engine outright, which is what governs the furniture
+ * the tokens never touch — scrollbars, the caret, form controls, and the
+ * canvas behind a page that has not painted yet. Without it a dark-set
+ * phone gives you a light page with dark scrollbars in it.
+ *
+ * Keyed off the attribute rather than set outright, so removing
+ * `data-theme` from `<html>` switches this off with everything else and
+ * there is no second thing to remember.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
