@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@nexus/ui";
 import { ICON_PROPS } from "./CornerLink";
 
-/** The volunteer's two standing destinations, in both layouts. */
+/** The volunteer's two standing destinations. */
 const DESTINATIONS = [
   { href: "/volunteer/academy", icon: "/academy-icon.png", label: "Academy" },
   { href: "/volunteer/practice", icon: "/practice-icon.png", label: "Practice" },
@@ -72,46 +72,23 @@ function MaskIcon({ icon, className }: { readonly icon: string; readonly classNa
   );
 }
 
-/** The wide-screen form: a labelled tile per destination. */
-function NavIconLink({
-  href,
-  icon,
-  label,
-}: {
-  readonly href: string;
-  readonly icon: string;
-  readonly label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group border-line hover:border-line-strong bg-surface/70 ease-calm flex shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border px-5 py-3 transition-colors duration-200"
-    >
-      <MaskIcon
-        icon={icon}
-        className="bg-ink-muted group-hover:bg-ink ease-calm size-9 transition-colors duration-200"
-      />
-      <span className="text-ink-muted group-hover:text-ink text-sm font-medium">
-        {label}
-      </span>
-    </Link>
-  );
-}
-
 /**
- * The same destinations behind one button, for a phone.
+ * Everywhere a volunteer can go from here, behind one button.
  *
- * Two labelled tiles and an avatar cost a whole band across the top of a
- * narrow screen and pushed the greeting — and with it the conversations
- * that are the actual point of this page — down out of the first glance.
+ * One menu at every width, rather than a row of labelled tiles on a wide
+ * screen and a menu on a narrow one. Four separate controls for two
+ * destinations, an ornament and a sign-out read as clutter across the top
+ * of the page, and having the same thing behave two different ways meant
+ * two layouts to keep honest for no gain — nothing here is reached often
+ * enough to earn permanent space.
  *
- * The avatar does not come along. It is decoration today, with nothing to
- * link to, and every row in an open menu reads as something you can tap; a
- * row that does nothing is a worse lie in a menu than an ornament is in a
- * header. When a real profile page exists it becomes a third entry here,
- * with the avatar as its mark.
+ * The avatar rides in the button rather than sitting beside it. It has
+ * nothing behind it yet, so it is decoration, and decoration does not get
+ * its own slot in a corner this crowded — but it is also exactly what a
+ * profile entry point looks like, so this is where that lands when there is
+ * a page to open.
  */
-function MobileMenu() {
+export function VolunteerNav() {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const { busy, signOut } = useSignOut();
@@ -135,24 +112,38 @@ function MobileMenu() {
   }, [open]);
 
   return (
-    <div ref={root} className="relative shrink-0 sm:hidden">
+    // In the greeting's row on a phone, so it lines up with it for free;
+    // pinned to the page's own top-right corner on a wide screen, the same
+    // place and offsets as the front door's "Sign In". Both positions are a
+    // containing block, so the panel below hangs off either one.
+    <div
+      ref={root}
+      className="relative shrink-0 sm:absolute sm:end-5 sm:top-5 sm:z-20"
+    >
       <button
         type="button"
         aria-label={open ? "Close menu" : "Menu"}
         aria-expanded={open}
         onClick={() => setOpen((wasOpen) => !wasOpen)}
-        className="border-line hover:border-line-strong text-ink-muted hover:text-ink bg-surface/70 ease-calm flex size-11 items-center justify-center rounded-lg border transition-colors duration-200"
+        className="border-line hover:border-line-strong bg-surface/70 ease-calm flex items-center gap-2 rounded-full border py-1.5 pe-1.5 ps-3.5 transition-colors duration-200"
       >
         {/* Spread first, then override: `ICON_PROPS` carries a size meant for
             inline marks, and two conflicting size utilities on one element
             leaves stylesheet order to decide which wins. */}
-        <svg {...ICON_PROPS} className="size-5">
+        <svg {...ICON_PROPS} className="text-ink-muted size-5">
           {open ? (
             <path d="M4 4l8 8M12 4l-8 8" />
           ) : (
             <path d="M2 4h12M2 8h12M2 12h12" />
           )}
         </svg>
+        <Image
+          src="/user-avatar.png"
+          alt=""
+          width={72}
+          height={72}
+          className="size-9 shrink-0 rounded-full sm:size-10"
+        />
       </button>
 
       {open ? (
@@ -170,8 +161,8 @@ function MobileMenu() {
           ))}
 
           {/* Ruled off from the destinations above: leaving is a different
-              kind of thing from going somewhere, and on a phone this row is
-              a thumb's width from the two a volunteer actually reaches for. */}
+              kind of thing from going somewhere, and this row sits a thumb's
+              width from the two a volunteer actually reaches for. */}
           <button
             type="button"
             onClick={() => void signOut()}
@@ -184,56 +175,5 @@ function MobileMenu() {
         </div>
       ) : null}
     </div>
-  );
-}
-
-/**
- * The volunteer's standing destinations, in whichever form the screen has
- * room for.
- *
- * Rendered inside the greeting's row so the phone's button lines up with it
- * without any positioning arithmetic; the wide-screen cluster then escapes
- * that row with `absolute` to sit in the page's own top-right corner, the
- * same place and offsets as the front door's "Sign In".
- */
-function SignOutTile() {
-  const { busy, signOut } = useSignOut();
-  return (
-    <button
-      type="button"
-      onClick={() => void signOut()}
-      disabled={busy}
-      className="group border-line hover:border-line-strong bg-surface/70 ease-calm flex shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border px-5 py-3 transition-colors duration-200 disabled:opacity-60"
-    >
-      <SignOutIcon className="text-ink-muted group-hover:text-ink ease-calm size-9 transition-colors duration-200" />
-      <span className="text-ink-muted group-hover:text-ink text-sm font-medium">
-        Sign out
-      </span>
-    </button>
-  );
-}
-
-export function VolunteerNav() {
-  return (
-    <>
-      <nav className="hidden sm:absolute sm:end-5 sm:top-5 sm:z-10 sm:flex sm:items-center sm:gap-3">
-        {DESTINATIONS.map((destination) => (
-          <NavIconLink key={destination.href} {...destination} />
-        ))}
-        {/* Decorative for now — no link, no click handler. A real
-            profile/preferences page is planned; the avatar becomes that
-            entry point once it exists, not before. */}
-        <Image
-          src="/user-avatar.png"
-          alt=""
-          width={72}
-          height={72}
-          className="size-[4.5rem] shrink-0 rounded-full"
-        />
-        <SignOutTile />
-      </nav>
-
-      <MobileMenu />
-    </>
   );
 }
