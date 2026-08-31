@@ -117,6 +117,15 @@ export function useConversation(
   const lastAnnounced = useRef(0);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  /**
+   * Why the transcript is not on screen, when it is not.
+   *
+   * "gone" is a conversation whose link has expired or that this browser is
+   * no longer a participant in — the server answers 404 or 403, and no amount
+   * of retrying will change that, so the two are worth telling apart. Anything
+   * else is worth another go.
+   */
+  const [failure, setFailure] = useState<"gone" | "error" | null>(null);
 
   const latestAt = useRef<string | null>(null);
 
@@ -129,10 +138,30 @@ export function useConversation(
       if (incremental && latestAt.current)
         url.searchParams.set("after", latestAt.current);
 
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) return;
+      let response: Response;
+      try {
+        response = await fetch(url, { cache: "no-store" });
+      } catch {
+        // A dropped mobile connection. The poll will try again; all this has
+        // to do is stop pretending the transcript is still on its way.
+        setFailure("error");
+        setLoading(false);
+        return;
+      }
+
+      if (!response.ok) {
+        // This used to return silently with `loading` left true, so any
+        // failure at all left a spinner turning forever with nothing to click
+        // and nothing said. The commonest cause was not a fault: a
+        // conversation whose link had expired answers 404 here, and coming
+        // back to one that timed out overnight is an ordinary thing to do.
+        setFailure(response.status === 404 || response.status === 403 ? "gone" : "error");
+        setLoading(false);
+        return;
+      }
 
       const data = (await response.json()) as TranscriptResponse;
+      setFailure(null);
       setMatched(data.conversation.matched);
       setStatus(data.conversation.status);
       setPeerName(data.conversation.peerName ?? null);
@@ -303,6 +332,8 @@ export function useConversation(
     peerName,
     connected,
     loading,
+    /** Why the transcript is not on screen, when it is not. */
+    failure,
     crisis,
     coverage,
     peerTyping,

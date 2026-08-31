@@ -20,19 +20,27 @@ import { useEffect } from "react";
  * the back/forward-cache restore, the "left the page and came back" case —
  * and it fires on ordinary loads too, so there is no separate path for it.
  *
- * `window.innerHeight`, not `visualViewport.height`: the latter shrinks when
- * the on-screen keyboard opens, and re-laying the whole conversation out
- * around the keyboard is a different behaviour from the one `dvh` promises.
- * This matches what `100dvh` is supposed to mean, and only fixes when it is
- * measured.
+ * It follows `visualViewport` where there is one, which is what makes the
+ * composer reachable with the keyboard up. `window.innerHeight` does not
+ * shrink for a keyboard — that is the whole reason the layout viewport is a
+ * separate thing — so an app shell sized by it keeps its full height while a
+ * phone shows perhaps half of it, and everything pinned to the bottom of the
+ * shell, the message box included, sits underneath the keys. Nothing can
+ * scroll it back into view either: the shell is a definite height, so there
+ * is no page scroll to do it with.
+ *
+ * Pinch-zoom shrinks the visual viewport too, and re-laying the page out
+ * because somebody zoomed in would be absurd — so a scale above 1 falls back
+ * to the layout viewport, which zooming does not change.
  */
 export function AppHeight() {
   useEffect(() => {
     const apply = () => {
-      document.documentElement.style.setProperty(
-        "--app-height",
-        `${window.innerHeight}px`,
-      );
+      const vv = window.visualViewport;
+      const zoomed = vv ? vv.scale > 1.01 : false;
+      const height = vv && !zoomed ? vv.height : window.innerHeight;
+
+      document.documentElement.style.setProperty("--app-height", `${height}px`);
     };
 
     // Orientation changes report the old size if read immediately, so this
@@ -46,10 +54,19 @@ export function AppHeight() {
     window.addEventListener("resize", apply);
     window.addEventListener("pageshow", applyTwice);
     window.addEventListener("orientationchange", applyTwice);
+
+    // The visual viewport has its own events, and they are the only ones a
+    // keyboard opening fires — `window`'s resize does not run for it on iOS.
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", apply);
+    vv?.addEventListener("scroll", apply);
+
     return () => {
       window.removeEventListener("resize", apply);
       window.removeEventListener("pageshow", applyTwice);
       window.removeEventListener("orientationchange", applyTwice);
+      vv?.removeEventListener("resize", apply);
+      vv?.removeEventListener("scroll", apply);
     };
   }, []);
 

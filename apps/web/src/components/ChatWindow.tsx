@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { INTERNATIONAL_DIRECTORY, type CoverageState } from "@nexus/core";
-import { Spinner } from "@nexus/ui";
+import { Button, Spinner } from "@nexus/ui";
 import { Composer } from "./Composer";
 import { CrisisCard } from "./CrisisCard";
 import { MessageList } from "./MessageList";
@@ -41,11 +41,13 @@ export function ChatWindow({
     status,
     peerName,
     loading,
+    failure,
     crisis,
     coverage,
     peerTyping,
     notifyTyping,
     send,
+    refresh,
   } = useConversation(conversationId, viewerRole);
   const sentPending = useRef(false);
 
@@ -91,6 +93,24 @@ export function ChatWindow({
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <Spinner className="text-ink-subtle" />
+          </div>
+        ) : failure && messages.length === 0 ? (
+          // Only when there is nothing to show. A failed poll partway through
+          // a conversation is not worth interrupting anyone over — the next
+          // one usually succeeds, and the transcript on screen is still true.
+          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+            {failure === "gone" ? (
+              <p className="text-ink-muted">
+                This conversation has ended and is no longer available.
+              </p>
+            ) : (
+              <>
+                <p className="text-ink-muted">This conversation could not be loaded.</p>
+                <Button variant="quiet" size="sm" onClick={() => void refresh(false)}>
+                  Try again
+                </Button>
+              </>
+            )}
           </div>
         ) : (
           <>

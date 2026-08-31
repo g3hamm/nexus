@@ -64,7 +64,11 @@ function useOnScreenKeyboard(): boolean {
     const vv = window.visualViewport;
     if (!vv) return;
 
-    const check = () => setOpen(window.innerHeight - vv.height > 160);
+    // Pinch-zoom shrinks the visual viewport too. Somebody who zoomed in has
+    // not opened a keyboard, and should not have the page rearranged under
+    // them — the same guard `AppHeight` uses, for the same reason.
+    const check = () =>
+      setOpen(vv.scale <= 1.01 && window.innerHeight - vv.height > 160);
     check();
     vv.addEventListener("resize", check);
     return () => vv.removeEventListener("resize", check);
