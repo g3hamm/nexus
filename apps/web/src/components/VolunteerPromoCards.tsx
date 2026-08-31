@@ -46,7 +46,7 @@ function PromoCard({
     <Link
       href={href}
       className={cn(
-        "group shadow-soft ease-calm flex gap-4 rounded-lg p-6 transition-transform duration-200 hover:-translate-y-0.5 sm:p-8",
+        "group shadow-soft ease-calm flex gap-3 rounded-lg p-5 transition-transform duration-200 hover:-translate-y-0.5 sm:gap-4 sm:p-8",
         tone.card,
       )}
     >
@@ -60,12 +60,20 @@ function PromoCard({
         <h3 className="mt-2 min-h-[2.4em] font-serif text-2xl leading-tight sm:text-3xl">
           {title}
         </h3>
-        <p className="mt-3 text-sm opacity-80">{description}</p>
-        {/* Pushed to the bottom so both cards' buttons line up even when
-            their descriptions run to different numbers of lines. */}
+        <p className="mb-6 mt-3 text-sm opacity-80">{description}</p>
+        {/* `mt-auto` lines both cards' buttons up when the grid has stretched
+            them to a shared height; the description's own bottom margin is
+            what keeps the button off the text when it has not — on a phone
+            these stack into one column and each card is sized by its own
+            content, so there is no free space for `auto` to distribute and
+            the button sat flush against the last line.
+
+            The label neither wraps nor shrinks, so its width is the floor on
+            how narrow the text column can go — which is what caps the
+            illustration beside it. */}
         <span
           className={cn(
-            "ease-calm mt-auto inline-flex w-fit items-center gap-2 whitespace-nowrap rounded-md px-5 py-3 text-sm font-medium text-white transition-opacity duration-200 group-hover:opacity-90",
+            "ease-calm mt-auto inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md px-3.5 py-3 text-sm font-medium text-white sm:gap-2 sm:px-5 transition-opacity duration-200 group-hover:opacity-90",
             tone.button,
           )}
         >
@@ -74,12 +82,17 @@ function PromoCard({
         </span>
       </div>
 
+      {/* Both source files were normalised so the drawing fills a fixed
+          share of its canvas — academy's was carrying 40% empty space and
+          rendering visibly smaller than practice at the same width. The
+          size here is therefore real size, and the two stay in proportion
+          with each other. */}
       <Image
         src={image}
         alt=""
-        width={256}
-        height={256}
-        className="w-1/3 shrink-0 self-center sm:w-[45%]"
+        width={320}
+        height={320}
+        className="w-[44%] shrink-0 self-center sm:w-[58%]"
       />
     </Link>
   );
