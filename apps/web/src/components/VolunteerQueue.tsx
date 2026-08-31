@@ -15,6 +15,7 @@ interface QueueEntry {
   readonly waitingSince?: string;
   readonly matchedAt?: string | null;
   readonly lastMessage?: string | null;
+  readonly practice?: boolean;
 }
 
 interface QueueResponse {
@@ -43,8 +44,33 @@ function initialFor(name: string | null): string {
   return name?.trim().charAt(0).toUpperCase() || "?";
 }
 
-function Avatar({ id, name }: { readonly id: string; readonly name: string | null }) {
+function Avatar({
+  id,
+  name,
+  practice = false,
+}: {
+  readonly id: string;
+  readonly name: string | null;
+  readonly practice?: boolean;
+}) {
   const tint = avatarTint(id);
+
+  // A rehearsal gets the Practice mark instead of an initial. The name on a
+  // practice row belongs to a character, and dressing it up as a person's
+  // initial is the thing this is meant to stop.
+  if (practice) {
+    return (
+      <span
+        aria-hidden="true"
+        className="bg-surface-sunken flex size-12 shrink-0 items-center justify-center rounded-full"
+      >
+        <span
+          className="bg-ink-subtle block size-6 [-webkit-mask-image:url(/practice-icon.png)] [-webkit-mask-position:center] [-webkit-mask-repeat:no-repeat] [-webkit-mask-size:contain] [mask-image:url(/practice-icon.png)] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
+        />
+      </span>
+    );
+  }
+
   return (
     <span
       aria-hidden="true"
@@ -132,7 +158,7 @@ export function VolunteerQueue({ children }: { readonly children?: ReactNode }) 
                 href={`/volunteer/chat/${entry.id}`}
                 className="hover:bg-surface-sunken ease-calm flex items-center gap-4 p-5 transition-colors duration-200"
               >
-                <Avatar id={entry.id} name={entry.name} />
+                <Avatar id={entry.id} name={entry.name} practice={entry.practice} />
                 <div className="min-w-0 flex-1">
                   <p className="text-ink truncate text-lg font-semibold" dir="auto">
                     {entry.name ?? "Someone"}
@@ -147,8 +173,20 @@ export function VolunteerQueue({ children }: { readonly children?: ReactNode }) 
                     </p>
                   ) : null}
                 </div>
-                <span className="bg-active/15 text-active hidden shrink-0 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider sm:inline-block">
-                  Active
+                {/* Colour is reserved for the rows that carry a real
+                    person. A rehearsal is the one thing in this list that
+                    can wait, so it says so in grey rather than competing
+                    for attention with someone who is actually waiting on a
+                    reply. */}
+                <span
+                  className={cn(
+                    "hidden shrink-0 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider sm:inline-block",
+                    entry.practice
+                      ? "bg-surface-sunken text-ink-subtle"
+                      : "bg-active/15 text-active",
+                  )}
+                >
+                  {entry.practice ? "Practice" : "Active"}
                 </span>
                 <ChevronRightIcon className="text-ink-subtle size-5" />
               </Link>

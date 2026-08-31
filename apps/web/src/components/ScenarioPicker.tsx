@@ -70,7 +70,7 @@ export function ScenarioPicker({
       {scenarios.map((scenario) => (
         <article
           key={scenario.id}
-          className="border-line bg-surface-raised rounded-[--radius-md] border p-5"
+          className="border-line bg-surface shadow-soft rounded-lg border p-5"
         >
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 className="text-ink font-serif text-lg">{scenario.title}</h2>
@@ -101,7 +101,7 @@ export function ScenarioPicker({
             type="button"
             onClick={() => void start(scenario.id)}
             disabled={starting !== null}
-            className="bg-accent text-accent-ink hover:bg-accent-hover mt-4 inline-flex items-center gap-2 rounded-[--radius-sm] px-4 py-2 text-sm disabled:opacity-60"
+            className="bg-practice-deep ease-calm mt-4 inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition-opacity duration-200 hover:opacity-90 disabled:opacity-60"
           >
             {starting === scenario.id ? <Spinner className="size-3" /> : null}
             {starting === scenario.id ? "Starting…" : "Start"}
