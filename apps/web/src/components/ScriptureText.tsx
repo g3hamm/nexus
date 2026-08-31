@@ -25,9 +25,11 @@ const CACHE = new Map<string, Passage>();
 
 /** Matches the width class on the card; the two have to agree to centre it. */
 const CARD_WIDTH = 320;
-/** Roughly how tall a card gets, used only to decide above or below. */
-const CARD_MAX_HEIGHT = 220;
+/** Below this there is not enough of a passage visible to be worth opening. */
+const MIN_CARD_HEIGHT = 140;
 const MARGIN = 16;
+/** Between the reference and the card pointing at it. */
+const OFFSET = 8;
 
 function clamp(value: number, low: number, high: number): number {
   return Math.min(Math.max(value, low), high);
@@ -44,10 +46,17 @@ export function ScriptureText({
   text,
   language,
   className,
+  linkClassName,
 }: {
   readonly text: string;
   readonly language: string;
   readonly className?: string;
+  /**
+   * Colour for the reference itself. The default is tuned for the page; the
+   * volunteer's dark panel passes its own, where the page accent does not
+   * have the contrast to be read.
+   */
+  readonly linkClassName?: string;
 }) {
   const detected = referenceDetector.detect(text, language);
   if (detected.length === 0) return <span className={className}>{text}</span>;
@@ -65,6 +74,7 @@ export function ScriptureText({
         label={found.matchedText}
         reference={found.reference}
         language={language}
+        linkClassName={linkClassName}
       />,
     );
     cursor = found.endIndex;
@@ -79,6 +89,7 @@ function VerseLink({
   label,
   reference,
   language,
+  linkClassName,
 }: {
   readonly label: string;
   readonly reference: {
@@ -88,15 +99,20 @@ function VerseLink({
     endVerse: number | null;
   };
   readonly language: string;
+  readonly linkClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [passage, setPassage] = useState<Passage | null>(null);
   const [loading, setLoading] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
-  const [at, setAt] = useState<{ left: number; top: number; below: boolean } | null>(
-    null,
-  );
+  const [at, setAt] = useState<{
+    left: number;
+    below: boolean;
+    /** The edge the card is pinned by — `top` below, `bottom` above. */
+    offset: number;
+    maxHeight: number;
+  } | null>(null);
 
   const cacheKey = `${language}:${reference.book}.${reference.chapter}.${reference.verse ?? ""}.${reference.endVerse ?? ""}`;
 
@@ -135,10 +151,16 @@ function VerseLink({
   /**
    * Where the card should sit, in viewport coordinates.
    *
-   * Above the reference by preference, below it when there is no room above —
-   * a reference in the first line of a long message would otherwise open a
-   * card half off the top of the screen. Clamped to the viewport on both
-   * sides so a reference near an edge does not push the passage out of reach.
+   * Whichever side has more room, and never taller than that room. This used
+   * to guess the height at a fixed 220px and then pull the card up by its own
+   * full height — so a long passage, which can run to 60% of the screen, was
+   * dragged clean off the top and the first verses could not be read at all.
+   *
+   * The fix is to stop guessing twice. The card is pinned by the edge nearest
+   * the reference — `top` when it opens downwards, `bottom` when it opens
+   * upwards — so it grows away from the reference into space already measured,
+   * and `maxHeight` caps it at exactly that space. Nothing has to know the
+   * rendered height, and neither edge can leave the screen.
    */
   const place = useCallback(() => {
     const el = trigger.current;
@@ -146,7 +168,11 @@ function VerseLink({
 
     const rect = el.getBoundingClientRect();
     const width = Math.min(CARD_WIDTH, window.innerWidth - 2 * MARGIN);
-    const below = rect.top < CARD_MAX_HEIGHT + MARGIN;
+
+    const roomAbove = rect.top - OFFSET - MARGIN;
+    const roomBelow = window.innerHeight - rect.bottom - OFFSET - MARGIN;
+    const below = roomBelow >= roomAbove;
+    const room = below ? roomBelow : roomAbove;
 
     setAt({
       left: clamp(
@@ -154,8 +180,14 @@ function VerseLink({
         MARGIN,
         Math.max(MARGIN, window.innerWidth - width - MARGIN),
       ),
-      top: below ? rect.bottom + 8 : rect.top - 8,
       below,
+      offset: below
+        ? rect.bottom + OFFSET
+        : window.innerHeight - rect.top + OFFSET,
+      // A floor as well as a cap: on a short screen with the keyboard up,
+      // the better side can still be small, and a card too short to show
+      // anything is worse than one that overlaps the reference a little.
+      maxHeight: Math.max(MIN_CARD_HEIGHT, room),
     });
   }, []);
 
@@ -213,7 +245,10 @@ function VerseLink({
           if (e.detail === 0 || window.matchMedia("(hover: none)").matches) show();
         }}
         aria-expanded={open}
-        className="text-accent decoration-accent/40 hover:decoration-accent underline decoration-dotted underline-offset-2 transition-colors"
+        className={
+          linkClassName ??
+          "text-accent decoration-accent/40 hover:decoration-accent underline decoration-dotted underline-offset-2 transition-colors"
+        }
       >
         {label}
       </button>
@@ -234,10 +269,10 @@ function VerseLink({
               role="tooltip"
               style={{
                 left: at.left,
-                top: at.top,
-                transform: at.below ? undefined : "translateY(-100%)",
+                ...(at.below ? { top: at.offset } : { bottom: at.offset }),
+                maxHeight: at.maxHeight,
               }}
-              className="border-line bg-surface shadow-lifted fixed z-50 block max-h-[60vh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border p-3 text-left text-sm font-normal"
+              className="border-line bg-surface shadow-lifted fixed z-50 block w-[min(20rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-lg border p-3 text-left text-sm font-normal"
             >
               {loading && !passage ? (
                 <span className="flex justify-center py-2">

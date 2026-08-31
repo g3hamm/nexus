@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useCallback,
+  useEffect,
   useRef,
   useState,
   type DragEvent,
@@ -8,6 +10,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Button, field } from "@nexus/ui";
+import { onInsertVerse } from "./verse-insert";
 
 /** Matches the server's own `sendSchema` cap — see `messages/route.ts`. */
 const MAX_LENGTH = 4000;
@@ -54,30 +57,59 @@ export function Composer({
   }
 
   /**
-   * A verse dragged from the volunteer sidebar, inserted at the cursor
-   * rather than appended — there may already be something half-typed on
-   * either side of where it belongs. The native `maxLength` attribute only
-   * constrains typing and pasting, not a state update from a drop, so this
-   * clamps explicitly to the same limit the server enforces.
+   * A verse from the volunteer sidebar, inserted at the cursor rather than
+   * appended — there may already be something half-typed on either side of
+   * where it belongs. The native `maxLength` attribute only constrains
+   * typing and pasting, not a state update from code, so this clamps
+   * explicitly to the same limit the server enforces.
+   *
+   * Shared by the drop and the tap, so a phone and a desktop put the
+   * reference in exactly the same place.
    */
+  const insertAtCursor = useCallback(
+    (fragment: string) => {
+      if (!fragment) return;
+
+      setText((current) => {
+        const el = textareaRef.current;
+        const start = el?.selectionStart ?? current.length;
+        const end = el?.selectionEnd ?? current.length;
+
+        // A reference dropped straight against a word is unreadable, and a
+        // volunteer mid-sentence should not have to go back and add the
+        // space themselves.
+        const before = current.slice(0, start);
+        const afterText = current.slice(end);
+        const lead = before && !/\s$/.test(before) ? " " : "";
+        const trail = afterText && !/^\s/.test(afterText) ? " " : "";
+
+        const next = (before + lead + fragment + trail + afterText).slice(0, MAX_LENGTH);
+        const caret = Math.min(start + lead.length + fragment.length, MAX_LENGTH);
+
+        // After the paint that actually shows the new value — setting it any
+        // earlier moves the caret against the textarea's still-stale content.
+        requestAnimationFrame(() => {
+          el?.focus();
+          el?.setSelectionRange(caret, caret);
+        });
+        return next;
+      });
+
+      onTyping?.();
+    },
+    [onTyping],
+  );
+
+  // The sidebar is a separate subtree, and on a phone a separate page.
+  useEffect(() => onInsertVerse(insertAtCursor), [insertAtCursor]);
+
   function onDrop(event: DragEvent<HTMLTextAreaElement>) {
     const dropped = event.dataTransfer.getData("text/plain");
     if (!dropped) return;
     // Stops the textarea's own native drop handling, which would otherwise
     // insert the same text a second time right behind this one.
     event.preventDefault();
-
-    const el = textareaRef.current;
-    const start = el?.selectionStart ?? text.length;
-    const end = el?.selectionEnd ?? text.length;
-    const next = (text.slice(0, start) + dropped + text.slice(end)).slice(0, MAX_LENGTH);
-    setText(next);
-    if (next.trim().length > 0) onTyping?.();
-
-    const caret = Math.min(start + dropped.length, MAX_LENGTH);
-    // After the paint that actually shows the new value — setting it any
-    // earlier moves the caret against the textarea's still-stale content.
-    requestAnimationFrame(() => el?.setSelectionRange(caret, caret));
+    insertAtCursor(dropped);
   }
 
   return (

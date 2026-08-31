@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Spinner, cn } from "@nexus/ui";
 import { ICON_PROPS } from "./CornerLink";
+import { ScriptureText } from "./ScriptureText";
+import { insertVerse } from "./verse-insert";
 
 type Intent = "question" | "bridge" | "clarification" | "caution" | "encouragement";
 
@@ -46,9 +48,17 @@ const POLL_MS = 15_000;
 export function EnablementSidebar({
   conversationId,
   seekerLanguage,
+  language,
 }: {
   readonly conversationId: string;
+  /** The seeker's language, named in itself, for display only. */
   readonly seekerLanguage: string;
+  /**
+   * The volunteer's own language code — what the panel is written in, and
+   * so what a reference in it has to be detected and looked up as. A code,
+   * not an endonym: `seekerLanguage` above is the human-readable one.
+   */
+  readonly language: string;
 }) {
   const [data, setData] = useState<Suggestions | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,7 +149,7 @@ export function EnablementSidebar({
       ) : (
         <>
           <Understanding understanding={data.understanding} />
-          <Verses verses={data.verses} />
+          <Verses verses={data.verses} language={language} />
           <Points points={data.discussionPoints} />
           <Sources sources={data.sources} />
         </>
@@ -219,7 +229,13 @@ function Understanding({
  * Desktop only by nature: on a phone the conversation and this panel are
  * two separate swipe pages, never both on screen to drag between.
  */
-function Verses({ verses }: { readonly verses: Suggestions["verses"] }) {
+function Verses({
+  verses,
+  language,
+}: {
+  readonly verses: Suggestions["verses"];
+  readonly language: string;
+}) {
   if (verses.length === 0) return null;
 
   return (
@@ -233,11 +249,24 @@ function Verses({ verses }: { readonly verses: Suggestions["verses"] }) {
               e.dataTransfer.setData("text/plain", verse.reference);
               e.dataTransfer.effectAllowed = "copy";
             }}
-            className="bg-panel-raised cursor-grab rounded-md p-3 active:cursor-grabbing"
+            className="bg-panel-raised rounded-md p-3"
           >
             <div className="flex items-center gap-1.5">
-              <DragHandleIcon className="text-panel-subtle" />
-              <p className="text-panel-ink font-medium">{verse.reference}</p>
+              {/* The handle is the draggable affordance and stays honest
+                  about it: dragging is a desktop gesture, so it is the
+                  handle that shows the grab cursor rather than the whole
+                  card, which on a phone can only be tapped. */}
+              <DragHandleIcon className="text-panel-subtle hidden cursor-grab lg:block" />
+              {/* The reference is the passage: tapping it opens the full
+                  text. It used to be plain, so a volunteer could see which
+                  verse was suggested but not what it actually said without
+                  leaving the conversation to look it up. */}
+              <ScriptureText
+                text={verse.reference}
+                language={language}
+                className="font-medium"
+                linkClassName="text-panel-accent decoration-panel-accent/40 hover:decoration-panel-accent underline decoration-dotted underline-offset-2 transition-colors"
+              />
             </div>
             {verse.preview ? (
               <p className="border-panel-line text-panel-muted mt-1 border-l-2 pl-3 text-sm italic">
@@ -245,6 +274,17 @@ function Verses({ verses }: { readonly verses: Suggestions["verses"] }) {
               </p>
             ) : null}
             <p className="text-panel-muted mt-2 text-sm">{verse.rationale}</p>
+            {/* Dragging is unusable on a phone, where the panel and the
+                conversation are separate swipe pages and there is nowhere to
+                drag to. This does the same job with a tap, and is the only
+                way in on touch. */}
+            <button
+              type="button"
+              onClick={() => insertVerse(verse.reference)}
+              className="border-panel-line text-panel-muted hover:text-panel-ink hover:border-panel-subtle ease-calm mt-3 inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors duration-200"
+            >
+              Add to message
+            </button>
           </li>
         ))}
       </ul>

@@ -17,6 +17,7 @@ import {
   sameLanguage,
 } from "@nexus/core";
 import type { NexusDatabase } from "../client.js";
+import { forgetKey } from "./data-key.js";
 import { conversations, messages, moderationFlags } from "../schema.js";
 import { toConversation } from "./mappers.js";
 
@@ -405,6 +406,11 @@ export class DrizzleConversationRepository implements ConversationRepository {
       .delete(conversations)
       .where(inArray(conversations.id, [...ids]))
       .returning({ id: conversations.id });
+
+    // The row is gone; drop the remembered wrapped key with it, so a
+    // long-lived instance is not still holding one for a conversation this
+    // call was supposed to make permanently undecryptable.
+    for (const id of ids) forgetKey(id);
 
     return deleted.length;
   }

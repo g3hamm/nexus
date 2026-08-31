@@ -95,11 +95,20 @@ export async function GET(
     const afterRaw = request.nextUrl.searchParams.get("after");
     const after = afterRaw ? new Date(afterRaw) : undefined;
 
-    const messages = await service.transcriptFor(
-      participant.conversation.id,
-      participant.language,
-      after && !Number.isNaN(after.getTime()) ? { after } : {},
-    );
+    // Three independent lookups, run together rather than one after the
+    // other. Over Neon's HTTP driver each one is its own round trip, and
+    // this endpoint is polled for the life of every open conversation — so
+    // the difference between awaiting these in sequence and in parallel is
+    // most of what the transcript's latency was.
+    const [messages, peerName, coverage] = await Promise.all([
+      service.transcriptFor(
+        participant.conversation.id,
+        participant.language,
+        after && !Number.isNaN(after.getTime()) ? { after } : {},
+      ),
+      peerNameFor(participant),
+      coverageFor(participant),
+    ]);
 
     return ok({
       messages,
@@ -107,10 +116,10 @@ export async function GET(
         id: participant.conversation.id,
         status: participant.conversation.status,
         matched: participant.conversation.volunteerId !== null,
-        peerName: await peerNameFor(participant),
+        peerName,
       },
       crisis: crisisFor(participant, request),
-      coverage: await coverageFor(participant),
+      coverage,
     });
   } catch (error) {
     return errorResponse(error);

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { cn } from "@nexus/ui";
 
 /**
@@ -44,9 +45,44 @@ import { cn } from "@nexus/ui";
  * — a seeker or a volunteer mid-conversation who taps it should find the
  * ministry's site, not lose their place in a chat.
  */
+/**
+ * Whether the on-screen keyboard is currently covering part of the page.
+ *
+ * `visualViewport` is the only thing that knows: the layout viewport does
+ * not shrink for the keyboard, which is exactly why the page keeps its full
+ * height while a phone shows perhaps half of it. The gap between the two is
+ * the keyboard.
+ *
+ * The threshold is deliberately generous. Browser chrome sliding in and out
+ * moves this by a few dozen pixels and must not read as a keyboard; nothing
+ * but a keyboard takes 160px off the bottom of a phone.
+ */
+function useOnScreenKeyboard(): boolean {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const check = () => setOpen(window.innerHeight - vv.height > 160);
+    check();
+    vv.addEventListener("resize", check);
+    return () => vv.removeEventListener("resize", check);
+  }, []);
+
+  return open;
+}
+
 export function BrandFooter() {
   const pathname = usePathname();
+  const keyboardOpen = useOnScreenKeyboard();
   const matchesPanel = pathname?.startsWith("/volunteer/chat/") ?? false;
+
+  // A credit line is the first thing that should go when a phone is down to
+  // a few visible inches. It was sitting between the composer and the
+  // keyboard, taking room from the one part of the screen someone is
+  // actively using — and this is a bar nobody came here to read.
+  if (keyboardOpen) return null;
 
   return (
     <footer

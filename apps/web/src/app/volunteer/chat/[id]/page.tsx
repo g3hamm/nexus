@@ -78,6 +78,7 @@ export default async function VolunteerChatPage({
           <EnablementSidebar
             conversationId={id}
             seekerLanguage={endonym(conversation.seekerLanguage)}
+            language={conversation.volunteerLanguage ?? "en"}
           />
         )
       }
